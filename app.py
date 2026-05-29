@@ -62,7 +62,7 @@ TEAM_DB = {
         "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
         "squad": [
             "Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", 
-            "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
+            "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
             "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"
         ]
     },
@@ -229,16 +229,16 @@ else:
     st_autorefresh(interval=3000, key="broadcast_sync_pulse")
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
-# Visual Main Brand Header Panel
-banner_col1, banner_col2 = st.columns([0.15, 0.85])
-with banner_col1:
-    smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=80, use_container=False)
-with banner_col2:
-    st.markdown(
-        "<h2 style='color: #FFFFFF; font-size: 2.3rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:4px;'>ANSCOR APL 2026</h2>"
-        "<p style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
-        unsafe_allow_html=True
-    )
+# Visual Main Brand Header Panel - Fixed Alignment Layout using Flexbox
+st.markdown(f"""
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding-top:4px;">
+        <img src="{GITHUB_RAW_BASE + MAIN_LOGOS['local']}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px;">
+        <div>
+            <h2 style='color: #FFFFFF; font-size: 2.3rem; font-weight: 900; letter-spacing: 1px; margin: 0;'>ANSCOR APL 2026</h2>
+            <p style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin: 2px 0 0 0;'>Corporate Tournament Broadcast Portal</p>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 def save_state_for_undo():
     state_snapshot = {
@@ -424,17 +424,24 @@ with tab_live:
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
-            logo_c1, logo_vs, logo_c2 = st.columns([1, 0.5, 1])
-            with logo_c1:
-                b_team = global_data["batting_team"]
-                if b_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=70, use_container=False)
-            with logo_vs:
-                st.markdown("<h4 style='text-align: center; margin-top: 15px; border: none; padding: 0; color:#64748B;'>VS</h4>", unsafe_allow_html=True)
-            with logo_c2:
-                f_team = global_data["bowling_team"]
-                if f_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=70, use_container=False)
+            # Replaced with a unified flexbox block to cleanly center team emblems around the 'VS' divider
+            b_team = global_data["batting_team"]
+            f_team = global_data["bowling_team"]
+            
+            b_logo_url = TEAM_DB[b_team]["remote"] if b_team in TEAM_DB else ""
+            f_logo_url = TEAM_DB[f_team]["remote"] if f_team in TEAM_DB else ""
+
+            st.markdown(f"""
+                <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 15px; width: 100%;">
+                    <div style="text-align: center; width: 80px;">
+                        <img src="{b_logo_url}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
+                    </div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #3B82F6; letter-spacing: 1px; padding-bottom: 5px;">VS</div>
+                    <div style="text-align: center; width: 80px;">
+                        <img src="{f_logo_url}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
             st.markdown(f"""
                 <div class="score-box">
