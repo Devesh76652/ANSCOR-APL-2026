@@ -80,8 +80,14 @@ TEAM_DB = {
 
 MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
 
+# FIXED: Added support for list-wrapped paths & default remote_url=""
 def get_image_src(local_path, remote_url=""):
-    if os.path.exists(local_path):
+    if isinstance(local_path, list):
+        local_path = local_path[0] if len(local_path) > 0 else ""
+    if isinstance(remote_url, list):
+        remote_url = remote_url[0] if len(remote_url) > 0 else ""
+        
+    if local_path and os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
                 encoded = base64.b64encode(img_file.read()).decode()
@@ -90,8 +96,14 @@ def get_image_src(local_path, remote_url=""):
         except: pass
     return remote_url
 
+# FIXED: Added support for list-wrapped paths inside Streamlit image rendering pipeline
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
-    if os.path.exists(local_path):
+    if isinstance(local_path, list):
+        local_path = local_path[0] if len(local_path) > 0 else ""
+    if isinstance(remote_url, list):
+        remote_url = remote_url[0] if len(remote_url) > 0 else ""
+        
+    if local_path and os.path.exists(local_path):
         try: st.image(local_path, width=width, use_container_width=use_container); return True
         except: pass
     try: st.image(remote_url, width=width, use_container_width=use_container); return True
@@ -133,12 +145,16 @@ def init_blank_innings():
 
 # Migration Helper: Self-heals globally cached matches by filling missing keys on the fly
 def ensure_innings_keys(inn):
+    if not isinstance(inn, dict):
+        inn = init_blank_innings()
     defaults = init_blank_innings()
     for k, v in defaults.items():
         if k not in inn:
             inn[k] = v
     for player_key in ["b1", "b2", "bowler"]:
         if player_key in inn:
+            if not isinstance(inn[player_key], dict):
+                inn[player_key] = copy.deepcopy(defaults[player_key])
             for pk, pv in defaults[player_key].items():
                 if pk not in inn[player_key]:
                     inn[player_key][pk] = pv
@@ -150,9 +166,9 @@ def ensure_match_keys(m):
         m["team_1"] = m.get("batting_team_i1", m.get("team_a", "Team 1"))
     if "team_2" not in m:
         m["team_2"] = m.get("bowling_team_i1", m.get("team_b", "Team 2"))
-    if "innings_1" not in m:
+    if "innings_1" not in m or isinstance(m["innings_1"], list):
         m["innings_1"] = init_blank_innings()
-    if "innings_2" not in m:
+    if "innings_2" not in m or isinstance(m["innings_2"], list):
         m["innings_2"] = init_blank_innings()
     m["innings_1"] = ensure_innings_keys(m["innings_1"])
     m["innings_2"] = ensure_innings_keys(m["innings_2"])
@@ -246,6 +262,12 @@ lock = db_global["lock"]
 # Run a global self-healing sweep over the cache at start to upgrade any stale cached match structures
 with lock:
     for m_id in list(db_global["matches"].keys()):
+        if not isinstance(db_global["matches"][m_id], dict):
+            db_global["matches"][m_id] = {
+                "id": m_id, "team_1": "Team 1", "team_2": "Team 2",
+                "total_overs": 4, "current_innings": 1, "match_complete": False,
+                "innings_1": init_blank_innings(), "innings_2": init_blank_innings()
+            }
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
 # --- SQUAD MODAL ---
@@ -357,9 +379,11 @@ with tab_live:
             if is_admin:
                 st.warning(f"Configure active opening rosters for Innings #{m_instance['current_innings']}")
                 with st.form(f"opening_lineup_setup_{inn_key}"):
-                    p1 = st.selectbox("Striker Batsman", TEAM_DB[bat_team]["squad"], index=0)
-                    p2 = st.selectbox("Non-Striker Batsman", TEAM_DB[bat_team]["squad"], index=1)
-                    bw = st.selectbox("Opening Bowler Assignment", TEAM_DB[bowl_team]["squad"], index=0)
+                    bat_squad = TEAM_DB[bat_team]["squad"] if bat_team in TEAM_DB else ["Player 1", "Player 2"]
+                    bowl_squad = TEAM_DB[bowl_team]["squad"] if bowl_team in TEAM_DB else ["Player 1", "Player 2"]
+                    p1 = st.selectbox("Striker Batsman", bat_squad, index=0)
+                    p2 = st.selectbox("Non-Striker Batsman", bat_squad, index=1 if len(bat_squad) > 1 else 0)
+                    bw = st.selectbox("Opening Bowler Assignment", bowl_squad, index=0)
                     if st.form_submit_button("Activate Opening Rosters Lineups"):
                         with lock:
                             inn_data["b1"]["name"] = p1
@@ -383,8 +407,13 @@ with tab_live:
 
             l_col, r_col = st.columns([1.1, 0.9])
             with l_col:
-                b_logo_src = get_image_src(TEAM_DB[bat_team]["local"], TEAM_DB[bat_team]["remote"])
-                f_logo_src = get_image_src(TEAM_DB[bowl_team]["local"], TEAM_DB[bowl_team]["remote"])
+                b_local = TEAM_DB[bat_team]["local"] if bat_team in TEAM_DB else ""
+                b_remote = TEAM_DB[bat_team]["remote"] if bat_team in TEAM_DB else ""
+                f_local = TEAM_DB[bowl_team]["local"] if bowl_team in TEAM_DB else ""
+                f_remote = TEAM_DB[bowl_team]["remote"] if bowl_team in TEAM_DB else ""
+                
+                b_logo_src = get_image_src(b_local, b_remote)
+                f_logo_src = get_image_src(f_local, f_remote)
                 
                 st.markdown(f"""
                     <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 15px; width: 100%;">
@@ -448,8 +477,9 @@ with tab_live:
                     if inn_data["awaiting_batsman"]:
                         st.error("☝️ Wicket Fallen! Choose Incoming Batsman Below:")
                         used_batsmen = [inn_data["b1"]["name"], inn_data["b2"]["name"]] + [b["name"] for b in inn_data["all_batsmen_history"]]
-                        available_batters = [p for p in TEAM_DB[bat_team]["squad"] if p not in used_batsmen]
-                        if not available_batters: available_batters = TEAM_DB[bat_team]["squad"]
+                        bat_squad = TEAM_DB[bat_team]["squad"] if bat_team in TEAM_DB else ["Player 1", "Player 2"]
+                        available_batters = [p for p in bat_squad if p not in used_batsmen]
+                        if not available_batters: available_batters = bat_squad
                         
                         next_b = st.selectbox("Select New Batter:", available_batters, key="inline_select_new_batter")
                         if st.button("Confirm New Batsman & Resume Play", type="primary", use_container_width=True):
@@ -467,7 +497,8 @@ with tab_live:
                             
                     elif inn_data["awaiting_bowler"]:
                         st.success("🔄 Over Completed! Choose the Next Bowler Below:")
-                        next_bw = st.selectbox("Select Next Bowler Rotation:", TEAM_DB[bowl_team]["squad"], key="inline_select_new_bowler")
+                        bowl_squad = TEAM_DB[bowl_team]["squad"] if bowl_team in TEAM_DB else ["Player 1", "Player 2"]
+                        next_bw = st.selectbox("Select Next Bowler Rotation:", bowl_squad, key="inline_select_new_bowler")
                         if st.button("Confirm Bowler Rotation & Open Next Over", type="primary", use_container_width=True):
                             with lock:
                                 past_b = next((b for b in inn_data["all_bowlers_history"] if b["name"] == inn_data["bowler"]["name"]), None)
