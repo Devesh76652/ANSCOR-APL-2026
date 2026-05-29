@@ -3,73 +3,101 @@ import pandas as pd
 from fpdf import FPDF
 import threading
 
+# CRITICAL ENGINE: Imports background auto-heartbeat controller module
+try:
+    from streamlit_autorefresh import st_autorefresh
+except ImportError:
+    st.error("Please ensure 'streamlit-autorefresh' is added to your requirements.txt file!")
+
 # 1. Page Configuration
 st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
 
-# Custom CSS Styling
+# ================= ADVANCED RESPONSIVE CSS INJECTIONS =================
 st.markdown("""
     <style>
+    /* Absolute reset for maximum screen utilization across mobile devices */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-        max-width: 95% !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        max-width: 100% !important;
     }
+    
+    /* Premium dark neon scoreboard background styling matrix */
     .score-box {
         background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);
         color: white;
-        padding: 18px 20px;
-        border-radius: 12px;
+        padding: 20px 15px;
+        border-radius: 14px;
         text-align: center;
-        margin-bottom: 15px;
-        border: 1px solid #1E40AF;
+        margin-bottom: 12px;
+        border: 2px solid #1E40AF;
         position: relative;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
     }
     .status-badge {
         position: absolute;
-        top: 12px;
-        right: 20px;
+        top: 10px;
+        right: 15px;
         background-color: #EF4444;
         color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: bold;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        animation: pulse 2s infinite;
     }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    /* Clean, thumb-friendly scoreboard action item grids */
+    .mobile-card {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        padding: 14px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+    }
+    
     .ball-bubble {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
-        margin: 2px;
-        font-weight: bold;
-        font-size: 0.85rem;
+        margin: 3px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
     }
+    
+    /* Force crisp text rendering and suppress sidebar noise on smaller viewports */
+    h4 {
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        color: #3B82F6 !important;
+        font-size: 1.15rem !important;
+        border-left: 3px solid #3B82F6;
+        padding-left: 8px;
+    }
+    
+    /* Native optimization adjustments for input layouts */
     div.stButton > button {
-        padding: 8px 4px !important;
-        font-size: 0.95rem !important;
-        border-radius: 8px !important;
-    }
-    .popup-box {
-        background-color: #1E293B;
-        border: 2px solid #3B82F6;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
+        padding: 12px 6px !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        border-radius: 10px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Main Dashboard Header Title Banner
-st.markdown(
-    "<h1 style='text-align: center; color: #FFFFFF; font-size: 2.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 0px;'>🏏🏏 ANSCOR APL 2026 🏏🏏</h1>"
-    "<p style='text-align: center; color: #94A3B8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 3px; margin-top: 2px;'>Official Corporate Live Scoring Dashboard</p>",
-    unsafe_allow_html=True
-)
-
-# ================= CRITICAL FIX: GLOBAL DATA SYNC REGISTRY =================
-# We use a memory cache with a thread lock to share data across all corporate connections safely
+# Shared Multi-Client Memory Registry
 @st.cache_resource
 def get_global_match_data():
     return {
@@ -84,53 +112,60 @@ def get_global_match_data():
         "extras": 0,
         "this_over": [],
         "over_history": [],
-        "b1": {"name": "", "runs": 0, "balls": 0, "strike": True},
-        "b2": {"name": "", "runs": 0, "balls": 0, "strike": False},
-        "bowler": {"name": "", "runs": 0, "wickets": 0, "balls": 0}
+        "b1": {"name": "", "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"},
+        "b2": {"name": "", "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"},
+        "bowler": {"name": "", "runs": 0, "wickets": 0, "balls": 0, "maidens": 0},
+        "all_batsmen_history": [],
+        "all_bowlers_history": []
     }
 
 global_data = get_global_match_data()
 lock = global_data["lock"]
 
-# Initialize local interface states (Modals remain local so they don't pop up on viewer screens)
 if 'show_wicket_popup' not in st.session_state: st.session_state.show_wicket_popup = False
 if 'show_over_popup' not in st.session_state: st.session_state.show_over_popup = False
 
-# --- ROLE SELECTION SIDEBAR ---
-st.sidebar.markdown("## 🔑 Access Portal")
-
-# Auto-Refresh Toggle for Viewers so they get live scores automatically
-st.sidebar.markdown("### 🔄 Live Feed")
-if st.sidebar.button("Refresh Scoreboard ⚡", use_container_width=True):
-    st.rerun()
-
-user_role = st.sidebar.radio("Select Your Role:", ["📢 Player / Viewer (Read-Only)", "⚡ Match Scorer (Admin)"])
+# ================= SIDEBAR PORTAL CONTROL OVERRIDES =================
+st.sidebar.markdown("### 🔑 Live System Portal")
+user_role = st.sidebar.radio("Your Access Profile:", ["📢 Player View (Live Auto-Sync)", "⚡ Scorer Panel (Admin Mode)"])
 
 is_admin = False
-if user_role == "⚡ Match Scorer (Admin)":
+if user_role == "⚡ Scorer Panel (Admin Mode)":
     password = st.sidebar.text_input("Enter Admin Password:", type="password")
     if password == "anscor2026":
         is_admin = True
-        st.sidebar.success("Admin Access Granted!")
+        st.sidebar.success("Admin Controls Connected!")
     elif password != "":
-        st.sidebar.error("Incorrect Password")
+        st.sidebar.error("Invalid Security Credentials")
+else:
+    # --- AUTOMATIC BACKGROUND SILENT HEARTBEAT LOOP ---
+    # Fires cleanly every 3000 milliseconds (3 seconds) to pull active scores without manual interventions
+    st_autorefresh(interval=3000, key="broadcast_sync_pulse")
+    st.sidebar.caption("🟢 Live broadcast sync link connected. Scoreboard refreshes seamlessly every 3 seconds.")
 
-# --- INITIAL MATCH CONFIGURATION (ADMIN ONLY) ---
+# Visual Structural Title Banner
+st.markdown(
+    "<h2 style='text-align: center; color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px;'>🏏 ANSCOR APL 2026</h2>"
+    "<p style='text-align: center; color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
+    unsafe_allow_html=True
+)
+
+# --- CONFIGURATION BUILD VIEW (ADMIN CONSOLE ONLY) ---
 if not global_data["match_started"]:
     if is_admin:
-        st.markdown("### 🚀 Initialize Tournament Match")
+        st.markdown("### 🚀 Match Allocation Parameters")
         with st.form("setup_form"):
             col1, col2 = st.columns(2)
             with col1:
-                batting_team = st.text_input("Batting Team", value="Tech Titans")
-                batter1 = st.text_input("Batter 1 (On Strike)", value="Amit (IT)")
-                bowler = st.text_input("Opening Bowler", value="Vikram (Fin)")
+                batting_team = st.text_input("Batting Team Lineup", value="Tech Titans")
+                batter1 = st.text_input("Striker Batsman", value="Amit (IT)")
+                bowler = st.text_input("Opening Bowler Profile", value="Vikram (Fin)")
             with col2:
-                bowling_team = st.text_input("Bowling Team", value="Finance Furies")
-                batter2 = st.text_input("Batter 2 (Off Strike)", value="Rahul (HR)")
-                total_overs = st.number_input("Total Match Overs", min_value=1, max_value=20, value=4)
+                bowling_team = st.text_input("Bowling Team Lineup", value="Finance Furies")
+                batter2 = st.text_input("Non-Striker Batsman", value="Rahul (HR)")
+                total_overs = st.number_input("Target Innings Overs", min_value=1, max_value=20, value=4)
             
-            if st.form_submit_button("Start Live Match 🏁", use_container_width=True):
+            if st.form_submit_button("Launch Live Broadcast 🏁", use_container_width=True):
                 with lock:
                     global_data["match_started"] = True
                     global_data["batting_team"] = batting_team
@@ -138,46 +173,58 @@ if not global_data["match_started"]:
                     global_data["total_overs"] = total_overs
                     global_data["runs"], global_data["wickets"], global_data["balls"], global_data["extras"] = 0, 0, 0, 0
                     global_data["this_over"], global_data["over_history"] = [], []
-                    global_data["b1"] = {"name": batter1, "runs": 0, "balls": 0, "strike": True}
-                    global_data["b2"] = {"name": batter2, "runs": 0, "balls": 0, "strike": False}
-                    global_data["bowler"] = {"name": bowler, "runs": 0, "wickets": 0, "balls": 0}
+                    global_data["b1"] = {"name": batter1, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"}
+                    global_data["b2"] = {"name": batter2, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"}
+                    global_data["bowler"] = {"name": bowler, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
+                    global_data["all_batsmen_history"] = []
+                    global_data["all_bowlers_history"] = []
                 st.rerun()
     else:
-        st.warning("👋 Welcome! The match has not been started yet by the scoring team. Please wait for the admin to configure the teams.")
+        st.warning("⏳ Waiting for the administration team to configure player line-ups and initialize the live innings scorecard feeds. Standby...")
 
-# --- CORE SYNCED DASHBOARD SCREEN ---
+# --- PRODUCTION LIVE SCOREBOARD TRANSFERS ---
 else:
-    # Handle Modals/Pop-ups (Admin Side Only)
+    # Pop-up Modals Integration (Secured Admin Execution Hooks)
     if st.session_state.show_wicket_popup and is_admin:
         st.markdown('<div class="popup-box">', unsafe_allow_html=True)
-        st.error("☝️ WICKET FALLEN!")
-        new_batter_name = st.text_input("Enter Incoming Batsman Name:", value="")
-        if st.button("Confirm New Batsman & Resume 🏏", use_container_width=True):
-            if not new_batter_name:
-                new_batter_name = f"Batter {global_data['wickets'] + 1}"
+        st.error("☝️ WICKET FALLEN DETECTED")
+        new_batter_name = st.text_input("Incoming Batsman Name:", value="")
+        if st.button("Resume Match Activity 🏏", use_container_width=True):
+            if not new_batter_name: new_batter_name = f"Batter {global_data['wickets'] + 1}"
             with lock:
                 if global_data["b1"]["strike"]:
-                    global_data["b1"] = {"name": new_batter_name, "runs": 0, "balls": 0, "strike": True}
+                    global_data["b1"]["status"] = f"b {global_data['bowler']['name']}"
+                    global_data["all_batsmen_history"].append(global_data["b1"].copy())
+                    global_data["b1"] = {"name": new_batter_name, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"}
                 else:
-                    global_data["b2"] = {"name": new_batter_name, "runs": 0, "balls": 0, "strike": True}
+                    global_data["b2"]["status"] = f"b {global_data['bowler']['name']}"
+                    global_data["all_batsmen_history"].append(global_data["b2"].copy())
+                    global_data["b2"] = {"name": new_batter_name, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"}
             st.session_state.show_wicket_popup = False
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
     if st.session_state.show_over_popup and is_admin:
         st.markdown('<div class="popup-box">', unsafe_allow_html=True)
-        st.info("🔄 OVER COMPLETE!")
-        new_bowler_name = st.text_input("Enter Next Bowler Name:", value="")
-        if st.button("Confirm Next Bowler & Resume 🥎", use_container_width=True):
-            if not new_bowler_name:
-                new_bowler_name = "New Bowler"
+        st.info("🔄 OVER SYSTEM MARGIN COMPLETE")
+        new_bowler_name = st.text_input("Next Bowler Target Assignment:", value="")
+        if st.button("Unlock Over Sequences 🥎", use_container_width=True):
+            if not new_bowler_name: new_bowler_name = f"Bowler {len(global_data['all_bowlers_history']) + 1}"
             with lock:
-                global_data["bowler"] = {"name": new_bowler_name, "runs": 0, "wickets": 0, "balls": 0}
+                existing_bowler = next((b for b in global_data["all_bowlers_history"] if b["name"] == global_data["bowler"]["name"]), None)
+                if existing_bowler:
+                    existing_bowler["runs"] += global_data["bowler"]["runs"]
+                    existing_bowler["wickets"] += global_data["bowler"]["wickets"]
+                    existing_bowler["balls"] += global_data["bowler"]["balls"]
+                    existing_bowler["maidens"] += global_data["bowler"]["maidens"]
+                else:
+                    global_data["all_bowlers_history"].append(global_data["bowler"].copy())
+                global_data["bowler"] = {"name": new_bowler_name, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
             st.session_state.show_over_popup = False
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Core Calculations Engine mapped directly to shared global cache registry
+    # Core Calculations Trackers
     completed_overs = global_data["balls"] // 6
     rem_balls = global_data["balls"] % 6
     total_overs_frac = completed_overs + (rem_balls / 6)
@@ -188,45 +235,46 @@ else:
     def switch_strike():
         global_data["b1"]["strike"] = not global_data["b1"]["strike"]
         global_data["b2"]["strike"] = not global_data["b2"]["strike"]
+        global_data["b1"]["status"] = "On Strike" if global_data["b1"]["strike"] else "Not Out"
+        global_data["b2"]["status"] = "On Strike" if global_data["b2"]["strike"] else "Not Out"
 
     def check_over_end():
-        legal_balls = len([b for b in global_data["this_over"] if b not in ['WD', 'NB']])
-        if legal_balls == 6:
+        legal_balls = [b for b in global_data["this_over"] if b not in ['WD', 'NB']]
+        if len(legal_balls) == 6:
+            runs_in_over = sum([b for b in global_data["this_over"] if isinstance(b, int)])
+            if runs_in_over == 0: global_data["bowler"]["maidens"] += 1
             global_data["over_history"].append({
                 "Over": len(global_data["over_history"]) + 1,
                 "Bowler": global_data["bowler"]["name"],
                 "Score": f"{global_data['runs']}/{global_data['wickets']}",
                 "Timeline": ", ".join(map(str, global_data["this_over"]))
             })
-            global_data["this_over"] = []
-            switch_strike()
             st.session_state.show_over_popup = True
 
-    # Main Grid Layout Allocation
-    left_col, right_col = st.columns([1.1, 0.9], gap="large")
+    # Main Grid Strategy: Using explicit columns that naturally collapse cleanly on small screens
+    left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
-    # ================= LEFT PANEL =================
+    # ================= SCORES & ADMIN MODES =================
     with left_col:
-        # Score Board Banner
         st.markdown(f"""
             <div class="score-box">
                 <span class="status-badge">{status_tag}</span>
-                <div style="display:flex; justify-content:flex-start; opacity:0.8; font-size:0.9rem; font-weight:bold; margin-bottom:5px;">
-                    <b>🏏 {global_data["batting_team"]}</b> <span style='margin: 0 8px;'>vs</span> 🥎 {global_data["bowling_team"]}
+                <div style="font-weight: 800; font-size: 1.05rem; letter-spacing:0.5px; opacity: 0.9; margin-bottom: 4px;">
+                    🏏 {global_data["batting_team"]} <span style="color:#60A5FA; font-weight:400; padding:0 4px;">vs</span> 🥎 {global_data["bowling_team"]}
                 </div>
-                <div style="font-size: 3.8rem; font-weight: 900; margin: 2px 0;">{global_data["runs"]} - {global_data["wickets"]}</div>
-                <div style="font-size: 1.1rem; opacity:0.95;">Overs: <b>{completed_overs}.{rem_balls}</b> / {global_data["total_overs"]}</div>
-                <div style="display:flex; justify-content:space-around; margin-top:12px; font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.15); padding-top:8px;">
-                    <span>Extras: <b>{global_data["extras"]}</b></span>
-                    <span>Run Rate: <b>{crr:.2f}</b></span>
+                <div style="font-size: 3.6rem; font-weight: 900; line-height: 1.1; margin: 4px 0; color: #FFFFFF;">{global_data["runs"]} - {global_data["wickets"]}</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #93C5FD;">Overs: {completed_overs}.{rem_balls} / {global_data["total_overs"]}</div>
+                <div style="display: flex; justify-content: space-around; margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 0.85rem; font-weight: 600;">
+                    <div>Extras: <b style="color:#F59E0B; font-size:0.95rem;">{global_data["extras"]}</b></div>
+                    <div>Run Rate: <b style="color:#10B981; font-size:0.95rem;">{crr:.2f}</b></div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        # Control Panel - ONLY ACCESSIBLE IF VERIFIED ADMIN
+        # Scorer Function Control Deck - COMPLETELY RENDER HIDDEN TO CASUAL VIEWERS
         if is_admin:
             if not match_finished and not st.session_state.show_wicket_popup and not st.session_state.show_over_popup:
-                st.markdown("#### 🎛️ Input Runs & Events")
+                st.markdown("#### 🎛️ Input Controls")
                 striker = global_data["b1"] if global_data["b1"]["strike"] else global_data["b2"]
                 
                 r1, r2, r3, r4 = st.columns(4)
@@ -257,13 +305,13 @@ else:
                 br1, br2, br3, br4 = st.columns(4)
                 if br1.button("🟢 4", use_container_width=True):
                     with lock:
-                        global_data["runs"] += 4; global_data["balls"] += 1; striker["runs"] += 4; striker["balls"] += 1
+                        global_data["runs"] += 4; global_data["balls"] += 1; striker["runs"] += 4; striker["balls"] += 1; striker["fours"] += 1
                         global_data["bowler"]["runs"] += 4; global_data["bowler"]["balls"] += 1
                         global_data["this_over"].append(4); check_over_end()
                     st.rerun()
                 if br2.button("🟢 6", use_container_width=True):
                     with lock:
-                        global_data["runs"] += 6; global_data["balls"] += 1; striker["runs"] += 6; striker["balls"] += 1
+                        global_data["runs"] += 6; global_data["balls"] += 1; striker["runs"] += 6; striker["balls"] += 1; striker["sixes"] += 1
                         global_data["bowler"]["runs"] += 6; global_data["bowler"]["balls"] += 1
                         global_data["this_over"].append(6); check_over_end()
                     st.rerun()
@@ -280,83 +328,189 @@ else:
 
                 st.write("")
                 act1, act2 = st.columns(2)
-                if act1.button("🔴 OUT / WICKET", use_container_width=True, type="primary"):
+                if act1.button("🔴 OUT WICKET", use_container_width=True, type="primary"):
                     with lock:
                         global_data["wickets"] += 1; global_data["balls"] += 1; striker["balls"] += 1
                         global_data["bowler"]["wickets"] += 1; global_data["bowler"]["balls"] += 1
                         global_data["this_over"].append("W")
                     if global_data["wickets"] >= 10:
+                        with lock:
+                            global_data["b1"]["status"] = "Innings Ended"
+                            global_data["b2"]["status"] = "Innings Ended"
                         st.rerun()
                     else:
                         st.session_state.show_wicket_popup = True
                         st.rerun()
-                if act2.button("🔄 Manual Swap Strike", use_container_width=True):
+                if act2.button("🔄 Swap Strike", use_container_width=True):
                     with lock: switch_strike()
                     st.rerun()
-        else:
-            st.info("ℹ️ Broadcast Mode: This portal automatically syncs live with the official match scorer's tablet.")
 
-# ================= RIGHT PANEL =================
+    # ================= LIVE METRICS READOUTS =================
     with right_col:
-        st.markdown("#### 📊 Live Player Metrics")
-        m1, m2 = st.columns(2)
-        with m1:
-            mark1 = "🏏 (Striker)" if global_data["b1"]["strike"] else ""
-            mark2 = "🏏 (Striker)" if global_data["b2"]["strike"] else ""
-            st.caption(f"👤 {global_data['b1']['name']} {mark1}")
-            st.markdown(f"**{global_data['b1']['runs']}** runs / **{global_data['b1']['balls']}** balls")
-            st.caption(f"👤 {global_data['b2']['name']} {mark2}")
-            st.markdown(f"**{global_data['b2']['runs']}** runs / **{global_data['b2']['balls']}** balls")
-        with m2:
-            st.caption(f"🥎 Active Bowler: **{global_data['bowler']['name']}**")
-            b_ov = f"{global_data['bowler']['balls'] // 6}.{global_data['bowler']['balls'] % 6}"
-            st.markdown(f"Wickets: **{global_data['bowler']['wickets']}**")
-            st.markdown(f"Runs: **{global_data['bowler']['runs']}** ({b_ov} Ov)")
+        st.markdown("#### 📊 Active Metrics")
+        
+        # Wrapped structural cards optimize high-contrast space distribution on 6-inch screens
+        st.markdown(f"""
+            <div class="mobile-card">
+                <div style="font-size:0.8rem; color:#94A3B8; font-weight:bold; margin-bottom:4px;">🏏 BATTING PAIR</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.95rem;">
+                    <span><b>{"👉 " if global_data["b1"]["strike"] else ""}{global_data["b1"]["name"]}</b></span>
+                    <span><b>{global_data["b1"]["runs"]}</b> <span style="font-size:0.8rem; color:#A1A1AA;">({global_data["b1"]["balls"]})</span></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.95rem;">
+                    <span><b>{"👉 " if global_data["b2"]["strike"] else ""}{global_data["b2"]["name"]}</b></span>
+                    <span><b>{global_data["b2"]["runs"]}</b> <span style="font-size:0.8rem; color:#A1A1AA;">({global_data["b2"]["balls"]})</span></span>
+                </div>
+                <div style="margin-top:10px; font-size:0.8rem; color:#94A3B8; font-weight:bold; margin-bottom:2px;">🥎 CURRENT BOWLER</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.95rem;">
+                    <span>👤 <b>{global_data["bowler"]["name"]}</b></span>
+                    <span>Wkts: <b style="color:#EF4444;">{global_data["bowler"]["wickets"]}</b> | Runs: <b>{global_data["bowler"]["runs"]}</b> <span style="font-size:0.8rem; color:#A1A1AA;">({global_data["bowler"]["balls"] // 6}.{global_data["bowler"]["balls"] % 6} Ov)</span></span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("#### 📍 Active Over Sequence")
-        if not global_data["this_over"]: st.caption("Waiting for delivery...")
+        st.markdown("#### 📍 Active Over")
+        if not global_data["this_over"]: 
+            st.caption("Waiting for first delivery of the over...")
         else:
             b_html = "".join([f'<span class="ball-bubble" style="background-color:{"#10B981" if str(b) in ["4","6"] else ("#EF4444" if b=="W" else "#475569")}; color:white;">{b}</span>' for b in global_data["this_over"]])
             st.markdown(b_html, unsafe_allow_html=True)
 
-        st.markdown("#### 📋 Completed Over Metrics")
+        st.markdown("#### 📋 Completed Overs")
         if global_data["over_history"]:
-            st.dataframe(pd.DataFrame(global_data["over_history"]), use_container_width=True, hide_index=True, height=110)
-        else: st.caption("No archived completed overs.")
+            st.dataframe(pd.DataFrame(global_data["over_history"]), use_container_width=True, hide_index=True, height=115)
+        else: 
+            st.caption("No historical completed overs logged yet.")
 
-        # --- PDF Generation Report Engine ---
-        def generate_pdf_report():
+        # ================= PREMIUM SYSTEM REPORT EXPORTER =================
+        def generate_full_pdf_report():
+            all_batsmen = list(global_data["all_batsmen_history"])
+            if global_data["b1"] not in all_batsmen: all_batsmen.append(global_data["b1"])
+            if global_data["b2"] not in all_batsmen: all_batsmen.append(global_data["b2"])
+            
+            all_bowlers = list(global_data["all_bowlers_history"])
+            active_b_match = next((b for b in all_bowlers if b["name"] == global_data["bowler"]["name"]), None)
+            if active_b_match:
+                active_b_match["runs"] += global_data["bowler"]["runs"]
+                active_b_match["wickets"] += global_data["bowler"]["wickets"]
+                active_b_match["balls"] += global_data["bowler"]["balls"]
+                active_b_match["maidens"] += global_data["bowler"]["maidens"]
+            else:
+                if global_data["bowler"]["balls"] > 0 or global_data["bowler"]["name"] != "":
+                    all_bowlers.append(global_data["bowler"])
+
             pdf = FPDF()
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 18)
+            
+            pdf.set_font("Helvetica", "B", 20)
             pdf.set_text_color(30, 58, 138)
-            pdf.cell(0, 15, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=True, align="C")
-            pdf.ln(5)
+            pdf.cell(0, 12, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=True, align="C")
+            pdf.set_font("Helvetica", "I", 10)
+            pdf.set_text_color(100, 116, 139)
+            pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=True, align="C")
+            pdf.ln(6)
             
             pdf.set_font("Helvetica", "B", 12)
-            pdf.set_text_color(0, 0, 0)
-            pdf.cell(0, 10, f"Teams: {global_data['batting_team']} vs {global_data['bowling_team']}", ln=True)
-            pdf.cell(0, 10, f"Final Inning Score: {global_data['runs']}/{global_data['wickets']} ({global_data['balls'] // 6}.{global_data['balls'] % 6} Overs)", ln=True)
-            pdf.cell(0, 10, f"Total Extras: {global_data['extras']} | Final Innings Run Rate: {crr:.2f}", ln=True)
-            pdf.ln(5)
+            pdf.set_text_color(15, 23, 42)
+            pdf.set_fill_color(241, 245, 249)
+            pdf.cell(0, 10, f" MATCH OVERVIEW: {global_data['batting_team'].upper()} vs {global_data['bowling_team'].upper()}", ln=True, fill=True)
+            pdf.ln(1)
             
-            pdf.cell(0, 10, "Individual Batsman Contributions:", ln=True)
-            pdf.set_font("Helvetica", "", 11)
-            pdf.cell(0, 8, f"- {global_data['b1']['name']}: {global_data['b1']['runs']} Runs scored off {global_data['b1']['balls']} balls", ln=True)
-            pdf.cell(0, 8, f"- {global_data['b2']['name']}: {global_data['b2']['runs']} Runs scored off {global_data['b2']['balls']} balls", ln=True)
+            pdf.set_font("Helvetica", "", 10)
+            b_disp = f"{global_data['balls'] // 6}.{global_data['balls'] % 6}"
+            pdf.cell(95, 7, f"Total Innings Runs: {global_data['runs']} / {global_data['wickets']}", ln=False)
+            pdf.cell(95, 7, f"Overs Completed: {b_disp} / {global_data['total_overs']} Ov", ln=True)
+            pdf.cell(95, 7, f"Innings Extras: {global_data['extras']}", ln=False)
+            pdf.cell(95, 7, f"Net Run Rate (CRR): {crr:.2f}", ln=True)
+            pdf.ln(4)
             
+            # Batsman Summary Matrices
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 10, f" BATSMAN METRICS PROFILE ({global_data['batting_team']})", ln=True, fill=True)
+            pdf.ln(1)
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_fill_color(226, 232, 240)
+            pdf.cell(55, 7, " Batsman Name", border=1, ln=False, fill=True)
+            pdf.cell(45, 7, " Mode of Dismissal", border=1, ln=False, fill=True)
+            pdf.cell(18, 7, " Runs", border=1, ln=False, fill=True)
+            pdf.cell(18, 7, " Balls", border=1, ln=False, fill=True)
+            pdf.cell(14, 7, " 4s", border=1, ln=False, fill=True)
+            pdf.cell(14, 7, " 6s", border=1, ln=False, fill=True)
+            pdf.cell(16, 7, " SR", border=1, ln=True, fill=True)
+            
+            pdf.set_font("Helvetica", "", 9)
+            for b in all_batsmen:
+                if b["name"] == "": continue
+                sr = (b["runs"] / b["balls"] * 100) if b["balls"] > 0 else 0.0
+                pdf.cell(55, 7, f" {b['name']}", border=1, ln=False)
+                pdf.cell(45, 7, f" {b['status']}", border=1, ln=False)
+                pdf.cell(18, 7, f" {b['runs']}", border=1, ln=False, align="C")
+                pdf.cell(18, 7, f" {b['balls']}", border=1, ln=False, align="C")
+                pdf.cell(14, 7, f" {b['fours']}", border=1, ln=False, align="C")
+                pdf.cell(14, 7, f" {b['sixes']}", border=1, ln=False, align="C")
+                pdf.cell(16, 7, f" {sr:.1f}", border=1, ln=True, align="C")
+            pdf.ln(4)
+            
+            # Bowler Analysis Table Setup
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 10, f" BOWLER ANALYSIS LOGS ({global_data['bowling_team']})", ln=True, fill=True)
+            pdf.ln(1)
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_fill_color(226, 232, 240)
+            pdf.cell(60, 7, " Bowler Target Name", border=1, ln=False, fill=True)
+            pdf.cell(24, 7, " Overs", border=1, ln=False, fill=True)
+            pdf.cell(24, 7, " Maidens", border=1, ln=False, fill=True)
+            pdf.cell(28, 7, " Runs Conceded", border=1, ln=False, fill=True)
+            pdf.cell(24, 7, " Wickets", border=1, ln=False, fill=True)
+            pdf.cell(20, 7, " Economy", border=1, ln=True, fill=True)
+            
+            pdf.set_font("Helvetica", "", 9)
+            for blr in all_bowlers:
+                if blr["name"] == "" or blr["name"] == "New Bowler": continue
+                b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
+                ov_frac = (blr["balls"] / 6)
+                econ = (blr["runs"] / ov_frac) if ov_frac > 0 else 0.0
+                pdf.cell(60, 7, f" {blr['name']}", border=1, ln=False)
+                pdf.cell(24, 7, f" {b_ov_num}", border=1, ln=False, align="C")
+                pdf.cell(24, 7, f" {blr['maidens']}", border=1, ln=False, align="C")
+                pdf.cell(28, 7, f" {blr['runs']}", border=1, ln=False, align="C")
+                pdf.cell(24, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
+                pdf.cell(20, 7, f" {econ:.2f}", border=1, ln=True, align="C")
+            pdf.ln(4)
+            
+            # Historical Overs Progression Timelines
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 10, " INNINGS BALL-BY-BALL PROGRESSION MATRIX", ln=True, fill=True)
+            pdf.ln(1)
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_fill_color(226, 232, 240)
+            pdf.cell(20, 7, " Over #", border=1, ln=False, fill=True)
+            pdf.cell(45, 7, " Bowler Operating", border=1, ln=False, fill=True)
+            pdf.cell(30, 7, " End Score", border=1, ln=False, fill=True)
+            pdf.cell(85, 7, " Delivery Timeline Sequence Logs", border=1, ln=True, fill=True)
+            
+            pdf.set_font("Helvetica", "", 9)
+            for ho in global_data["over_history"]:
+                pdf.cell(20, 7, f" Over {ho['Over']}", border=1, ln=False, align="C")
+                pdf.cell(45, 7, f" {ho['Bowler']}", border=1, ln=False)
+                pdf.cell(30, 7, f" {ho['Score']}", border=1, ln=False, align="C")
+                pdf.cell(85, 7, f" [ {ho['Timeline']} ]", border=1, ln=True)
+                
             return bytes(pdf.output())
 
         st.write("")
         st.download_button(
-            label="📥 Export Report as Official PDF", 
-            data=generate_pdf_report(), 
-            file_name=f"APL_Match_{global_data['batting_team']}.pdf", 
+            label="📥 Export Report as Comprehensive PDF", 
+            data=generate_full_pdf_report(), 
+            file_name=f"APL_Official_Scorecard_{global_data['batting_team']}.pdf", 
             mime="application/pdf", 
             use_container_width=True
         )
 
-    # --- RESET APPLICATION CONTROL (ADMIN ONLY) ---
+    # --- RESET MASTER BROADCAST ENGINE (ADMIN DECK ACCESS ONLY) ---
     if is_admin:
         st.markdown("---")
         if st.button("Reset Tournament Dashboard Application", type="secondary", use_container_width=True):
@@ -364,4 +518,5 @@ else:
                 global_data["match_started"] = False
                 global_data["runs"], global_data["wickets"], global_data["balls"] = 0, 0, 0
                 global_data["this_over"], global_data["over_history"] = [], []
+                global_data["all_batsmen_history"], global_data["all_bowlers_history"] = [], []
             st.rerun()
