@@ -22,7 +22,7 @@ TEAM_DB = {
     "Capital Chellengers": {
         "local": "CapitalChellengers.jpeg",
         "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
-        "squad": ["Amit (IT) - C", "Vikram (Fin)", "Rahul (HR)", "Suresh (Ops)", "Alok (Sales)", "Deepak (Mkt)", "Nitin (IT)", "Rohan (Legal)", "Sumit (Fin)", "Kapil (HR)", "Gaurav (Ops)"]
+        "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A",]
     },
     "Black panther": {
         "local": "Blackpanther.jpeg",
