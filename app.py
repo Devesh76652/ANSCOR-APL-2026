@@ -203,6 +203,26 @@ def sanitize_for_pdf(text):
     except Exception:
         return "".join(c for c in text if ord(c) < 128)
 
+# Safe PDF byte converter compatible with both fpdf (classic) and fpdf2
+def get_pdf_bytes(pdf):
+    try:
+        pdf_bytes = pdf.output()
+        if isinstance(pdf_bytes, (bytes, bytearray)):
+            return bytes(pdf_bytes)
+    except Exception:
+        pass
+    try:
+        pdf_str = pdf.output(dest='S')
+        if isinstance(pdf_str, str):
+            return pdf_str.encode('latin-1', errors='ignore')
+        return bytes(pdf_str)
+    except Exception:
+        pass
+    try:
+        return bytes(pdf.output())
+    except Exception:
+        return b""
+
 # Dynamic Winner Evaluation Engine
 def get_match_result(m):
     m = ensure_match_keys(m)
@@ -650,16 +670,16 @@ with tab_live:
                     pdf.add_page()
                     pdf.set_font("Helvetica", "B", 20)
                     pdf.set_text_color(30, 58, 138)
-                    pdf.cell(0, 12, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=True, align="C")
+                    pdf.cell(0, 12, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=1, align="C")
                     pdf.set_font("Helvetica", "I", 10)
                     pdf.set_text_color(100, 116, 139)
-                    pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=True, align="C")
+                    pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=1, align="C")
                     pdf.ln(4)
                     
                     # Highlight Match Winner / Result clearly at top of PDF Report with safe sanitization (Strips Emojis)
                     pdf.set_font("Helvetica", "B", 11)
                     pdf.set_text_color(220, 38, 38)
-                    pdf.cell(0, 8, sanitize_for_pdf(f" MATCH RESULT: {get_match_result(m_instance).upper()}"), ln=True, align="C")
+                    pdf.cell(0, 8, sanitize_for_pdf(f" MATCH RESULT: {get_match_result(m_instance).upper()}"), ln=1, align="C")
                     pdf.ln(4)
                     
                     pdf.set_font("Helvetica", "B", 12)
@@ -670,28 +690,28 @@ with tab_live:
                     b_team_i1 = m_instance["team_1"]
                     f_team_i1 = m_instance["team_2"]
                     
-                    pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 1: {b_team_i1.upper()} vs {f_team_i1.upper()}"), ln=True, fill=True)
+                    pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 1: {b_team_i1.upper()} vs {f_team_i1.upper()}"), ln=1, fill=True)
                     pdf.ln(1)
                     
                     pdf.set_font("Helvetica", "", 10)
                     pdf.set_text_color(15, 23, 42)
-                    pdf.cell(95, 7, f"Total Innings Runs: {d1['runs']} / {d1['wickets']}", ln=False)
-                    pdf.cell(95, 7, f"Overs Completed: {d1['balls'] // 6}.{d1['balls'] % 6} / {m_instance['total_overs']} Ov", ln=True)
-                    pdf.cell(95, 7, f"Innings Extras: {d1['extras']}", ln=False)
-                    pdf.cell(95, 7, f"Current Innings End State Status: Complete", ln=True)
+                    pdf.cell(95, 7, f"Total Innings Runs: {d1['runs']} / {d1['wickets']}", ln=0)
+                    pdf.cell(95, 7, f"Overs Completed: {d1['balls'] // 6}.{d1['balls'] % 6} / {m_instance['total_overs']} Ov", ln=1)
+                    pdf.cell(95, 7, f"Innings Extras: {d1['extras']}", ln=0)
+                    pdf.cell(95, 7, f"Current Innings End State Status: Complete", ln=1)
                     pdf.ln(4)
                     
                     # Batsmen table
                     pdf.set_font("Helvetica", "B", 11)
-                    pdf.cell(0, 8, " Batsman Performance Profile", ln=True)
+                    pdf.cell(0, 8, " Batsman Performance Profile", ln=1)
                     pdf.set_font("Helvetica", "B", 9)
                     pdf.set_fill_color(226, 232, 240)
-                    pdf.cell(75, 7, " Batsman Name", border=1, ln=False, fill=True)
-                    pdf.cell(40, 7, " Dismissal", border=1, ln=False, fill=True)
-                    pdf.cell(20, 7, " Runs", border=1, ln=False, fill=True)
-                    pdf.cell(20, 7, " Balls", border=1, ln=False, fill=True)
-                    pdf.cell(15, 7, " 4s", border=1, ln=False, fill=True)
-                    pdf.cell(15, 7, " 6s", border=1, ln=True, fill=True)
+                    pdf.cell(75, 7, " Batsman Name", border=1, ln=0, fill=True)
+                    pdf.cell(40, 7, " Dismissal", border=1, ln=0, fill=True)
+                    pdf.cell(20, 7, " Runs", border=1, ln=0, fill=True)
+                    pdf.cell(20, 7, " Balls", border=1, ln=0, fill=True)
+                    pdf.cell(15, 7, " 4s", border=1, ln=0, fill=True)
+                    pdf.cell(15, 7, " 6s", border=1, ln=1, fill=True)
                     
                     pdf.set_font("Helvetica", "", 9)
                     all_bat1 = list(d1["all_batsmen_history"])
@@ -700,25 +720,25 @@ with tab_live:
                     
                     for b in all_bat1:
                         if b["name"] == "": continue
-                        pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=False)
-                        pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=False)
-                        pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
-                        pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
-                        pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
-                        pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=True, align="C")
+                        pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=0)
+                        pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=0)
+                        pdf.cell(20, 7, f" {b['runs']}", border=1, ln=0, align="C")
+                        pdf.cell(20, 7, f" {b['balls']}", border=1, ln=0, align="C")
+                        pdf.cell(15, 7, f" {b['fours']}", border=1, ln=0, align="C")
+                        pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=1, align="C")
                         
                     pdf.ln(4)
                     
                     # Bowlers table
                     pdf.set_font("Helvetica", "B", 11)
-                    pdf.cell(0, 8, " Bowlers Performance Profile", ln=True)
+                    pdf.cell(0, 8, " Bowlers Performance Profile", ln=1)
                     pdf.set_font("Helvetica", "B", 9)
                     pdf.set_fill_color(226, 232, 240)
-                    pdf.cell(75, 7, " Bowler Name", border=1, ln=False, fill=True)
-                    pdf.cell(30, 7, " Overs", border=1, ln=False, fill=True)
-                    pdf.cell(30, 7, " Runs Conceded", border=1, ln=False, fill=True)
-                    pdf.cell(30, 7, " Wickets", border=1, ln=False, fill=True)
-                    pdf.cell(20, 7, " Maidens", border=1, ln=True, fill=True)
+                    pdf.cell(75, 7, " Bowler Name", border=1, ln=0, fill=True)
+                    pdf.cell(30, 7, " Overs", border=1, ln=0, fill=True)
+                    pdf.cell(30, 7, " Runs Conceded", border=1, ln=0, fill=True)
+                    pdf.cell(30, 7, " Wickets", border=1, ln=0, fill=True)
+                    pdf.cell(20, 7, " Maidens", border=1, ln=1, fill=True)
                     
                     pdf.set_font("Helvetica", "", 9)
                     all_bowl1 = list(d1["all_bowlers_history"])
@@ -727,11 +747,11 @@ with tab_live:
                     for blr in all_bowl1:
                         if blr["name"] == "": continue
                         b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
-                        pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=False)
-                        pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
-                        pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
-                        pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
-                        pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=True, align="C")
+                        pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=0)
+                        pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=0, align="C")
+                        pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=0, align="C")
+                        pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=0, align="C")
+                        pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, align="C")
                         
                     # Page for Innings 2 (if active or finished)
                     if m_instance["current_innings"] == 2 or m_instance["innings_2"]["balls"] > 0:
@@ -744,27 +764,27 @@ with tab_live:
                         b_team_i2 = m_instance["team_2"]
                         f_team_i2 = m_instance["team_1"]
                         
-                        pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 2: {b_team_i2.upper()} vs {f_team_i2.upper()}"), ln=True, fill=True)
+                        pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 2: {b_team_i2.upper()} vs {f_team_i2.upper()}"), ln=1, fill=True)
                         pdf.ln(1)
                         
                         pdf.set_font("Helvetica", "", 10)
-                        pdf.cell(95, 7, f"Total Innings Runs: {d2['runs']} / {d2['wickets']}", ln=False)
-                        pdf.cell(95, 7, f"Overs Completed: {d2['balls'] // 6}.{d2['balls'] % 6} / {m_instance['total_overs']} Ov", ln=True)
-                        pdf.cell(95, 7, f"Innings Extras: {d2['extras']}", ln=False)
-                        pdf.cell(95, 7, f"Target Target Run Chase: {m_instance['innings_1']['runs'] + 1}", ln=True)
+                        pdf.cell(95, 7, f"Total Innings Runs: {d2['runs']} / {d2['wickets']}", ln=0)
+                        pdf.cell(95, 7, f"Overs Completed: {d2['balls'] // 6}.{d2['balls'] % 6} / {m_instance['total_overs']} Ov", ln=1)
+                        pdf.cell(95, 7, f"Innings Extras: {d2['extras']}", ln=0)
+                        pdf.cell(95, 7, f"Target Target Run Chase: {m_instance['innings_1']['runs'] + 1}", ln=1)
                         pdf.ln(4)
                         
                         # Batsmen Table 2
                         pdf.set_font("Helvetica", "B", 11)
-                        pdf.cell(0, 8, " Batsman Performance Profile", ln=True)
+                        pdf.cell(0, 8, " Batsman Performance Profile", ln=1)
                         pdf.set_font("Helvetica", "B", 9)
                         pdf.set_fill_color(226, 232, 240)
-                        pdf.cell(75, 7, " Batsman Name", border=1, ln=False, fill=True)
-                        pdf.cell(40, 7, " Dismissal", border=1, ln=False, fill=True)
-                        pdf.cell(20, 7, " Runs", border=1, ln=False, fill=True)
-                        pdf.cell(20, 7, " Balls", border=1, ln=False, fill=True)
-                        pdf.cell(15, 7, " 4s", border=1, ln=False, fill=True)
-                        pdf.cell(15, 7, " 6s", border=1, ln=True, fill=True)
+                        pdf.cell(75, 7, " Batsman Name", border=1, ln=0, fill=True)
+                        pdf.cell(40, 7, " Dismissal", border=1, ln=0, fill=True)
+                        pdf.cell(20, 7, " Runs", border=1, ln=0, fill=True)
+                        pdf.cell(20, 7, " Balls", border=1, ln=0, fill=True)
+                        pdf.cell(15, 7, " 4s", border=1, ln=0, fill=True)
+                        pdf.cell(15, 7, " 6s", border=1, ln=1, fill=True)
                         
                         pdf.set_font("Helvetica", "", 9)
                         all_bat2 = list(d2["all_batsmen_history"])
@@ -773,25 +793,25 @@ with tab_live:
                         
                         for b in all_bat2:
                             if b["name"] == "": continue
-                            pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=False)
-                            pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=False)
-                            pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
-                            pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
-                            pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
-                            pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=True, align="C")
+                            pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=0)
+                            pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=0)
+                            pdf.cell(20, 7, f" {b['runs']}", border=1, ln=0, align="C")
+                            pdf.cell(20, 7, f" {b['balls']}", border=1, ln=0, align="C")
+                            pdf.cell(15, 7, f" {b['fours']}", border=1, ln=0, align="C")
+                            pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=1, align="C")
                             
                         pdf.ln(4)
                         
                         # Bowlers Table 2
                         pdf.set_font("Helvetica", "B", 11)
-                        pdf.cell(0, 8, " Bowlers Performance Profile", ln=True)
+                        pdf.cell(0, 8, " Bowlers Performance Profile", ln=1)
                         pdf.set_font("Helvetica", "B", 9)
                         pdf.set_fill_color(226, 232, 240)
-                        pdf.cell(75, 7, " Bowler Name", border=1, ln=False, fill=True)
-                        pdf.cell(30, 7, " Overs", border=1, ln=False, fill=True)
-                        pdf.cell(30, 7, " Runs Conceded", border=1, ln=False, fill=True)
-                        pdf.cell(30, 7, " Wickets", border=1, ln=False, fill=True)
-                        pdf.cell(20, 7, " Maidens", border=1, ln=True, fill=True)
+                        pdf.cell(75, 7, " Bowler Name", border=1, ln=0, fill=True)
+                        pdf.cell(30, 7, " Overs", border=1, ln=0, fill=True)
+                        pdf.cell(30, 7, " Runs Conceded", border=1, ln=0, fill=True)
+                        pdf.cell(30, 7, " Wickets", border=1, ln=0, fill=True)
+                        pdf.cell(20, 7, " Maidens", border=1, ln=1, fill=True)
                         
                         pdf.set_font("Helvetica", "", 9)
                         all_bowl2 = list(d2["all_bowlers_history"])
@@ -800,23 +820,32 @@ with tab_live:
                         for blr in all_bowl2:
                             if blr["name"] == "": continue
                             b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
-                            pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=False)
-                            pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
-                            pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
-                            pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
-                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=True, align="C")
+                            pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=0)
+                            pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=0, align="C")
+                            pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=0, align="C")
+                            pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=0, align="C")
+                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, align="C")
                             
-                    # Robust FPDF destination converter block to get bytes cleanly on Python 3
-                    return pdf.output(dest='S').encode('latin-1')
+                    return get_pdf_bytes(pdf)
 
                 st.write("")
-                st.download_button(
-                    label="📥 Export Report as Comprehensive PDF", 
-                    data=generate_full_pdf_report(), 
-                    file_name=f"APL_Official_Scorecard_{db_global['active_match_id']}.pdf", 
-                    mime="application/pdf", 
-                    use_container_width=True
-                )
+                # Sandboxed pre-execution wrapper to ensure zero layout-crashing failures upon page-load rendering
+                try:
+                    pdf_data = generate_full_pdf_report()
+                except Exception as e:
+                    pdf_data = b""
+                    st.error(f"Failed to pre-compile the PDF scorecard background buffer: {e}")
+
+                if pdf_data:
+                    st.download_button(
+                        label="📥 Export Report as Comprehensive PDF", 
+                        data=pdf_data, 
+                        file_name=f"APL_Official_Scorecard_{db_global['active_match_id']}.pdf", 
+                        mime="application/pdf", 
+                        use_container_width=True
+                    )
+                else:
+                    st.warning("⚠️ Scorecard PDF compilation holds active, or match state initialization is incomplete.")
 
 # ================= TAB: HISTORICAL ARCHIVE MUTLI-MATCH AUDIT =================
 with tab_review:
