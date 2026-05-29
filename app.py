@@ -80,7 +80,7 @@ TEAM_DB = {
 
 MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
 
-# FIXED: Added support for list-wrapped paths & default remote_url=""
+# Support for list-wrapped paths & default remote_url=""
 def get_image_src(local_path, remote_url=""):
     if isinstance(local_path, list):
         local_path = local_path[0] if len(local_path) > 0 else ""
@@ -96,7 +96,7 @@ def get_image_src(local_path, remote_url=""):
         except: pass
     return remote_url
 
-# FIXED: Added support for list-wrapped paths inside Streamlit image rendering pipeline
+# Support for list-wrapped paths inside Streamlit image rendering pipeline
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if isinstance(local_path, list):
         local_path = local_path[0] if len(local_path) > 0 else ""
@@ -309,8 +309,21 @@ with lock:
     for m_id in list(db_global["matches"].keys()):
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
+# Safe Dialog decorator to support both modern and older Streamlit versions smoothly
+def safe_dialog(title_text):
+    if hasattr(st, "dialog"):
+        return st.dialog(title_text)
+    else:
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                if args:
+                    st.session_state["fallback_dialog_team"] = args[0]
+                st.rerun()
+            return wrapper
+        return decorator
+
 # --- SQUAD MODAL ---
-@st.dialog("📋 Squad Roster Profile")
+@safe_dialog("📋 Squad Roster Profile")
 def show_squad_popup(team_name):
     st.markdown(f"### {team_name} Squad")
     st.write("---")
@@ -365,6 +378,22 @@ with tab_teams:
             if st.button(f"View Squad Roster", key=f"squad_popup_key_{idx}", use_container_width=True):
                 show_squad_popup(t_name)
             st.markdown('</div>', unsafe_allow_html=True)
+
+    # Fallback inline view for older Streamlit versions lacking native st.dialog support
+    if not hasattr(st, "dialog") and st.session_state.get("fallback_dialog_team"):
+        fallback_team = st.session_state["fallback_dialog_team"]
+        st.markdown("---")
+        st.markdown(f"### 📋 {fallback_team} Squad")
+        squad_members = TEAM_DB[fallback_team]["squad"]
+        cols = st.columns(2)
+        mid = (len(squad_members) + 1) // 2
+        with cols[0]:
+            for p in squad_members[:mid]: st.markdown(f"• {p}")
+        with cols[1]:
+            for p in squad_members[mid:]: st.markdown(f"• {p}")
+        if st.button("Close Squad Roster"):
+            st.session_state["fallback_dialog_team"] = None
+            st.rerun()
 
 # ================= TAB: LIVE SCORES ENGINE =================
 with tab_live:
@@ -852,7 +881,7 @@ with tab_live:
                             pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=0, align="C")
                             pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=0, align="C")
                             pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=0, align="C")
-                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, align="C")
+                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, fill=True)
                             
                     return get_pdf_bytes(pdf)
 
