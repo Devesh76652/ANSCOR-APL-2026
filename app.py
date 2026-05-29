@@ -14,8 +14,8 @@ except ImportError:
 # 1. Page Configuration
 st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
 
-# Fixed repository spelling
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortorunament/APL/main/"
+# Fixed the exact repository name spelling to pull directly from your GitHub repo
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
 # Static Team Database
 TEAM_DB = {
@@ -57,7 +57,7 @@ MAIN_LOGOS = {
     "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
 }
 
-# Standardized reliable image loading
+# Standardized reliable image loading function
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if os.path.exists(local_path):
         try:
@@ -72,7 +72,7 @@ def smart_load_image(local_path, remote_url, width=None, use_container=True):
         pass
     return False
 
-# Custom CSS Layout Overrides & Hover Animations
+# Custom CSS Layout Overrides
 st.markdown("""
     <style>
     .block-container {
@@ -137,26 +137,20 @@ st.markdown("""
         font-size: 0.9rem !important;
         border-radius: 8px !important;
     }
-    
-    /* Hover wrapper border for team element blocks */
     .team-block-container {
         background-color: #1E293B;
         border: 1px solid #334155;
         border-radius: 12px;
         padding: 12px;
         text-align: center;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .team-block-container:hover {
-        transform: scale(1.02);
-        border-color: #3B82F6;
+        margin-bottom: 10px;
     }
     .squad-container {
         background-color: #0F172A;
         border: 1px dashed #334155;
         border-radius: 8px;
-        padding: 12px;
-        margin-top: 8px;
+        padding: 14px;
+        margin-top: 10px;
         text-align: left;
     }
     </style>
@@ -209,13 +203,13 @@ else:
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
 # Visual Main Brand Banner Header Layout - Logo BEFORE the Name
-banner_col1, banner_col2 = st.columns([0.6, 4])
+banner_col1, banner_col2 = st.columns([0.15, 0.85])
 with banner_col1:
-    smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=75, use_container=False)
+    smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=80, use_container=False)
 with banner_col2:
     st.markdown(
-        "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:4px;'>ANSCOR APL 2026</h2>"
-        "<p style='color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
+        "<h2 style='color: #FFFFFF; font-size: 2.3rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:4px;'>ANSCOR APL 2026</h2>"
+        "<p style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
         unsafe_allow_html=True
     )
 
@@ -246,39 +240,41 @@ else:
 if not is_admin:
     with tab_teams:
         st.markdown("### 📋 Official Team Lists")
-        st.caption("Click on any team button card block below to open or collapse their player roster lists.")
+        st.caption("Select a team below to view their active player lineup roster.")
         
-        grid_cols = st.columns(3)
         teams_list = list(TEAM_DB.keys())
         
+        # Grid placement logic to separate team card selections cleanly without locking the UI
+        cols = st.columns(3)
         for idx, t_name in enumerate(teams_list):
-            col_target = grid_cols[idx % 3]
-            with col_target:
+            with cols[idx % 3]:
                 st.markdown('<div class="team-block-container">', unsafe_allow_html=True)
-                img_config = TEAM_DB[t_name]
+                smart_load_image(TEAM_DB[t_name]["local"], TEAM_DB[t_name]["remote"], use_container=True)
                 
-                # Render logo small and centered safely using native component
-                log_c1, log_c2, log_c3 = st.columns([1, 2, 1])
-                with log_c2:
-                    smart_load_image(img_config["local"], img_config["remote"], use_container=True)
-                
-                # Interactive toggle button action assignment
-                if st.button(t_name, key=f"select_{t_name}", use_container_width=True):
-                    if st.session_state.active_team == t_name:
-                        st.session_state.active_team = None
-                    else:
-                        st.session_state.active_team = t_name
+                if st.button(f"View {t_name}", key=f"team_btn_{idx}", use_container_width=True):
+                    st.session_state.active_team = None if st.session_state.active_team == t_name else t_name
                     st.rerun()
-                
                 st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Dynamic non-stick list roster generation block
-                if st.session_state.active_team == t_name:
-                    st.markdown('<div class="squad-container">', unsafe_allow_html=True)
-                    st.markdown(f"<b style='color:#3B82F6; font-size:0.95rem;'>📋 {t_name} Lineup:</b>", unsafe_allow_html=True)
-                    for player in TEAM_DB[t_name]["squad"]:
-                        st.markdown(f"<span style='font-size:0.9rem; color:#E2E8F0; display:block; padding:2px 0;'>• {player}</span>", unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
+
+        # Dynamic output target panel to prevent list elements getting stuck
+        if st.session_state.active_team and st.session_state.active_team in TEAM_DB:
+            selected_team = st.session_state.active_team
+            st.markdown(f'<div class="squad-container">', unsafe_allow_html=True)
+            st.markdown(f"<h3 style='color:#3B82F6; margin:0 0 10px 0;'>📋 {selected_team} Squad Lineup</h3>", unsafe_allow_html=True)
+            
+            # Display squad players split into two columns for scannability
+            sq_c1, sq_c2 = st.columns(2)
+            squad_members = TEAM_DB[selected_team]["squad"]
+            midpoint = (len(squad_members) + 1) // 2
+            
+            with sq_c1:
+                for player in squad_members[:midpoint]:
+                    st.markdown(f"<p style='color:#E2E8F0; margin:4px 0; font-size:1rem;'>• {player}</p>", unsafe_allow_html=True)
+            with sq_c2:
+                for player in squad_members[midpoint:]:
+                    st.markdown(f"<p style='color:#E2E8F0; margin:4px 0; font-size:1rem;'>• {player}</p>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
         st.markdown("---")
 
 # ================= TAB: LIVE SCORES ENGINE =================
