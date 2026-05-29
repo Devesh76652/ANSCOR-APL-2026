@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import pandas as pd
 from fpdf import FPDF
 import threading
@@ -80,7 +80,8 @@ TEAM_DB = {
 
 MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
 
-def get_image_src(local_path, remote_url):
+# FIXED: Added default value remote_url="" to prevent TypeErrors when called with one positional argument
+def get_image_src(local_path, remote_url=""):
     if os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
@@ -170,7 +171,7 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# Branding Header
+# Branding Header Banner
 main_logo_src = get_image_src(MAIN_LOGOS["local"], MAIN_LOGOS["remote"])
 st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding-top:4px;">
@@ -184,7 +185,7 @@ st.markdown(f"""
 
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
-# ================= TAB: TEAM PROFILE OVERLAYS =================
+# ================= TAB: TEAM DIRECTORIES =================
 with tab_teams:
     st.markdown("### Tournament Roster Groups")
     t_cols = st.columns(3)
@@ -199,7 +200,7 @@ with tab_teams:
 # ================= TAB: LIVE SCORES ENGINE =================
 with tab_live:
     if is_admin:
-        with st.expander("🛠️ Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
+        with st.expander("🛠  Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
             st.markdown("#### Initialize a Brand New Match Instance")
             with st.form("new_match_allocation_form"):
                 new_m_id = st.text_input("Unique Match Identifier Name (e.g., Match_01, Final_Game):")
@@ -268,7 +269,7 @@ with tab_live:
             frac_ov = comp_ov + (rem_bl / 6)
             crr = (inn_data["runs"] / frac_ov) if frac_ov > 0 else 0.0
             
-            # Hard 4-Over Innings Limit Check
+            # Hard Over Innings Limit Check
             innings_ended = (comp_ov >= m_instance["total_overs"]) or (inn_data["wickets"] >= 10)
             if target_score and inn_data["runs"] >= target_score:
                 innings_ended = True
@@ -456,7 +457,6 @@ with tab_live:
                                 inn_data["bowler"]["wickets"] += 1
                                 inn_data["this_over"].append("W")
                                 
-                                # Instantly check if team is all out or out of overs before flagging for a regular new batter
                                 if inn_data["wickets"] < 10 and (inn_data["balls"] < m_instance["total_overs"] * 6):
                                     inn_data["awaiting_batsman"] = True
                             st.rerun()
@@ -494,6 +494,174 @@ with tab_live:
                 if inn_data["over_history"]:
                     st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True)
                 else: st.caption("No archived records.")
+
+                # ================= REPORT GENERATION ENGINE =================
+                def generate_full_pdf_report():
+                    pdf = FPDF()
+                    
+                    # Page for Innings 1
+                    pdf.add_page()
+                    pdf.set_font("Helvetica", "B", 20)
+                    pdf.set_text_color(30, 58, 138)
+                    pdf.cell(0, 12, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=True, align="C")
+                    pdf.set_font("Helvetica", "I", 10)
+                    pdf.set_text_color(100, 116, 139)
+                    pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=True, align="C")
+                    pdf.ln(6)
+                    
+                    pdf.set_font("Helvetica", "B", 12)
+                    pdf.set_text_color(15, 23, 42)
+                    pdf.set_fill_color(241, 245, 249)
+                    
+                    d1 = m_instance["innings_1"]
+                    b_team_i1 = m_instance["team_1"]
+                    f_team_i1 = m_instance["team_2"]
+                    
+                    pdf.cell(0, 10, f" INNINGS 1: {b_team_i1.upper()} vs {f_team_i1.upper()}", ln=True, fill=True)
+                    pdf.ln(1)
+                    
+                    pdf.set_font("Helvetica", "", 10)
+                    pdf.cell(95, 7, f"Total Innings Runs: {d1['runs']} / {d1['wickets']}", ln=False)
+                    pdf.cell(95, 7, f"Overs Completed: {d1['balls'] // 6}.{d1['balls'] % 6} / {m_instance['total_overs']} Ov", ln=True)
+                    pdf.cell(95, 7, f"Innings Extras: {d1['extras']}", ln=False)
+                    pdf.cell(95, 7, f"Current Innings End State Status: Complete", ln=True)
+                    pdf.ln(4)
+                    
+                    # Batsmen table
+                    pdf.set_font("Helvetica", "B", 11)
+                    pdf.cell(0, 8, " Batsman Performance Profile", ln=True)
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_fill_color(226, 232, 240)
+                    pdf.cell(75, 7, " Batsman Name", border=1, ln=False, fill=True)
+                    pdf.cell(40, 7, " Dismissal", border=1, ln=False, fill=True)
+                    pdf.cell(20, 7, " Runs", border=1, ln=False, fill=True)
+                    pdf.cell(20, 7, " Balls", border=1, ln=False, fill=True)
+                    pdf.cell(15, 7, " 4s", border=1, ln=False, fill=True)
+                    pdf.cell(15, 7, " 6s", border=1, ln=True, fill=True)
+                    
+                    pdf.set_font("Helvetica", "", 9)
+                    all_bat1 = list(d1["all_batsmen_history"])
+                    if d1["b1"]["name"] != "": all_bat1.append(d1["b1"])
+                    if d1["b2"]["name"] != "": all_bat1.append(d1["b2"])
+                    
+                    for b in all_bat1:
+                        if b["name"] == "": continue
+                        pdf.cell(75, 7, f" {b['name']}", border=1, ln=False)
+                        pdf.cell(40, 7, f" {b['status']}", border=1, ln=False)
+                        pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
+                        pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
+                        pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
+                        pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=True, align="C")
+                        
+                    pdf.ln(4)
+                    
+                    # Bowlers table
+                    pdf.set_font("Helvetica", "B", 11)
+                    pdf.cell(0, 8, " Bowlers Performance Profile", ln=True)
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_fill_color(226, 232, 240)
+                    pdf.cell(75, 7, " Bowler Name", border=1, ln=False, fill=True)
+                    pdf.cell(30, 7, " Overs", border=1, ln=False, fill=True)
+                    pdf.cell(30, 7, " Runs Conceded", border=1, ln=False, fill=True)
+                    pdf.cell(30, 7, " Wickets", border=1, ln=False, fill=True)
+                    pdf.cell(20, 7, " Maidens", border=1, ln=True, fill=True)
+                    
+                    pdf.set_font("Helvetica", "", 9)
+                    all_bowl1 = list(d1["all_bowlers_history"])
+                    if d1["bowler"]["name"] != "": all_bowl1.append(d1["bowler"])
+                    
+                    for blr in all_bowl1:
+                        if blr["name"] == "": continue
+                        b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
+                        pdf.cell(75, 7, f" {blr['name']}", border=1, ln=False)
+                        pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
+                        pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
+                        pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
+                        pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=True, align="C")
+                        
+                    # Page for Innings 2 (if active or finished)
+                    if m_instance["current_innings"] == 2 or m_instance["innings_2"]["balls"] > 0:
+                        pdf.add_page()
+                        pdf.set_font("Helvetica", "B", 12)
+                        pdf.set_text_color(15, 23, 42)
+                        pdf.set_fill_color(241, 245, 249)
+                        
+                        d2 = m_instance["innings_2"]
+                        b_team_i2 = m_instance["team_2"]
+                        f_team_i2 = m_instance["team_1"]
+                        
+                        pdf.cell(0, 10, f" INNINGS 2: {b_team_i2.upper()} vs {f_team_i2.upper()}", ln=True, fill=True)
+                        pdf.ln(1)
+                        
+                        pdf.set_font("Helvetica", "", 10)
+                        pdf.cell(95, 7, f"Total Innings Runs: {d2['runs']} / {d2['wickets']}", ln=False)
+                        pdf.cell(95, 7, f"Overs Completed: {d2['balls'] // 6}.{d2['balls'] % 6} / {m_instance['total_overs']} Ov", ln=True)
+                        pdf.cell(95, 7, f"Innings Extras: {d2['extras']}", ln=False)
+                        pdf.cell(95, 7, f"Target Target Run Chase: {m_instance['innings_1']['runs'] + 1}", ln=True)
+                        pdf.ln(4)
+                        
+                        # Batsmen Table 2
+                        pdf.set_font("Helvetica", "B", 11)
+                        pdf.cell(0, 8, " Batsman Performance Profile", ln=True)
+                        pdf.set_font("Helvetica", "B", 9)
+                        pdf.set_fill_color(226, 232, 240)
+                        pdf.cell(75, 7, " Batsman Name", border=1, ln=False, fill=True)
+                        pdf.cell(40, 7, " Dismissal", border=1, ln=False, fill=True)
+                        pdf.cell(20, 7, " Runs", border=1, ln=False, fill=True)
+                        pdf.cell(20, 7, " Balls", border=1, ln=False, fill=True)
+                        pdf.cell(15, 7, " 4s", border=1, ln=False, fill=True)
+                        pdf.cell(15, 7, " 6s", border=1, ln=True, fill=True)
+                        
+                        pdf.set_font("Helvetica", "", 9)
+                        all_bat2 = list(d2["all_batsmen_history"])
+                        if d2["b1"]["name"] != "": all_bat2.append(d2["b1"])
+                        if d2["b2"]["name"] != "": all_bat2.append(d2["b2"])
+                        
+                        for b in all_bat2:
+                            if b["name"] == "": continue
+                            pdf.cell(75, 7, f" {b['name']}", border=1, ln=False)
+                            pdf.cell(40, 7, f" {b['status']}", border=1, ln=False)
+                            pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
+                            pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
+                            pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
+                            pdf.cell(15, 7, f" {b['sixes']}", border=1, ln=True, align="C")
+                            
+                        pdf.ln(4)
+                        
+                        # Bowlers Table 2
+                        pdf.set_font("Helvetica", "B", 11)
+                        pdf.cell(0, 8, " Bowlers Performance Profile", ln=True)
+                        pdf.set_font("Helvetica", "B", 9)
+                        pdf.set_fill_color(226, 232, 240)
+                        pdf.cell(75, 7, " Bowler Name", border=1, ln=False, fill=True)
+                        pdf.cell(30, 7, " Overs", border=1, ln=False, fill=True)
+                        pdf.cell(30, 7, " Runs Conceded", border=1, ln=False, fill=True)
+                        pdf.cell(30, 7, " Wickets", border=1, ln=False, fill=True)
+                        pdf.cell(20, 7, " Maidens", border=1, ln=True, fill=True)
+                        
+                        pdf.set_font("Helvetica", "", 9)
+                        all_bowl2 = list(d2["all_bowlers_history"])
+                        if d2["bowler"]["name"] != "": all_bowl2.append(d2["bowler"])
+                        
+                        for blr in all_bowl2:
+                            if blr["name"] == "": continue
+                            b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
+                            pdf.cell(75, 7, f" {blr['name']}", border=1, ln=False)
+                            pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
+                            pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
+                            pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
+                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=True, align="C")
+                            
+                    return bytes(pdf.output())
+
+                st.write("")
+                st.download_button(
+                    label="📥 Export Report as Comprehensive PDF", 
+                    data=generate_full_pdf_report(), 
+                    file_name=f"APL_Official_Scorecard_{db_global['active_match_id']}.pdf", 
+                    mime="application/pdf", 
+                    use_container_width=True
+                )
 
 # ================= TAB: HISTORICAL ARCHIVE MUTLI-MATCH AUDIT =================
 with tab_review:
