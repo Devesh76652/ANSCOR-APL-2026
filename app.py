@@ -162,6 +162,12 @@ def ensure_innings_keys(inn):
 
 # Defensive Scheme Helper: Ensures absolute immunity to KeyError on outdated match objects
 def ensure_match_keys(m):
+    if not isinstance(m, dict):
+        m = {
+            "id": "Match", "team_1": "Team 1", "team_2": "Team 2",
+            "total_overs": 4, "current_innings": 1, "match_complete": False,
+            "innings_1": init_blank_innings(), "innings_2": init_blank_innings()
+        }
     if "team_1" not in m:
         m["team_1"] = m.get("batting_team_i1", m.get("team_a", "Team 1"))
     if "team_2" not in m:
@@ -262,12 +268,6 @@ lock = db_global["lock"]
 # Run a global self-healing sweep over the cache at start to upgrade any stale cached match structures
 with lock:
     for m_id in list(db_global["matches"].keys()):
-        if not isinstance(db_global["matches"][m_id], dict):
-            db_global["matches"][m_id] = {
-                "id": m_id, "team_1": "Team 1", "team_2": "Team 2",
-                "total_overs": 4, "current_innings": 1, "match_complete": False,
-                "innings_1": init_blank_innings(), "innings_2": init_blank_innings()
-            }
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
 # --- SQUAD MODAL ---
@@ -355,15 +355,18 @@ with tab_live:
                     db_global["active_match_id"] = selected_focus
                     st.rerun()
                 
-                active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
-                if active_match["current_innings"] == 1:
-                    if st.button("🔄 Transition Match to Innings 2 (Begin Target Run Chase) ➡️", type="primary"):
-                        with lock:
-                            active_match["current_innings"] = 2
-                        st.success("Match flipped cleanly over to Innings 2!")
-                        st.rerun()
+                # FIXED: Added safety guard to ensure ensure_match_keys is called only if the selected active match exists in the dictionary
+                if db_global["active_match_id"] in db_global["matches"]:
+                    active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
+                    if active_match["current_innings"] == 1:
+                        if st.button("🔄 Transition Match to Innings 2 (Begin Target Run Chase) ➡️", type="primary"):
+                            with lock:
+                                active_match["current_innings"] = 2
+                            st.success("Match flipped cleanly over to Innings 2!")
+                            st.rerun()
 
-    if not db_global["active_match_id"]:
+    # Scoreboard Live Session Focus Check
+    if not db_global["active_match_id"] or db_global["active_match_id"] not in db_global["matches"]:
         st.info("⏳ Waiting for active tournament score tracking initiation across layers...")
     else:
         m_instance = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
