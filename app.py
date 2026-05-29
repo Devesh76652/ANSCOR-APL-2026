@@ -17,37 +17,63 @@ st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide"
 # Raw GitHub repository directory path configuration
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Static Team Database
+# Official Tournament Team Database - Updated with the new team rosters
 TEAM_DB = {
     "Capital Chellengers": {
         "local": "CapitalChellengers.jpeg",
         "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
-        "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A",]
+        "squad": [
+            "Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", 
+            "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", 
+            "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"
+        ]
     },
     "Black panther": {
         "local": "Blackpanther.jpeg",
         "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
-        "squad": ["Karan (Sales) - C", "Arjun (IT)", "Vijay (Fin)", "Rajesh (Ops)", "Sanjay (HR)", "Anil (Mkt)", "Sunil (Legal)", "Manoj (Fin)", "Ravi (IT)", "Abhishek (Ops)", "Prakash (Sales)"]
+        "squad": [
+            "Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", 
+            "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", 
+            "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", 
+            "Akash nagade"
+        ]
     },
     "Super Kings": {
         "local": "SuperKings.jpeg",
         "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
-        "squad": ["Mahesh (Mkt) - C", "Dinesh (Sales)", "Harish (IT)", "Naresh (Fin)", "Ramesh (Ops)", "Suresh (HR)", "Umesh (Legal)", "Ashok (Mkt)", "Vinod (IT)", "Lalit (Fin)", "Pradeep (Ops)"]
+        "squad": [
+            "Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", 
+            "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", 
+            "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", 
+            "Sudhir pal"
+        ]
     },
     "Power Hitter": {
         "local": "PowerHitter.jpeg",
         "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
-        "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
+        "squad": [
+            "Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", 
+            "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", 
+            "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"
+        ]
     },
     "Royal Warriors XI": {
         "local": "RoyalWarriorsXI.jpeg",
         "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
-        "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
+        "squad": [
+            "Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", 
+            "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
+            "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"
+        ]
     },
     "UnStoppable": {
         "local": "UnStoppable.jpeg",
         "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
-        "squad": ["Shubman (HR) - C", "Rashid (IT)", "David (Fin)", "Kane (Ops)", "Wriddhiman (Sales)", "Rahul (Mkt)", "Vijay (Legal)", "Hardik (IT)", "Mohammed (Fin)", "Sai (Ops)", "Darshan (HR)"]
+        "squad": [
+            "Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", 
+            "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", 
+            "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"
+        ]
     }
 }
 
@@ -245,7 +271,6 @@ if not is_admin:
         
         teams_list = list(TEAM_DB.keys())
         
-        # Grid loop layout structure for selection blocks
         cols = st.columns(3)
         for idx, t_name in enumerate(teams_list):
             with cols[idx % 3]:
@@ -257,7 +282,6 @@ if not is_admin:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        # Repositioned exactly beneath the dynamic block grid layout components
         if st.session_state.active_team and st.session_state.active_team in TEAM_DB:
             selected_team = st.session_state.active_team
             st.markdown(f'<div class="squad-container">', unsafe_allow_html=True)
@@ -284,7 +308,6 @@ with tab_live:
         if is_admin:
             st.markdown("### 🚀 Match Allocation Parameters")
             
-            # Use dynamic selectbox keys so player options alter relative to current selections
             batting_team = st.selectbox("Select Batting Team Lineup", list(TEAM_DB.keys()), index=0, key="setup_batting_team")
             bowling_team = st.selectbox("Select Bowling Team Lineup", list(TEAM_DB.keys()), index=1, key="setup_bowling_team")
             
@@ -292,12 +315,10 @@ with tab_live:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.markdown(f"**🏏 Batting: {batting_team} Options**")
-                    # Populates options directly from the selected team's squad list arrays
                     batter1 = st.selectbox("Striker Batsman", TEAM_DB[batting_team]["squad"], index=0)
                     batter2 = st.selectbox("Non-Striker Batsman", TEAM_DB[batting_team]["squad"], index=1 if len(TEAM_DB[batting_team]["squad"]) > 1 else 0)
                 with col2:
                     st.markdown(f"**🥎 Bowling: {bowling_team} Options**")
-                    # Populates options directly from the selected opponent's squad list arrays
                     bowler = st.selectbox("Opening Bowler Profile", TEAM_DB[bowling_team]["squad"], index=0)
                     total_overs = st.number_input("Target Innings Overs", min_value=1, max_value=20, value=4)
                 
@@ -324,17 +345,15 @@ with tab_live:
 
     # --- SCOREBOARD ACTIVE LIVE LOOP ---
     else:
-        # Dynamic modal view fallback lists for incoming players
         if st.session_state.show_wicket_popup and is_admin:
             st.markdown('<div class="popup-box">', unsafe_allow_html=True)
             st.error("☝️ WICKET FALLEN DETECTED")
             
-            # Dynamically filters out the currently active or dismissed batsmen from options
             used_batters = [global_data["b1"]["name"], global_data["b2"]["name"]] + [b["name"] for b in global_data["all_batsmen_history"]]
             available_batters = [p for p in TEAM_DB[global_data["batting_team"]]["squad"] if p not in used_batters]
             
             if not available_batters:
-                available_batters = TEAM_DB[global_data["batting_team"]]["squad"] # Fallback if list gets full
+                available_batters = TEAM_DB[global_data["batting_team"]]["squad"]
                 
             new_batter_name = st.selectbox("Select Incoming Batsman:", available_batters)
             
@@ -357,7 +376,6 @@ with tab_live:
             st.markdown('<div class="popup-box">', unsafe_allow_html=True)
             st.info("🔄 OVER SYSTEM MARGIN COMPLETE")
             
-            # Populates choices directly from the bowling team's squad list roster
             available_bowlers = TEAM_DB[global_data["bowling_team"]]["squad"]
             new_bowler_name = st.selectbox("Select Next Bowler Assignment:", available_bowlers, index=0)
             
@@ -377,7 +395,6 @@ with tab_live:
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Innings metrics evaluation calculators
         completed_overs = global_data["balls"] // 6
         rem_balls = global_data["balls"] % 6
         total_overs_frac = completed_overs + (rem_balls / 6)
@@ -404,7 +421,6 @@ with tab_live:
                 })
                 st.session_state.show_over_popup = True
 
-        # Render interface splitter columns
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
@@ -435,7 +451,6 @@ with tab_live:
                 </div>
             """, unsafe_allow_html=True)
 
-            # Scorer panel execution controls
             if is_admin:
                 col_undo, col_swap = st.columns([1.2, 0.8])
                 with col_undo:
@@ -726,7 +741,6 @@ with tab_live:
                 use_container_width=True
             )
 
-        # Reset Engine
         if is_admin:
             st.markdown("---")
             if st.button("Reset Tournament Dashboard Application", type="secondary", use_container_width=True):
