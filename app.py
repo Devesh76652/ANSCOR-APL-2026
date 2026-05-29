@@ -3,7 +3,7 @@ import pandas as pd
 from fpdf import FPDF
 import threading
 import copy
-import requests
+import os
 
 # Background auto-refresh integration
 try:
@@ -14,53 +14,69 @@ except ImportError:
 # 1. Page Configuration
 st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
 
-# GitHub Repository Base Configuration (Replace with your actual GitHub username and repo if needed)
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
+# Fixed the exact repository spelling from your screenshot: Anscortorunament
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortorunament/APL/main/"
 
-# Static Team Database - Linked directly via your GitHub hosting paths
+# Static Team Database - Handles both Local or GitHub Raw path mappings
 TEAM_DB = {
     "Capital Chellengers": {
-        "logo": GITHUB_RAW_BASE + "Capital%20Chellengers.jpeg",
+        "local": "Capital Chellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Chellengers.jpeg",
         "squad": ["Amit (IT) - C", "Vikram (Fin)", "Rahul (HR)", "Suresh (Ops)", "Alok (Sales)", "Deepak (Mkt)", "Nitin (IT)", "Rohan (Legal)", "Sumit (Fin)", "Kapil (HR)", "Gaurav (Ops)"]
     },
     "Black panther": {
-        "logo": GITHUB_RAW_BASE + "Black%20panther.jpeg",
+        "local": "Black panther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black%20panther.jpeg",
         "squad": ["Karan (Sales) - C", "Arjun (IT)", "Vijay (Fin)", "Rajesh (Ops)", "Sanjay (HR)", "Anil (Mkt)", "Sunil (Legal)", "Manoj (Fin)", "Ravi (IT)", "Abhishek (Ops)", "Prakash (Sales)"]
     },
     "Super Kings": {
-        "logo": GITHUB_RAW_BASE + "Super%20Kings.jpeg",
+        "local": "Super Kings.jpeg",
+        "remote": GITHUB_RAW_BASE + "Super%20Kings.jpeg",
         "squad": ["Mahesh (Mkt) - C", "Dinesh (Sales)", "Harish (IT)", "Naresh (Fin)", "Ramesh (Ops)", "Suresh (HR)", "Umesh (Legal)", "Ashok (Mkt)", "Vinod (IT)", "Lalit (Fin)", "Pradeep (Ops)"]
     },
     "Power Hitter": {
-        "logo": GITHUB_RAW_BASE + "Power%20Hitter.jpeg",
+        "local": "Power Hitter.jpeg",
+        "remote": GITHUB_RAW_BASE + "Power%20Hitter.jpeg",
         "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
     },
     "Royal Warriors XI": {
-        "logo": GITHUB_RAW_BASE + "Royal%20Warriors%20XI.jpeg",
+        "local": "Royal Warriors XI.jpeg",
+        "remote": GITHUB_RAW_BASE + "Royal%20Warriors%20XI.jpeg",
         "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
     },
     "UnStoppable": {
-        "logo": GITHUB_RAW_BASE + "UnStoppable.jpeg",
+        "local": "UnStoppable.jpeg",
+        "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
         "squad": ["Shubman (HR) - C", "Rashid (IT)", "David (Fin)", "Kane (Ops)", "Wriddhiman (Sales)", "Rahul (Mkt)", "Vijay (Legal)", "Hardik (IT)", "Mohammed (Fin)", "Sai (Ops)", "Darshan (HR)"]
     }
 }
 
-# Main Match/Tournament Logo hosted on GitHub
-MAIN_TOURNAMENT_LOGO = GITHUB_RAW_BASE + "le.mat.jpeg"
+# Tournament Main Logo Links
+MAIN_LOGOS = {
+    "local": "le.mat.jpeg",
+    "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
+}
 
-# Helper function to display images from GitHub URL with a robust text fallback mechanism
-def display_team_logo(team_name, width=100):
-    if team_name in TEAM_DB:
-        img_url = TEAM_DB[team_name]["logo"]
+# Robust image loading mechanism with automated safe fallbacks
+def smart_load_image(local_path, remote_url, width=100, use_container=False):
+    # Fallback Option 1: Try checking local repository folder first
+    if os.path.exists(local_path):
         try:
-            st.image(img_url, width=width)
+            st.image(local_path, width=width if not use_container else None, use_container_width=use_container)
             return True
         except Exception:
             pass
-    st.markdown(f"### 🏏 {team_name}")
+            
+    # Fallback Option 2: Try checking direct Web/GitHub cloud URL endpoints 
+    try:
+        st.image(remote_url, width=width if not use_container else None, use_container_width=use_container)
+        return True
+    except Exception:
+        pass
+        
     return False
 
-# Advanced Responsive Layout Custom CSS Styling
+# Custom CSS Layout Overrides
 st.markdown("""
     <style>
     .block-container {
@@ -128,7 +144,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Shared Memory Engine Cache Setup
+# Shared Memory Application Cache Engine Setup
 @st.cache_resource
 def get_global_match_data():
     return {
@@ -173,13 +189,12 @@ else:
     st_autorefresh(interval=3000, key="broadcast_sync_pulse")
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
-# Visual Main Brand Banner with Integrated Tournament Logo from GitHub
+# Visual Main Brand Banner Header Layout
 banner_col1, banner_col2 = st.columns([1, 4])
 with banner_col1:
-    try:
-        st.image(MAIN_TOURNAMENT_LOGO, width=110)
-    except Exception:
-        st.markdown("<h2>🏏</h2>", unsafe_allow_html=True)
+    loaded = smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=110)
+    if not loaded:
+        st.markdown("<h2 style='margin:0;'>🏏</h2>", unsafe_allow_html=True)
 with banner_col2:
     st.markdown(
         "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:10px;'>ANSCOR APL 2026</h2>"
@@ -222,10 +237,9 @@ if not is_admin:
         for idx, t_name in enumerate(teams_list):
             col_target = grid_cols[idx % 3]
             with col_target:
-                img_url = TEAM_DB[t_name]["logo"]
-                try:
-                    st.image(img_url, use_container_width=True)
-                except Exception:
+                img_config = TEAM_DB[t_name]
+                loaded = smart_load_image(img_config["local"], img_config["remote"], use_container=True)
+                if not loaded:
                     st.subheader(t_name)
                     
                 with st.expander(f"🔍 Show Squad: {t_name}", expanded=False):
@@ -270,7 +284,7 @@ with tab_live:
 
     # --- SCOREBOARD ACTIVE LIVE LOOP ---
     else:
-        # Pop-up Modals Integration (Secured Admin Execution Hooks)
+        # Administration Fallback Modal Interfaces
         if st.session_state.show_wicket_popup and is_admin:
             st.markdown('<div class="popup-box">', unsafe_allow_html=True)
             st.error("☝️ WICKET FALLEN DETECTED")
@@ -343,14 +357,20 @@ with tab_live:
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
-            # --- LIVE MATCH TEAM LOGO DISPLAY BANNER FROM GITHUB URLs ---
+            # --- COMBINED VS MATCH BANNER LOGO INJECTION ---
             logo_c1, logo_vs, logo_c2 = st.columns([1, 0.5, 1])
             with logo_c1:
-                display_team_logo(global_data["batting_team"], width=120)
+                b_team = global_data["batting_team"]
+                if b_team in TEAM_DB:
+                    loaded = smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=120)
+                    if not loaded: st.markdown(f"<h5>🏏 {b_team}</h5>", unsafe_allow_html=True)
             with logo_vs:
                 st.markdown("<h3 style='text-align: center; margin-top: 30px; color:#64748B;'>VS</h3>", unsafe_allow_html=True)
             with logo_c2:
-                display_team_logo(global_data["bowling_team"], width=120)
+                f_team = global_data["bowling_team"]
+                if f_team in TEAM_DB:
+                    loaded = smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=120)
+                    if not loaded: st.markdown(f"<h5>🥎 {f_team}</h5>", unsafe_allow_html=True)
 
             st.markdown(f"""
                 <div class="score-box">
