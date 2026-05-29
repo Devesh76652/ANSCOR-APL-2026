@@ -57,24 +57,21 @@ MAIN_LOGOS = {
     "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
 }
 
-# Robust image loading mechanism with automated safe fallbacks
-def smart_load_image(local_path, remote_url, width=100, use_container=False):
+# Helper to resolve image paths cleanly
+def get_image_url(local_path, remote_url):
     if os.path.exists(local_path):
-        try:
-            st.image(local_path, width=width if not use_container else None, use_container_width=use_container)
-            return True
-        except Exception:
-            pass
-            
+        return local_path
+    return remote_url
+
+def smart_load_image(local_path, remote_url, width=100, use_container=False):
+    target = get_image_url(local_path, remote_url)
     try:
-        st.image(remote_url, width=width if not use_container else None, use_container_width=use_container)
+        st.image(target, width=width if not use_container else None, use_container_width=use_container)
         return True
     except Exception:
-        pass
-        
-    return False
+        return False
 
-# Custom CSS Layout Overrides & Hover Effects
+# Custom CSS Layout Overrides, Clean Card Styles & Zoom Effects
 st.markdown("""
     <style>
     .block-container {
@@ -139,25 +136,36 @@ st.markdown("""
         font-size: 0.95rem !important;
         border-radius: 10px !important;
     }
-    /* Team Card Interactive Styles */
-    .team-interactive-card {
+    
+    /* Clean CSS Card Layout with Interactive Hover Effects */
+    .team-grid-card {
         background-color: #1E293B;
         border: 1px solid #334155;
         border-radius: 12px;
-        padding: 10px;
+        padding: 15px 10px;
         text-align: center;
-        transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        text-decoration: none !important;
+        display: block;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    .team-interactive-card:hover {
-        transform: scale(1.03);
+    .team-grid-card:hover {
+        transform: translateY(-4px) scale(1.02);
         border-color: #3B82F6;
-        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.15);
+    }
+    .team-card-title {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        margin-top: 10px !important;
+        margin-bottom: 0px !important;
+        text-decoration: none !important;
     }
     .squad-container {
         background-color: #0F172A;
         border: 1px dashed #334155;
         border-radius: 8px;
-        padding: 10px;
+        padding: 12px;
         margin-top: 8px;
         text-align: left;
     }
@@ -192,7 +200,10 @@ lock = global_data["lock"]
 
 if 'show_wicket_popup' not in st.session_state: st.session_state.show_wicket_popup = False
 if 'show_over_popup' not in st.session_state: st.session_state.show_over_popup = False
-if 'selected_team' not in st.session_state: st.session_state.selected_team = None
+
+# Manage roster selection state cleanly using query parameters to prevent sync resets
+query_params = st.query_params
+selected_team = query_params.get("team", None)
 
 # --- LIVE REFRESH HANDLER ---
 st.sidebar.markdown("### 🔑 Live System Portal")
@@ -250,7 +261,7 @@ else:
 if not is_admin:
     with tab_teams:
         st.markdown("### 📋 Official Team Lists")
-        st.caption("Click directly on any team logo below to toggle and view their official player roster.")
+        st.caption("Click directly on any team card below to view their live player lineup roster.")
         
         grid_cols = st.columns(3)
         teams_list = list(TEAM_DB.keys())
@@ -258,31 +269,26 @@ if not is_admin:
         for idx, t_name in enumerate(teams_list):
             col_target = grid_cols[idx % 3]
             with col_target:
-                # Hover and click container card wrapper
-                st.markdown(f'<div class="team-interactive-card">', unsafe_allow_html=True)
                 img_config = TEAM_DB[t_name]
+                img_src = get_image_url(img_config["local"], img_config["remote"])
                 
-                # Make logo compact and centered
-                logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
-                with logo_col2:
-                    loaded = smart_load_image(img_config["local"], img_config["remote"], use_container=True)
+                # HTML template structure combining responsive zoom container card
+                card_html = f"""
+                <a href="?team={t_name}" target="_self" style="text-decoration: none;">
+                    <div class="team-grid-card">
+                        <img src="{img_src}" style="max-height: 75px; object-fit: contain; border-radius: 6px; margin: 0 auto; display: block;" />
+                        <div class="team-card-title">{t_name}</div>
+                    </div>
+                </a>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)
                 
-                # Use a seamless button for interactivity
-                if st.button(t_name, key=f"btn_{t_name}", use_container_width=True):
-                    if st.session_state.selected_team == t_name:
-                        st.session_state.selected_team = None  # Toggle close
-                    else:
-                        st.session_state.selected_team = t_name
-                    st.rerun()
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Display squad dynamic dropdown directly underneath the selected card
-                if st.session_state.selected_team == t_name:
+                # Expand player list seamlessly if the active card is clicked
+                if selected_team == t_name:
                     st.markdown('<div class="squad-container">', unsafe_allow_html=True)
-                    st.markdown(f"<b style='color:#3B82F6;'>📋 {t_name} Lineup:</b>", unsafe_allow_html=True)
+                    st.markdown(f"<b style='color:#3B82F6; font-size:0.95rem;'>📋 {t_name} Squad Lineup:</b><div style='margin-top:6px;'></div>", unsafe_allow_html=True)
                     for player in TEAM_DB[t_name]["squad"]:
-                        st.markdown(f"<span style='font-size:0.9rem; color:#E2E8F0;'>• {player}</span>", unsafe_allow_html=True)
+                        st.markdown(f"<span style='font-size:0.9rem; color:#E2E8F0; display:block; padding:2px 0;'>• {player}</span>", unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("---")
 
@@ -401,13 +407,13 @@ with tab_live:
             with logo_c1:
                 b_team = global_data["batting_team"]
                 if b_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=90)
+                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=70)
             with logo_vs:
-                st.markdown("<h3 style='text-align: center; margin-top: 20px; color:#64748B;'>VS</h3>", unsafe_allow_html=True)
+                st.markdown("<h4 style='text-align: center; margin-top: 15px; border: none; padding: 0; color:#64748B;'>VS</h4>", unsafe_allow_html=True)
             with logo_c2:
                 f_team = global_data["bowling_team"]
                 if f_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=90)
+                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=70)
 
             st.markdown(f"""
                 <div class="score-box">
