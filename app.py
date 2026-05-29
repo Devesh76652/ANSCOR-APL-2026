@@ -14,34 +14,34 @@ except ImportError:
 # 1. Page Configuration
 st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
 
-# Fixed the exact repository name spelling to pull directly from your GitHub repo
+# Raw GitHub repository directory path configuration
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
 # Static Team Database
 TEAM_DB = {
     "Capital Chellengers": {
-        "local": "CapitalChellengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
+        "local": "Capital Chellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Chellengers.jpeg",
         "squad": ["Amit (IT) - C", "Vikram (Fin)", "Rahul (HR)", "Suresh (Ops)", "Alok (Sales)", "Deepak (Mkt)", "Nitin (IT)", "Rohan (Legal)", "Sumit (Fin)", "Kapil (HR)", "Gaurav (Ops)"]
     },
     "Black panther": {
-        "local": "Blackpanther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
+        "local": "Black panther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black%20panther.jpeg",
         "squad": ["Karan (Sales) - C", "Arjun (IT)", "Vijay (Fin)", "Rajesh (Ops)", "Sanjay (HR)", "Anil (Mkt)", "Sunil (Legal)", "Manoj (Fin)", "Ravi (IT)", "Abhishek (Ops)", "Prakash (Sales)"]
     },
     "Super Kings": {
-        "local": "SuperKings.jpeg",
-        "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
+        "local": "Super Kings.jpeg",
+        "remote": GITHUB_RAW_BASE + "Super%20Kings.jpeg",
         "squad": ["Mahesh (Mkt) - C", "Dinesh (Sales)", "Harish (IT)", "Naresh (Fin)", "Ramesh (Ops)", "Suresh (HR)", "Umesh (Legal)", "Ashok (Mkt)", "Vinod (IT)", "Lalit (Fin)", "Pradeep (Ops)"]
     },
     "Power Hitter": {
-        "local": "PowerHitter.jpeg",
-        "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
+        "local": "Power Hitter.jpeg",
+        "remote": GITHUB_RAW_BASE + "Power%20Hitter.jpeg",
         "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
     },
     "Royal Warriors XI": {
-        "local": "RoyalWarriorsXI.jpeg",
-        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
+        "local": "Royal Warriors XI.jpeg",
+        "remote": GITHUB_RAW_BASE + "Royal%20Warriors%20XI.jpeg",
         "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
     },
     "UnStoppable": {
@@ -57,7 +57,7 @@ MAIN_LOGOS = {
     "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
 }
 
-# Standardized reliable image loading function
+# Standardized image load engine with path validation fallback checks
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if os.path.exists(local_path):
         try:
@@ -72,7 +72,7 @@ def smart_load_image(local_path, remote_url, width=None, use_container=True):
         pass
     return False
 
-# Custom CSS Layout Overrides
+# Custom CSS overrides for application components
 st.markdown("""
     <style>
     .block-container {
@@ -151,12 +151,13 @@ st.markdown("""
         border-radius: 8px;
         padding: 14px;
         margin-top: 10px;
+        margin-bottom: 20px;
         text-align: left;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Shared Memory Application Cache Engine Setup
+# Shared Memory Application Cache Setup
 @st.cache_resource
 def get_global_match_data():
     return {
@@ -186,7 +187,7 @@ if 'show_wicket_popup' not in st.session_state: st.session_state.show_wicket_pop
 if 'show_over_popup' not in st.session_state: st.session_state.show_over_popup = False
 if 'active_team' not in st.session_state: st.session_state.active_team = None
 
-# --- LIVE REFRESH HANDLER ---
+# --- SIDEBAR INTERFACE ACCESS PROFILES ---
 st.sidebar.markdown("### 🔑 Live System Portal")
 user_role = st.sidebar.radio("Your Access Profile:", ["📢 Player View (Live Auto-Sync)", "⚡ Scorer Panel (Admin Mode)"])
 
@@ -202,7 +203,7 @@ else:
     st_autorefresh(interval=3000, key="broadcast_sync_pulse")
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
-# Visual Main Brand Banner Header Layout - Logo BEFORE the Name
+# Visual Main Brand Header Panel
 banner_col1, banner_col2 = st.columns([0.15, 0.85])
 with banner_col1:
     smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=80, use_container=False)
@@ -229,7 +230,7 @@ def save_state_for_undo():
     }
     global_data["undo_stack"].append(state_snapshot)
 
-# --- VIEW ASSIGNMENT: TABS FOR VIEWER MODE ---
+# Tab assignments initialization
 if not is_admin:
     tab_live, tab_teams = st.tabs(["📺 Live Match Broadcast", "📋 Tournament Team Directory"])
 else:
@@ -244,7 +245,7 @@ if not is_admin:
         
         teams_list = list(TEAM_DB.keys())
         
-        # Grid placement logic to separate team card selections cleanly without locking the UI
+        # Grid loop layout structure for selection blocks
         cols = st.columns(3)
         for idx, t_name in enumerate(teams_list):
             with cols[idx % 3]:
@@ -256,13 +257,12 @@ if not is_admin:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-        # Dynamic output target panel to prevent list elements getting stuck
+        # Repositioned exactly beneath the dynamic block grid layout components
         if st.session_state.active_team and st.session_state.active_team in TEAM_DB:
             selected_team = st.session_state.active_team
             st.markdown(f'<div class="squad-container">', unsafe_allow_html=True)
             st.markdown(f"<h3 style='color:#3B82F6; margin:0 0 10px 0;'>📋 {selected_team} Squad Lineup</h3>", unsafe_allow_html=True)
             
-            # Display squad players split into two columns for scannability
             sq_c1, sq_c2 = st.columns(2)
             squad_members = TEAM_DB[selected_team]["squad"]
             midpoint = (len(squad_members) + 1) // 2
@@ -283,44 +283,62 @@ with tab_live:
     if not global_data["match_started"]:
         if is_admin:
             st.markdown("### 🚀 Match Allocation Parameters")
-            with st.form("setup_form"):
+            
+            # Use dynamic selectbox keys so player options alter relative to current selections
+            batting_team = st.selectbox("Select Batting Team Lineup", list(TEAM_DB.keys()), index=0, key="setup_batting_team")
+            bowling_team = st.selectbox("Select Bowling Team Lineup", list(TEAM_DB.keys()), index=1, key="setup_bowling_team")
+            
+            with st.form("setup_form_engine"):
                 col1, col2 = st.columns(2)
                 with col1:
-                    batting_team = st.selectbox("Batting Team Lineup", list(TEAM_DB.keys()), index=0)
-                    batter1 = st.text_input("Striker Batsman", value="Amit (IT)")
-                    bowler = st.text_input("Opening Bowler Profile", value="Vikram (Fin)")
+                    st.markdown(f"**🏏 Batting: {batting_team} Options**")
+                    # Populates options directly from the selected team's squad list arrays
+                    batter1 = st.selectbox("Striker Batsman", TEAM_DB[batting_team]["squad"], index=0)
+                    batter2 = st.selectbox("Non-Striker Batsman", TEAM_DB[batting_team]["squad"], index=1 if len(TEAM_DB[batting_team]["squad"]) > 1 else 0)
                 with col2:
-                    bowling_team = st.selectbox("Bowling Team Lineup", list(TEAM_DB.keys()), index=1)
-                    batter2 = st.text_input("Non-Striker Batsman", value="Rahul (HR)")
+                    st.markdown(f"**🥎 Bowling: {bowling_team} Options**")
+                    # Populates options directly from the selected opponent's squad list arrays
+                    bowler = st.selectbox("Opening Bowler Profile", TEAM_DB[bowling_team]["squad"], index=0)
                     total_overs = st.number_input("Target Innings Overs", min_value=1, max_value=20, value=4)
                 
                 if st.form_submit_button("Launch Live Broadcast 🏁", use_container_width=True):
-                    with lock:
-                        global_data["match_started"] = True
-                        global_data["batting_team"] = batting_team
-                        global_data["bowling_team"] = bowling_team
-                        global_data["total_overs"] = total_overs
-                        global_data["runs"], global_data["wickets"], global_data["balls"], global_data["extras"] = 0, 0, 0, 0
-                        global_data["this_over"], global_data["over_history"] = [], []
-                        global_data["b1"] = {"name": batter1, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"}
-                        global_data["b2"] = {"name": batter2, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"}
-                        global_data["bowler"] = {"name": bowler, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
-                        global_data["all_batsmen_history"] = []
-                        global_data["all_bowlers_history"] = []
-                        global_data["undo_stack"] = []
-                    st.rerun()
+                    if batting_team == bowling_team:
+                        st.error("Error: A team cannot play against itself. Please alter your lineups.")
+                    else:
+                        with lock:
+                            global_data["match_started"] = True
+                            global_data["batting_team"] = batting_team
+                            global_data["bowling_team"] = bowling_team
+                            global_data["total_overs"] = total_overs
+                            global_data["runs"], global_data["wickets"], global_data["balls"], global_data["extras"] = 0, 0, 0, 0
+                            global_data["this_over"], global_data["over_history"] = [], []
+                            global_data["b1"] = {"name": batter1, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"}
+                            global_data["b2"] = {"name": batter2, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"}
+                            global_data["bowler"] = {"name": bowler, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
+                            global_data["all_batsmen_history"] = []
+                            global_data["all_bowlers_history"] = []
+                            global_data["undo_stack"] = []
+                        st.rerun()
         else:
-            st.warning("⏳ Waiting for the administration team to initialize the data systems. Standby...")
+            st.warning("⏳ Waiting for the administration team to initialize data systems. Standby...")
 
     # --- SCOREBOARD ACTIVE LIVE LOOP ---
     else:
-        # Administration Fallback Modal Interfaces
+        # Dynamic modal view fallback lists for incoming players
         if st.session_state.show_wicket_popup and is_admin:
             st.markdown('<div class="popup-box">', unsafe_allow_html=True)
             st.error("☝️ WICKET FALLEN DETECTED")
-            new_batter_name = st.text_input("Incoming Batsman Name:", value="")
+            
+            # Dynamically filters out the currently active or dismissed batsmen from options
+            used_batters = [global_data["b1"]["name"], global_data["b2"]["name"]] + [b["name"] for b in global_data["all_batsmen_history"]]
+            available_batters = [p for p in TEAM_DB[global_data["batting_team"]]["squad"] if p not in used_batters]
+            
+            if not available_batters:
+                available_batters = TEAM_DB[global_data["batting_team"]]["squad"] # Fallback if list gets full
+                
+            new_batter_name = st.selectbox("Select Incoming Batsman:", available_batters)
+            
             if st.button("Resume Match Activity 🏏", use_container_width=True):
-                if not new_batter_name: new_batter_name = f"Batter {global_data['wickets'] + 1}"
                 with lock:
                     save_state_for_undo()
                     if global_data["b1"]["strike"]:
@@ -338,9 +356,12 @@ with tab_live:
         if st.session_state.show_over_popup and is_admin:
             st.markdown('<div class="popup-box">', unsafe_allow_html=True)
             st.info("🔄 OVER SYSTEM MARGIN COMPLETE")
-            new_bowler_name = st.text_input("Next Bowler Target Assignment:", value="")
+            
+            # Populates choices directly from the bowling team's squad list roster
+            available_bowlers = TEAM_DB[global_data["bowling_team"]]["squad"]
+            new_bowler_name = st.selectbox("Select Next Bowler Assignment:", available_bowlers, index=0)
+            
             if st.button("Unlock Over Sequences 🥎", use_container_width=True):
-                if not new_bowler_name: new_bowler_name = f"Bowler {len(global_data['all_bowlers_history']) + 1}"
                 with lock:
                     save_state_for_undo()
                     existing_bowler = next((b for b in global_data["all_bowlers_history"] if b["name"] == global_data["bowler"]["name"]), None)
@@ -356,7 +377,7 @@ with tab_live:
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Innings Calculators
+        # Innings metrics evaluation calculators
         completed_overs = global_data["balls"] // 6
         rem_balls = global_data["balls"] % 6
         total_overs_frac = completed_overs + (rem_balls / 6)
@@ -383,11 +404,10 @@ with tab_live:
                 })
                 st.session_state.show_over_popup = True
 
-        # Layout Allocation Strategy
+        # Render interface splitter columns
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
-            # Match Banner Logo Injections
             logo_c1, logo_vs, logo_c2 = st.columns([1, 0.5, 1])
             with logo_c1:
                 b_team = global_data["batting_team"]
@@ -415,7 +435,7 @@ with tab_live:
                 </div>
             """, unsafe_allow_html=True)
 
-            # Scorer Administration Actions Panel
+            # Scorer panel execution controls
             if is_admin:
                 col_undo, col_swap = st.columns([1.2, 0.8])
                 with col_undo:
