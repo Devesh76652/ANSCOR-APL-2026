@@ -80,7 +80,6 @@ TEAM_DB = {
 
 MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
 
-# FIXED: Added default value remote_url="" to prevent TypeErrors when called with one positional argument
 def get_image_src(local_path, remote_url=""):
     if os.path.exists(local_path):
         try:
@@ -145,10 +144,48 @@ def ensure_innings_keys(inn):
                     inn[player_key][pk] = pv
     return inn
 
+# Defensive Scheme Helper: Ensures absolute immunity to KeyError on outdated match objects
+def ensure_match_keys(m):
+    if "team_1" not in m:
+        m["team_1"] = m.get("batting_team_i1", m.get("team_a", "Team 1"))
+    if "team_2" not in m:
+        m["team_2"] = m.get("bowling_team_i1", m.get("team_b", "Team 2"))
+    if "innings_1" not in m:
+        m["innings_1"] = init_blank_innings()
+    if "innings_2" not in m:
+        m["innings_2"] = init_blank_innings()
+    m["innings_1"] = ensure_innings_keys(m["innings_1"])
+    m["innings_2"] = ensure_innings_keys(m["innings_2"])
+    if "current_innings" not in m:
+        m["current_innings"] = 1
+    if "total_overs" not in m:
+        m["total_overs"] = 4
+    if "id" not in m:
+        m["id"] = "Match"
+    return m
+
+# Clean Encoder Helper: Strips non-latin1 glyphs (like emojis) to guarantee FPDF report generation stability
+def sanitize_for_pdf(text):
+    if not text:
+        return ""
+    replacements = {
+        "🏆": "", "🏏": "", "🥎": "", "📢": "", "👔": "", "👉": "",
+        "🟢": "", "🟡": "", "🟠": "", "☝️": "", "🏁": "", "📋": "",
+        "📺": "", "🗄️": "", "📥": ""
+    }
+    for emoji, rep in replacements.items():
+        text = text.replace(emoji, rep)
+    try:
+        text_encoded = text.encode("latin-1", errors="ignore")
+        return text_encoded.decode("latin-1")
+    except Exception:
+        return "".join(c for c in text if ord(c) < 128)
+
 # Dynamic Winner Evaluation Engine
 def get_match_result(m):
-    d1 = ensure_innings_keys(m["innings_1"])
-    d2 = ensure_innings_keys(m["innings_2"])
+    m = ensure_match_keys(m)
+    d1 = m["innings_1"]
+    d2 = m["innings_2"]
     
     if d1["b1"]["name"] == "":
         return "Setup State: Awaiting match lineup configuration."
@@ -205,6 +242,11 @@ def get_tournament_database():
 
 db_global = get_tournament_database()
 lock = db_global["lock"]
+
+# Run a global self-healing sweep over the cache at start to upgrade any stale cached match structures
+with lock:
+    for m_id in list(db_global["matches"].keys()):
+        db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
 # --- SQUAD MODAL ---
 @st.dialog("📋 Squad Roster Profile")
@@ -291,7 +333,7 @@ with tab_live:
                     db_global["active_match_id"] = selected_focus
                     st.rerun()
                 
-                active_match = db_global["matches"][db_global["active_match_id"]]
+                active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
                 if active_match["current_innings"] == 1:
                     if st.button("🔄 Transition Match to Innings 2 (Begin Target Run Chase) ➡️", type="primary"):
                         with lock:
@@ -302,11 +344,9 @@ with tab_live:
     if not db_global["active_match_id"]:
         st.info("⏳ Waiting for active tournament score tracking initiation across layers...")
     else:
-        m_instance = db_global["matches"][db_global["active_match_id"]]
+        m_instance = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
         inn_key = "innings_1" if m_instance["current_innings"] == 1 else "innings_2"
-        
-        # Self-heal inn_data keys on-the-fly to handle stale cached state resource schemas
-        inn_data = ensure_innings_keys(m_instance[inn_key])
+        inn_data = m_instance[inn_key]
         
         bat_team = m_instance["team_1"] if m_instance["current_innings"] == 1 else m_instance["team_2"]
         bowl_team = m_instance["team_2"] if m_instance["current_innings"] == 1 else m_instance["team_1"]
@@ -582,10 +622,10 @@ with tab_live:
                     pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=True, align="C")
                     pdf.ln(4)
                     
-                    # Highlight Match Winner / Result clearly at top of PDF Report
+                    # Highlight Match Winner / Result clearly at top of PDF Report with safe sanitization (Strips Emojis)
                     pdf.set_font("Helvetica", "B", 11)
                     pdf.set_text_color(220, 38, 38)
-                    pdf.cell(0, 8, f" MATCH RESULT: {get_match_result(m_instance).upper()}", ln=True, align="C")
+                    pdf.cell(0, 8, sanitize_for_pdf(f" MATCH RESULT: {get_match_result(m_instance).upper()}"), ln=True, align="C")
                     pdf.ln(4)
                     
                     pdf.set_font("Helvetica", "B", 12)
@@ -596,7 +636,7 @@ with tab_live:
                     b_team_i1 = m_instance["team_1"]
                     f_team_i1 = m_instance["team_2"]
                     
-                    pdf.cell(0, 10, f" INNINGS 1: {b_team_i1.upper()} vs {f_team_i1.upper()}", ln=True, fill=True)
+                    pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 1: {b_team_i1.upper()} vs {f_team_i1.upper()}"), ln=True, fill=True)
                     pdf.ln(1)
                     
                     pdf.set_font("Helvetica", "", 10)
@@ -626,8 +666,8 @@ with tab_live:
                     
                     for b in all_bat1:
                         if b["name"] == "": continue
-                        pdf.cell(75, 7, f" {b['name']}", border=1, ln=False)
-                        pdf.cell(40, 7, f" {b['status']}", border=1, ln=False)
+                        pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=False)
+                        pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=False)
                         pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
                         pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
                         pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
@@ -653,7 +693,7 @@ with tab_live:
                     for blr in all_bowl1:
                         if blr["name"] == "": continue
                         b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
-                        pdf.cell(75, 7, f" {blr['name']}", border=1, ln=False)
+                        pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=False)
                         pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
                         pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
                         pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
@@ -670,7 +710,7 @@ with tab_live:
                         b_team_i2 = m_instance["team_2"]
                         f_team_i2 = m_instance["team_1"]
                         
-                        pdf.cell(0, 10, f" INNINGS 2: {b_team_i2.upper()} vs {f_team_i2.upper()}", ln=True, fill=True)
+                        pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 2: {b_team_i2.upper()} vs {f_team_i2.upper()}"), ln=True, fill=True)
                         pdf.ln(1)
                         
                         pdf.set_font("Helvetica", "", 10)
@@ -699,8 +739,8 @@ with tab_live:
                         
                         for b in all_bat2:
                             if b["name"] == "": continue
-                            pdf.cell(75, 7, f" {b['name']}", border=1, ln=False)
-                            pdf.cell(40, 7, f" {b['status']}", border=1, ln=False)
+                            pdf.cell(75, 7, sanitize_for_pdf(f" {b['name']}"), border=1, ln=False)
+                            pdf.cell(40, 7, sanitize_for_pdf(f" {b['status']}"), border=1, ln=False)
                             pdf.cell(20, 7, f" {b['runs']}", border=1, ln=False, align="C")
                             pdf.cell(20, 7, f" {b['balls']}", border=1, ln=False, align="C")
                             pdf.cell(15, 7, f" {b['fours']}", border=1, ln=False, align="C")
@@ -726,7 +766,7 @@ with tab_live:
                         for blr in all_bowl2:
                             if blr["name"] == "": continue
                             b_ov_num = f"{blr['balls'] // 6}.{blr['balls'] % 6}"
-                            pdf.cell(75, 7, f" {blr['name']}", border=1, ln=False)
+                            pdf.cell(75, 7, sanitize_for_pdf(f" {blr['name']}"), border=1, ln=False)
                             pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=False, align="C")
                             pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=False, align="C")
                             pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
@@ -751,14 +791,14 @@ with tab_review:
         st.caption("No historical logs recorded within active engine instances.")
     else:
         select_review_id = st.selectbox("Select Historical Match Profile Key to Audit:", list(db_global["matches"].keys()))
-        m_rev = db_global["matches"][select_review_id]
+        m_rev = ensure_match_keys(db_global["matches"][select_review_id])
         
         st.markdown(f"## Record Verification Summary: {m_rev['id']}")
         st.info(f"Configuration Blueprint Frame Structure: **{m_rev['team_1']}** vs **{m_rev['team_2']}** | Target Parameter Limits: {m_rev['total_overs']} Overs")
         
         # Self-heal reviewed historical logs on loading
-        d1 = ensure_innings_keys(m_rev["innings_1"])
-        d2 = ensure_innings_keys(m_rev["innings_2"])
+        d1 = m_rev["innings_1"]
+        d2 = m_rev["innings_2"]
         
         # Display Match Winner / Outcome clearly
         match_outcome = get_match_result(m_rev)
