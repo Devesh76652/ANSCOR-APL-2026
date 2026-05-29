@@ -14,10 +14,10 @@ except ImportError:
 # 1. Page Configuration
 st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
 
-# Fixed the exact repository spelling from your screenshot: Anscortorunament
+# Fixed repository spelling
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortorunament/APL/main/"
 
-# Static Team Database - Handles both Local or GitHub Raw path mappings
+# Static Team Database
 TEAM_DB = {
     "Capital Chellengers": {
         "local": "Capital Chellengers.jpeg",
@@ -57,21 +57,22 @@ MAIN_LOGOS = {
     "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
 }
 
-# Helper to resolve image paths cleanly
-def get_image_url(local_path, remote_url):
+# Standardized reliable image loading
+def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if os.path.exists(local_path):
-        return local_path
-    return remote_url
-
-def smart_load_image(local_path, remote_url, width=100, use_container=False):
-    target = get_image_url(local_path, remote_url)
+        try:
+            st.image(local_path, width=width, use_container_width=use_container)
+            return True
+        except Exception:
+            pass
     try:
-        st.image(target, width=width if not use_container else None, use_container_width=use_container)
+        st.image(remote_url, width=width, use_container_width=use_container)
         return True
     except Exception:
-        return False
+        pass
+    return False
 
-# Custom CSS Layout Overrides, Clean Card Styles & Zoom Effects
+# Custom CSS Layout Overrides & Hover Animations
 st.markdown("""
     <style>
     .block-container {
@@ -131,35 +132,24 @@ st.markdown("""
         padding-left: 8px;
     }
     div.stButton > button {
-        padding: 10px 4px !important;
+        padding: 6px 12px !important;
         font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        border-radius: 10px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
     }
     
-    /* Clean CSS Card Layout with Interactive Hover Effects */
-    .team-grid-card {
+    /* Hover wrapper border for team element blocks */
+    .team-block-container {
         background-color: #1E293B;
         border: 1px solid #334155;
         border-radius: 12px;
-        padding: 15px 10px;
+        padding: 12px;
         text-align: center;
-        text-decoration: none !important;
-        display: block;
-        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .team-grid-card:hover {
-        transform: translateY(-4px) scale(1.02);
+    .team-block-container:hover {
+        transform: scale(1.02);
         border-color: #3B82F6;
-        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.15);
-    }
-    .team-card-title {
-        color: #FFFFFF !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        margin-top: 10px !important;
-        margin-bottom: 0px !important;
-        text-decoration: none !important;
     }
     .squad-container {
         background-color: #0F172A;
@@ -200,10 +190,7 @@ lock = global_data["lock"]
 
 if 'show_wicket_popup' not in st.session_state: st.session_state.show_wicket_popup = False
 if 'show_over_popup' not in st.session_state: st.session_state.show_over_popup = False
-
-# Manage roster selection state cleanly using query parameters to prevent sync resets
-query_params = st.query_params
-selected_team = query_params.get("team", None)
+if 'active_team' not in st.session_state: st.session_state.active_team = None
 
 # --- LIVE REFRESH HANDLER ---
 st.sidebar.markdown("### 🔑 Live System Portal")
@@ -221,15 +208,13 @@ else:
     st_autorefresh(interval=3000, key="broadcast_sync_pulse")
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
-# Visual Main Brand Banner Header Layout
-banner_col1, banner_col2 = st.columns([1, 4])
+# Visual Main Brand Banner Header Layout - Logo BEFORE the Name
+banner_col1, banner_col2 = st.columns([0.6, 4])
 with banner_col1:
-    loaded = smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=75)
-    if not loaded:
-        st.markdown("<h2 style='margin:0;'>🏏</h2>", unsafe_allow_html=True)
+    smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=75, use_container=False)
 with banner_col2:
     st.markdown(
-        "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:0px;'>ANSCOR APL 2026</h2>"
+        "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:4px;'>ANSCOR APL 2026</h2>"
         "<p style='color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
         unsafe_allow_html=True
     )
@@ -261,7 +246,7 @@ else:
 if not is_admin:
     with tab_teams:
         st.markdown("### 📋 Official Team Lists")
-        st.caption("Click directly on any team card below to view their live player lineup roster.")
+        st.caption("Click on any team button card block below to open or collapse their player roster lists.")
         
         grid_cols = st.columns(3)
         teams_list = list(TEAM_DB.keys())
@@ -269,24 +254,28 @@ if not is_admin:
         for idx, t_name in enumerate(teams_list):
             col_target = grid_cols[idx % 3]
             with col_target:
+                st.markdown('<div class="team-block-container">', unsafe_allow_html=True)
                 img_config = TEAM_DB[t_name]
-                img_src = get_image_url(img_config["local"], img_config["remote"])
                 
-                # HTML template structure combining responsive zoom container card
-                card_html = f"""
-                <a href="?team={t_name}" target="_self" style="text-decoration: none;">
-                    <div class="team-grid-card">
-                        <img src="{img_src}" style="max-height: 75px; object-fit: contain; border-radius: 6px; margin: 0 auto; display: block;" />
-                        <div class="team-card-title">{t_name}</div>
-                    </div>
-                </a>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
+                # Render logo small and centered safely using native component
+                log_c1, log_c2, log_c3 = st.columns([1, 2, 1])
+                with log_c2:
+                    smart_load_image(img_config["local"], img_config["remote"], use_container=True)
                 
-                # Expand player list seamlessly if the active card is clicked
-                if selected_team == t_name:
+                # Interactive toggle button action assignment
+                if st.button(t_name, key=f"select_{t_name}", use_container_width=True):
+                    if st.session_state.active_team == t_name:
+                        st.session_state.active_team = None
+                    else:
+                        st.session_state.active_team = t_name
+                    st.rerun()
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Dynamic non-stick list roster generation block
+                if st.session_state.active_team == t_name:
                     st.markdown('<div class="squad-container">', unsafe_allow_html=True)
-                    st.markdown(f"<b style='color:#3B82F6; font-size:0.95rem;'>📋 {t_name} Squad Lineup:</b><div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+                    st.markdown(f"<b style='color:#3B82F6; font-size:0.95rem;'>📋 {t_name} Lineup:</b>", unsafe_allow_html=True)
                     for player in TEAM_DB[t_name]["squad"]:
                         st.markdown(f"<span style='font-size:0.9rem; color:#E2E8F0; display:block; padding:2px 0;'>• {player}</span>", unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -402,18 +391,18 @@ with tab_live:
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
-            # --- COMBINED VS MATCH BANNER LOGO INJECTION ---
+            # Match Banner Logo Injections
             logo_c1, logo_vs, logo_c2 = st.columns([1, 0.5, 1])
             with logo_c1:
                 b_team = global_data["batting_team"]
                 if b_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=70)
+                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=70, use_container=False)
             with logo_vs:
                 st.markdown("<h4 style='text-align: center; margin-top: 15px; border: none; padding: 0; color:#64748B;'>VS</h4>", unsafe_allow_html=True)
             with logo_c2:
                 f_team = global_data["bowling_team"]
                 if f_team in TEAM_DB:
-                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=70)
+                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=70, use_container=False)
 
             st.markdown(f"""
                 <div class="score-box">
@@ -520,7 +509,6 @@ with tab_live:
                             global_data["this_over"].append("NB")
                         st.rerun()
 
-                    # Manual Adjustments Deck Panel Form
                     st.markdown("#### ⚙️ Manual Custom Extras Adjustments")
                     with st.expander("Inject Manual Overthrow/Penalty Runs", expanded=False):
                         extra_type = st.selectbox("Select Extra Category:", ["Penalty Runs", "Leg Byes / Byes", "Overthrow Extras"])
@@ -722,7 +710,7 @@ with tab_live:
                 use_container_width=True
             )
 
-        # Application Global Wipe Engine
+        # Reset Engine
         if is_admin:
             st.markdown("---")
             if st.button("Reset Tournament Dashboard Application", type="secondary", use_container_width=True):
