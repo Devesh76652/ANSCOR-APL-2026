@@ -132,6 +132,69 @@ def init_blank_innings():
         "awaiting_batsman": False, "awaiting_bowler": False
     }
 
+# Migration Helper: Self-heals globally cached matches by filling missing keys on the fly
+def ensure_innings_keys(inn):
+    defaults = init_blank_innings()
+    for k, v in defaults.items():
+        if k not in inn:
+            inn[k] = v
+    for player_key in ["b1", "b2", "bowler"]:
+        if player_key in inn:
+            for pk, pv in defaults[player_key].items():
+                if pk not in inn[player_key]:
+                    inn[player_key][pk] = pv
+    return inn
+
+# Dynamic Winner Evaluation Engine
+def get_match_result(m):
+    d1 = ensure_innings_keys(m["innings_1"])
+    d2 = ensure_innings_keys(m["innings_2"])
+    
+    if d1["b1"]["name"] == "":
+        return "Setup State: Awaiting match lineup configuration."
+        
+    runs_i1 = d1["runs"]
+    wickets_i1 = d1["wickets"]
+    balls_i1 = d1["balls"]
+    
+    runs_i2 = d2["runs"]
+    wickets_i2 = d2["wickets"]
+    balls_i2 = d2["balls"]
+    
+    total_overs = m["total_overs"]
+    
+    # Assess first innings completion status
+    i1_complete = (balls_i1 >= total_overs * 6) or (wickets_i1 >= 10)
+    
+    if m["current_innings"] == 1:
+        if i1_complete:
+            return f"Innings 1 Finished: {m['team_1']} scored {runs_i1}/{wickets_i1}. Ready for target run chase."
+        else:
+            return f"Match Active: {m['team_1']} is batting in the first Innings."
+            
+    # Innings 2 Analysis
+    target = runs_i1 + 1
+    
+    # 2nd Innings successfully chased target
+    if runs_i2 >= target:
+        wickets_won = 10 - wickets_i2
+        return f"🏆 {m['team_2']} won by {wickets_won} wickets!"
+        
+    # Is 2nd Innings complete?
+    i2_complete = (balls_i2 >= total_overs * 6) or (wickets_i2 >= 10)
+    
+    if i2_complete:
+        if runs_i2 < runs_i1:
+            margin = runs_i1 - runs_i2
+            return f"🏆 {m['team_1']} won by {margin} runs!"
+        elif runs_i2 == runs_i1:
+            return "👔 Match Ended in a Tie!"
+            
+    # Innings 2 active
+    runs_needed = target - runs_i2
+    balls_rem = (total_overs * 6) - balls_i2
+    return f"🏏 Target Chase: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
+
 @st.cache_resource
 def get_tournament_database():
     return {
@@ -241,7 +304,9 @@ with tab_live:
     else:
         m_instance = db_global["matches"][db_global["active_match_id"]]
         inn_key = "innings_1" if m_instance["current_innings"] == 1 else "innings_2"
-        inn_data = m_instance[inn_key]
+        
+        # Self-heal inn_data keys on-the-fly to handle stale cached state resource schemas
+        inn_data = ensure_innings_keys(m_instance[inn_key])
         
         bat_team = m_instance["team_1"] if m_instance["current_innings"] == 1 else m_instance["team_2"]
         bowl_team = m_instance["team_2"] if m_instance["current_innings"] == 1 else m_instance["team_1"]
@@ -305,6 +370,14 @@ with tab_live:
                             <div>Extras: <b>{inn_data['extras']}</b></div>
                             <div>Current Run Rate (CRR): <b>{crr:.2f}</b></div>
                         </div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # Display match winner message directly under the main score box
+                match_outcome = get_match_result(m_instance)
+                st.markdown(f"""
+                    <div style="background-color: #1E293B; border-left: 5px solid #3B82F6; padding: 12px 15px; border-radius: 8px; margin: 15px 0; font-size: 1.1rem; font-weight: 700; color: #F8FAFC; text-align: center;">
+                        📢 Match Status / Outcome: <span style="color: #60A5FA;">{match_outcome}</span>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -412,7 +485,7 @@ with tab_live:
                                     inn_data["this_over"] = []
                                     inn_data["awaiting_bowler"] = True
 
-                        st.markdown("#### 🎛️ Scoring Dashboard Control Input Panel")
+                        st.markdown("#### 🎛  Scoring Dashboard Control Input Panel")
                         b_c1, b_c2, b_c3, b_c4 = st.columns(4)
                         if b_c1.button("0 Runs"): submit_ball(0, 0, True)
                         if b_c2.button("1 Run"): submit_ball(1, 0, True)
@@ -507,13 +580,19 @@ with tab_live:
                     pdf.set_font("Helvetica", "I", 10)
                     pdf.set_text_color(100, 116, 139)
                     pdf.cell(0, 6, "Official Corporate Live Tournament Scorecard Profile Summary", ln=True, align="C")
-                    pdf.ln(6)
+                    pdf.ln(4)
+                    
+                    # Highlight Match Winner / Result clearly at top of PDF Report
+                    pdf.set_font("Helvetica", "B", 11)
+                    pdf.set_text_color(220, 38, 38)
+                    pdf.cell(0, 8, f" MATCH RESULT: {get_match_result(m_instance).upper()}", ln=True, align="C")
+                    pdf.ln(4)
                     
                     pdf.set_font("Helvetica", "B", 12)
                     pdf.set_text_color(15, 23, 42)
                     pdf.set_fill_color(241, 245, 249)
                     
-                    d1 = m_instance["innings_1"]
+                    d1 = ensure_innings_keys(m_instance["innings_1"])
                     b_team_i1 = m_instance["team_1"]
                     f_team_i1 = m_instance["team_2"]
                     
@@ -521,6 +600,7 @@ with tab_live:
                     pdf.ln(1)
                     
                     pdf.set_font("Helvetica", "", 10)
+                    pdf.set_text_color(15, 23, 42)
                     pdf.cell(95, 7, f"Total Innings Runs: {d1['runs']} / {d1['wickets']}", ln=False)
                     pdf.cell(95, 7, f"Overs Completed: {d1['balls'] // 6}.{d1['balls'] % 6} / {m_instance['total_overs']} Ov", ln=True)
                     pdf.cell(95, 7, f"Innings Extras: {d1['extras']}", ln=False)
@@ -586,7 +666,7 @@ with tab_live:
                         pdf.set_text_color(15, 23, 42)
                         pdf.set_fill_color(241, 245, 249)
                         
-                        d2 = m_instance["innings_2"]
+                        d2 = ensure_innings_keys(m_instance["innings_2"])
                         b_team_i2 = m_instance["team_2"]
                         f_team_i2 = m_instance["team_1"]
                         
@@ -652,7 +732,8 @@ with tab_live:
                             pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=False, align="C")
                             pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=True, align="C")
                             
-                    return bytes(pdf.output())
+                    # Robust FPDF destination converter block to get bytes cleanly on Python 3
+                    return pdf.output(dest='S').encode('latin-1')
 
                 st.write("")
                 st.download_button(
@@ -675,14 +756,20 @@ with tab_review:
         st.markdown(f"## Record Verification Summary: {m_rev['id']}")
         st.info(f"Configuration Blueprint Frame Structure: **{m_rev['team_1']}** vs **{m_rev['team_2']}** | Target Parameter Limits: {m_rev['total_overs']} Overs")
         
+        # Self-heal reviewed historical logs on loading
+        d1 = ensure_innings_keys(m_rev["innings_1"])
+        d2 = ensure_innings_keys(m_rev["innings_2"])
+        
+        # Display Match Winner / Outcome clearly
+        match_outcome = get_match_result(m_rev)
+        st.success(f"Outcome Summary: {match_outcome}")
+        
         rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
         with rev_i1:
-            d1 = m_rev["innings_1"]
             st.metric(f"Total Innings 1 Score for {m_rev['team_1']}", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
             if d1["over_history"]: st.table(pd.DataFrame(d1["over_history"]))
             else: st.caption("No historical timelines stored.")
         with rev_i2:
-            d2 = m_rev["innings_2"]
             st.metric(f"Total Innings 2 Score for {m_rev['team_2']}", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
             if d2["over_history"]: st.table(pd.DataFrame(d2["over_history"]))
             else: st.caption("No historical timelines stored.")
