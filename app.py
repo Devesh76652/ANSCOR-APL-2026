@@ -21,27 +21,27 @@ GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortorunament/APL/main/"
 TEAM_DB = {
     "Capital Chellengers": {
         "local": "Capital Chellengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Chellengers.jpeg",
         "squad": ["Amit (IT) - C", "Vikram (Fin)", "Rahul (HR)", "Suresh (Ops)", "Alok (Sales)", "Deepak (Mkt)", "Nitin (IT)", "Rohan (Legal)", "Sumit (Fin)", "Kapil (HR)", "Gaurav (Ops)"]
     },
     "Black panther": {
         "local": "Black panther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black%20panther.jpeg",
         "squad": ["Karan (Sales) - C", "Arjun (IT)", "Vijay (Fin)", "Rajesh (Ops)", "Sanjay (HR)", "Anil (Mkt)", "Sunil (Legal)", "Manoj (Fin)", "Ravi (IT)", "Abhishek (Ops)", "Prakash (Sales)"]
     },
     "Super Kings": {
         "local": "Super Kings.jpeg",
-        "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
+        "remote": GITHUB_RAW_BASE + "Super%20Kings.jpeg",
         "squad": ["Mahesh (Mkt) - C", "Dinesh (Sales)", "Harish (IT)", "Naresh (Fin)", "Ramesh (Ops)", "Suresh (HR)", "Umesh (Legal)", "Ashok (Mkt)", "Vinod (IT)", "Lalit (Fin)", "Pradeep (Ops)"]
     },
     "Power Hitter": {
         "local": "Power Hitter.jpeg",
-        "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
+        "remote": GITHUB_RAW_BASE + "Power%20Hitter.jpeg",
         "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
     },
     "Royal Warriors XI": {
         "local": "Royal Warriors XI.jpeg",
-        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
+        "remote": GITHUB_RAW_BASE + "Royal%20Warriors%20XI.jpeg",
         "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
     },
     "UnStoppable": {
@@ -59,7 +59,6 @@ MAIN_LOGOS = {
 
 # Robust image loading mechanism with automated safe fallbacks
 def smart_load_image(local_path, remote_url, width=100, use_container=False):
-    # Fallback Option 1: Try checking local repository folder first
     if os.path.exists(local_path):
         try:
             st.image(local_path, width=width if not use_container else None, use_container_width=use_container)
@@ -67,7 +66,6 @@ def smart_load_image(local_path, remote_url, width=100, use_container=False):
         except Exception:
             pass
             
-    # Fallback Option 2: Try checking direct Web/GitHub cloud URL endpoints 
     try:
         st.image(remote_url, width=width if not use_container else None, use_container_width=use_container)
         return True
@@ -76,7 +74,7 @@ def smart_load_image(local_path, remote_url, width=100, use_container=False):
         
     return False
 
-# Custom CSS Layout Overrides
+# Custom CSS Layout Overrides & Hover Effects
 st.markdown("""
     <style>
     .block-container {
@@ -141,6 +139,28 @@ st.markdown("""
         font-size: 0.95rem !important;
         border-radius: 10px !important;
     }
+    /* Team Card Interactive Styles */
+    .team-interactive-card {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    }
+    .team-interactive-card:hover {
+        transform: scale(1.03);
+        border-color: #3B82F6;
+        cursor: pointer;
+    }
+    .squad-container {
+        background-color: #0F172A;
+        border: 1px dashed #334155;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 8px;
+        text-align: left;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -172,6 +192,7 @@ lock = global_data["lock"]
 
 if 'show_wicket_popup' not in st.session_state: st.session_state.show_wicket_popup = False
 if 'show_over_popup' not in st.session_state: st.session_state.show_over_popup = False
+if 'selected_team' not in st.session_state: st.session_state.selected_team = None
 
 # --- LIVE REFRESH HANDLER ---
 st.sidebar.markdown("### 🔑 Live System Portal")
@@ -192,12 +213,12 @@ else:
 # Visual Main Brand Banner Header Layout
 banner_col1, banner_col2 = st.columns([1, 4])
 with banner_col1:
-    loaded = smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=110)
+    loaded = smart_load_image(MAIN_LOGOS["local"], MAIN_LOGOS["remote"], width=75)
     if not loaded:
         st.markdown("<h2 style='margin:0;'>🏏</h2>", unsafe_allow_html=True)
 with banner_col2:
     st.markdown(
-        "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:10px;'>ANSCOR APL 2026</h2>"
+        "<h2 style='color: #FFFFFF; font-size: 2.1rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 0px; padding-top:0px;'>ANSCOR APL 2026</h2>"
         "<p style='color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; margin-bottom: 15px;'>Corporate Tournament Broadcast Portal</p>",
         unsafe_allow_html=True
     )
@@ -229,7 +250,7 @@ else:
 if not is_admin:
     with tab_teams:
         st.markdown("### 📋 Official Team Lists")
-        st.caption("Expand any team below to look up their current player lineup and squad roster.")
+        st.caption("Click directly on any team logo below to toggle and view their official player roster.")
         
         grid_cols = st.columns(3)
         teams_list = list(TEAM_DB.keys())
@@ -237,14 +258,32 @@ if not is_admin:
         for idx, t_name in enumerate(teams_list):
             col_target = grid_cols[idx % 3]
             with col_target:
+                # Hover and click container card wrapper
+                st.markdown(f'<div class="team-interactive-card">', unsafe_allow_html=True)
                 img_config = TEAM_DB[t_name]
-                loaded = smart_load_image(img_config["local"], img_config["remote"], use_container=True)
-                if not loaded:
-                    st.subheader(t_name)
-                    
-                with st.expander(f"🔍 Show Squad: {t_name}", expanded=False):
+                
+                # Make logo compact and centered
+                logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
+                with logo_col2:
+                    loaded = smart_load_image(img_config["local"], img_config["remote"], use_container=True)
+                
+                # Use a seamless button for interactivity
+                if st.button(t_name, key=f"btn_{t_name}", use_container_width=True):
+                    if st.session_state.selected_team == t_name:
+                        st.session_state.selected_team = None  # Toggle close
+                    else:
+                        st.session_state.selected_team = t_name
+                    st.rerun()
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Display squad dynamic dropdown directly underneath the selected card
+                if st.session_state.selected_team == t_name:
+                    st.markdown('<div class="squad-container">', unsafe_allow_html=True)
+                    st.markdown(f"<b style='color:#3B82F6;'>📋 {t_name} Lineup:</b>", unsafe_allow_html=True)
                     for player in TEAM_DB[t_name]["squad"]:
-                        st.markdown(f"• {player}")
+                        st.markdown(f"<span style='font-size:0.9rem; color:#E2E8F0;'>• {player}</span>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("---")
 
 # ================= TAB: LIVE SCORES ENGINE =================
@@ -362,15 +401,13 @@ with tab_live:
             with logo_c1:
                 b_team = global_data["batting_team"]
                 if b_team in TEAM_DB:
-                    loaded = smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=120)
-                    if not loaded: st.markdown(f"<h5>🏏 {b_team}</h5>", unsafe_allow_html=True)
+                    smart_load_image(TEAM_DB[b_team]["local"], TEAM_DB[b_team]["remote"], width=90)
             with logo_vs:
-                st.markdown("<h3 style='text-align: center; margin-top: 30px; color:#64748B;'>VS</h3>", unsafe_allow_html=True)
+                st.markdown("<h3 style='text-align: center; margin-top: 20px; color:#64748B;'>VS</h3>", unsafe_allow_html=True)
             with logo_c2:
                 f_team = global_data["bowling_team"]
                 if f_team in TEAM_DB:
-                    loaded = smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=120)
-                    if not loaded: st.markdown(f"<h5>🥎 {f_team}</h5>", unsafe_allow_html=True)
+                    smart_load_image(TEAM_DB[f_team]["local"], TEAM_DB[f_team]["remote"], width=90)
 
             st.markdown(f"""
                 <div class="score-box">
