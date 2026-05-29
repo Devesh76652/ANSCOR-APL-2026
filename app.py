@@ -4,6 +4,7 @@ from fpdf import FPDF
 import threading
 import copy
 import os
+import base64
 
 # Background auto-refresh integration
 try:
@@ -62,7 +63,7 @@ TEAM_DB = {
         "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
         "squad": [
             "Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", 
-            "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
+            "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
             "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"
         ]
     },
@@ -82,6 +83,18 @@ MAIN_LOGOS = {
     "local": "le.mat.jpeg",
     "remote": GITHUB_RAW_BASE + "le.mat.jpeg"
 }
+
+# Helper function to convert local images safely for HTML embedding if remote fails
+def get_image_src(local_path, remote_url):
+    if os.path.exists(local_path):
+        try:
+            with open(local_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode()
+            ext = local_path.split('.')[-1]
+            return f"data:image/{ext};base64,{encoded_string}"
+        except Exception:
+            pass
+    return remote_url
 
 # Standardized image load engine with path validation fallback checks
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
@@ -229,10 +242,11 @@ else:
     st_autorefresh(interval=3000, key="broadcast_sync_pulse")
     st.sidebar.caption("🟢 Live broadcast sync link active. Automatic UI refreshes every 3 seconds.")
 
-# Visual Main Brand Header Panel - Fixed Alignment Layout using Flexbox
+# Visual Main Brand Header Panel - Fixed Layout & Visibility System
+main_logo_src = get_image_src(MAIN_LOGOS["local"], MAIN_LOGOS["remote"])
 st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding-top:4px;">
-        <img src="{GITHUB_RAW_BASE + MAIN_LOGOS['local']}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px;">
+        <img src="{main_logo_src}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px;">
         <div>
             <h2 style='color: #FFFFFF; font-size: 2.3rem; font-weight: 900; letter-spacing: 1px; margin: 0;'>ANSCOR APL 2026</h2>
             <p style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin: 2px 0 0 0;'>Corporate Tournament Broadcast Portal</p>
@@ -424,21 +438,26 @@ with tab_live:
         left_col, right_col = st.columns([1.1, 0.9], gap="small")
 
         with left_col:
-            # Replaced with a unified flexbox block to cleanly center team emblems around the 'VS' divider
+            # Layout Flexbox fix ensuring centered emblems + dynamic local fallback decoding
             b_team = global_data["batting_team"]
             f_team = global_data["bowling_team"]
             
             b_logo_url = TEAM_DB[b_team]["remote"] if b_team in TEAM_DB else ""
             f_logo_url = TEAM_DB[f_team]["remote"] if f_team in TEAM_DB else ""
+            b_logo_local = TEAM_DB[b_team]["local"] if b_team in TEAM_DB else ""
+            f_logo_local = TEAM_DB[f_team]["local"] if f_team in TEAM_DB else ""
+
+            b_src = get_image_src(b_logo_local, b_logo_url)
+            f_src = get_image_src(f_logo_local, f_logo_url)
 
             st.markdown(f"""
                 <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 15px; width: 100%;">
                     <div style="text-align: center; width: 80px;">
-                        <img src="{b_logo_url}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
+                        <img src="{b_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
                     </div>
                     <div style="font-size: 1.4rem; font-weight: 800; color: #3B82F6; letter-spacing: 1px; padding-bottom: 5px;">VS</div>
                     <div style="text-align: center; width: 80px;">
-                        <img src="{f_logo_url}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
+                        <img src="{f_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
                     </div>
                 </div>
             """, unsafe_allow_html=True)
