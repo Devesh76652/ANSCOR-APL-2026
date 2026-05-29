@@ -40,7 +40,7 @@ TEAM_DB = {
         "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
     },
     "Royal Warriors XI": {
-        "local": "RoyalWarriors XI.jpeg",
+        "local": "RoyalWarriorsXI.jpeg",
         "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
         "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
     },
