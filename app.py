@@ -20,28 +20,28 @@ GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 # Static Team Database
 TEAM_DB = {
     "Capital Chellengers": {
-        "local": "Capital Chellengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "Capital%20Chellengers.jpeg",
+        "local": "CapitalChellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
         "squad": ["Amit (IT) - C", "Vikram (Fin)", "Rahul (HR)", "Suresh (Ops)", "Alok (Sales)", "Deepak (Mkt)", "Nitin (IT)", "Rohan (Legal)", "Sumit (Fin)", "Kapil (HR)", "Gaurav (Ops)"]
     },
     "Black panther": {
-        "local": "Black panther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Black%20panther.jpeg",
+        "local": "Blackpanther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
         "squad": ["Karan (Sales) - C", "Arjun (IT)", "Vijay (Fin)", "Rajesh (Ops)", "Sanjay (HR)", "Anil (Mkt)", "Sunil (Legal)", "Manoj (Fin)", "Ravi (IT)", "Abhishek (Ops)", "Prakash (Sales)"]
     },
     "Super Kings": {
-        "local": "Super Kings.jpeg",
-        "remote": GITHUB_RAW_BASE + "Super%20Kings.jpeg",
+        "local": "SuperKings.jpeg",
+        "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
         "squad": ["Mahesh (Mkt) - C", "Dinesh (Sales)", "Harish (IT)", "Naresh (Fin)", "Ramesh (Ops)", "Suresh (HR)", "Umesh (Legal)", "Ashok (Mkt)", "Vinod (IT)", "Lalit (Fin)", "Pradeep (Ops)"]
     },
     "Power Hitter": {
-        "local": "Power Hitter.jpeg",
-        "remote": GITHUB_RAW_BASE + "Power%20Hitter.jpeg",
+        "local": "PowerHitter.jpeg",
+        "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
         "squad": ["Rohit (Ops) - C", "Hardik (HR)", "Jasprit (IT)", "KL (Fin)", "Shikhar (Sales)", "Shreyas (Mkt)", "Yuzvendra (Legal)", "Bhuvneshwar (IT)", "Mohammed (Fin)", "Ravindra (Ops)", "Rishabh (HR)"]
     },
     "Royal Warriors XI": {
-        "local": "Royal Warriors XI.jpeg",
-        "remote": GITHUB_RAW_BASE + "Royal%20Warriors%20XI.jpeg",
+        "local": "RoyalWarriorsXI.jpeg",
+        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
         "squad": ["Virat (Fin) - C", "AB (IT)", "Chris (Sales)", "Glenn (Ops)", "Yuzvendra (HR)", "Mohammed (Mkt)", "Navdeep (Legal)", "Devdutt (IT)", "Washington (Fin)", "Shahbaz (Ops)", "Harshal (HR)"]
     },
     "UnStoppable": {
