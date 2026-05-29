@@ -80,7 +80,7 @@ TEAM_DB = {
 
 MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
 
-# FIXED: Added support for list-wrapped paths & default remote_url=""
+# Support for list-wrapped paths & default remote_url=""
 def get_image_src(local_path, remote_url=""):
     if isinstance(local_path, list):
         local_path = local_path[0] if len(local_path) > 0 else ""
@@ -96,7 +96,7 @@ def get_image_src(local_path, remote_url=""):
         except: pass
     return remote_url
 
-# FIXED: Added support for list-wrapped paths inside Streamlit image rendering pipeline
+# Support for list-wrapped paths inside Streamlit image rendering pipeline
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if isinstance(local_path, list):
         local_path = local_path[0] if len(local_path) > 0 else ""
@@ -113,22 +113,41 @@ def smart_load_image(local_path, remote_url, width=None, use_container=True):
 # Custom App CSS Theme Styling Override Engine
 st.markdown("""
     <style>
-    .block-container { padding: 0.5rem 0.75rem !important; max-width: 100% !important; }
+    .block-container { padding: 0.25rem 0.5rem !important; max-width: 100% !important; }
     .score-box {
         background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); color: white;
-        padding: 20px 15px; border-radius: 14px; text-align: center; margin-bottom: 12px;
-        border: 2px solid #1E40AF; position: relative; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        padding: 12px 15px; border-radius: 12px; text-align: center; margin-bottom: 6px;
+        border: 2px solid #1E40AF; position: relative; box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.3);
     }
     .status-badge {
-        position: absolute; top: 10px; right: 15px; background-color: #EF4444; color: white;
-        padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px;
+        position: absolute; top: 6px; right: 12px; background-color: #EF4444; color: white;
+        padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; letter-spacing: 0.5px;
     }
-    .mobile-card { background-color: #1E293B; border: 1px solid #334155; padding: 14px; border-radius: 12px; margin-bottom: 12px; }
+    .mobile-card { background-color: #1E293B; border: 1px solid #334155; padding: 10px; border-radius: 10px; margin-bottom: 6px; }
     .ball-bubble {
-        display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-        border-radius: 50%; margin: 3px; font-weight: 800; font-size: 0.9rem;
+        display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+        border-radius: 50%; margin: 2px; font-weight: 800; font-size: 0.85rem;
     }
     .team-block-container { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; }
+    
+    /* Strict layout consolidation styles to eliminate vertical scrolling */
+    h3, h4, h5 {
+        margin-top: 3px !important;
+        margin-bottom: 3px !important;
+        font-size: 0.95rem !important;
+    }
+    div.stButton > button {
+        padding: 3px 6px !important;
+        font-weight: 700 !important;
+        font-size: 0.8rem !important;
+        border-radius: 6px !important;
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+    }
+    .stExpander {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -290,8 +309,21 @@ with lock:
     for m_id in list(db_global["matches"].keys()):
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
+# Safe Dialog decorator to support both modern and older Streamlit versions smoothly
+def safe_dialog(title_text):
+    if hasattr(st, "dialog"):
+        return st.dialog(title_text)
+    else:
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                if args:
+                    st.session_state["fallback_dialog_team"] = args[0]
+                st.rerun()
+            return wrapper
+        return decorator
+
 # --- SQUAD MODAL ---
-@st.dialog("📋 Squad Roster Profile")
+@safe_dialog("📋 Squad Roster Profile")
 def show_squad_popup(team_name):
     st.markdown(f"### {team_name} Squad")
     st.write("---")
@@ -318,14 +350,17 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# Branding Header Banner
+# Branding Header Banner - Self-healing, aligned, elegant design
 main_logo_src = get_image_src(MAIN_LOGOS["local"], MAIN_LOGOS["remote"])
 st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; padding-top:4px;">
-        <img src="{main_logo_src}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px;">
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px; padding-top:2px;">
+        <div style="width: 55px; height: 55px; background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); flex-shrink: 0; overflow: hidden; border: 1px solid #1E40AF;">
+            <img src="{main_logo_src}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display: none; font-size: 1.6rem; align-items: center; justify-content: center; width: 100%; height: 100%;">🏏</div>
+        </div>
         <div>
-            <h2 style='color: #FFFFFF; font-size: 2.3rem; font-weight: 900; letter-spacing: 1px; margin: 0;'>ANSCOR APL 2026</h2>
-            <p style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; margin: 2px 0 0 0;'>Corporate Tournament Broadcast Portal</p>
+            <h2 style='color: #FFFFFF; font-size: 1.8rem; font-weight: 900; letter-spacing: 0.5px; margin: 0; line-height: 1.1;'>ANSCOR APL 2026</h2>
+            <p style='color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; margin: 2px 0 0 0;'>Corporate Tournament Broadcast Portal</p>
         </div>
     </div>
 """, unsafe_allow_html=True)
@@ -343,6 +378,22 @@ with tab_teams:
             if st.button(f"View Squad Roster", key=f"squad_popup_key_{idx}", use_container_width=True):
                 show_squad_popup(t_name)
             st.markdown('</div>', unsafe_allow_html=True)
+
+    # Fallback inline view for older Streamlit versions lacking native st.dialog support
+    if not hasattr(st, "dialog") and st.session_state.get("fallback_dialog_team"):
+        fallback_team = st.session_state["fallback_dialog_team"]
+        st.markdown("---")
+        st.markdown(f"### 📋 {fallback_team} Squad")
+        squad_members = TEAM_DB[fallback_team]["squad"]
+        cols = st.columns(2)
+        mid = (len(squad_members) + 1) // 2
+        with cols[0]:
+            for p in squad_members[:mid]: st.markdown(f"• {p}")
+        with cols[1]:
+            for p in squad_members[mid:]: st.markdown(f"• {p}")
+        if st.button("Close Squad Roster"):
+            st.session_state["fallback_dialog_team"] = None
+            st.rerun()
 
 # ================= TAB: LIVE SCORES ENGINE =================
 with tab_live:
@@ -375,7 +426,7 @@ with tab_live:
                     db_global["active_match_id"] = selected_focus
                     st.rerun()
                 
-                # FIXED: Added safety guard to ensure ensure_match_keys is called only if the selected active match exists in the dictionary
+                # Safety guard to ensure ensure_match_keys is called only if the selected active match exists in the dictionary
                 if db_global["active_match_id"] in db_global["matches"]:
                     active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
                     if active_match["current_innings"] == 1:
@@ -438,38 +489,44 @@ with tab_live:
                 b_logo_src = get_image_src(b_local, b_remote)
                 f_logo_src = get_image_src(f_local, f_remote)
                 
-                st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 15px; width: 100%;">
-                        <div style="text-align: center; width: 80px;">
-                            <img src="{b_logo_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
-                        </div>
-                        <div style="font-size: 1.4rem; font-weight: 800; color: #3B82F6; letter-spacing: 1px; padding-bottom: 5px;">VS</div>
-                        <div style="text-align: center; width: 80px;">
-                            <img src="{f_logo_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 10px;">
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-
+                # HIGHLY COMPACT INTEGRATED HORIZONTAL SCORECARD (Hides legacy Extras/CRR block to prevent any scrolling)
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status_tag}</span>
-                        <h3>🏏 {bat_team} vs 🥎 {bowl_team}</h3>
-                        <h1 style="font-size:4rem; margin:0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
-                        <h5>Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
-                        {f'<h4 style="color:#F59E0B; background-color:rgba(0,0,0,0.2); padding:6px; border-radius:6px; border:none;">🎯 Run Chase Target: {target_score} (Needs {target_score - inn_data["runs"]} runs off {(m_instance["total_overs"]*6) - inn_data["balls"]} balls)</h4>' if target_score else ''}
-                        <hr style="opacity:0.2; margin:10px 0;">
-                        <div style="display:flex; justify-content:space-around; font-size:0.9rem;">
-                            <div>Extras: <b>{inn_data['extras']}</b></div>
-                            <div>Current Run Rate (CRR): <b>{crr:.2f}</b></div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 5px;">
+                            <!-- Batting Side logo and name -->
+                            <div style="flex: 1; text-align: center;">
+                                <div style="width: 50px; height: 50px; margin: 0 auto; background: rgba(255,255,255,0.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
+                                    <img src="{b_logo_src}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div style="display: none; font-size: 1.4rem; align-items: center; justify-content: center; width:100%; height:100%;">🏏</div>
+                                </div>
+                                <div style="font-size: 0.8rem; font-weight: 800; margin-top: 4px; color: #F8FAFC; line-height: 1.1; max-width: 110px; margin-left: auto; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{bat_team}</div>
+                            </div>
+                            
+                            <!-- Condensed Live Score & Overs -->
+                            <div style="flex: 1.4; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                                <div style="font-size: 2.7rem; font-weight: 900; line-height: 0.95; margin: 0; color: #FFFFFF; letter-spacing: -0.5px;">{inn_data['runs']} - {inn_data['wickets']}</div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: #93C5FD; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</div>
+                            </div>
+                            
+                            <!-- Bowling Side logo and name -->
+                            <div style="flex: 1; text-align: center;">
+                                <div style="width: 50px; height: 50px; margin: 0 auto; background: rgba(255,255,255,0.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
+                                    <img src="{f_logo_src}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div style="display: none; font-size: 1.4rem; align-items: center; justify-content: center; width:100%; height:100%;">🥎</div>
+                                </div>
+                                <div style="font-size: 0.8rem; font-weight: 800; margin-top: 4px; color: #F8FAFC; line-height: 1.1; max-width: 110px; margin-left: auto; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{bowl_team}</div>
+                            </div>
                         </div>
+                        {f'<div style="color:#F59E0B; background-color:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; font-size:0.8rem; font-weight:700; margin-top:6px; display:inline-block; border: 1px solid rgba(245,158,11,0.2);">🎯 Target Chase: {target_score} (Needs {target_score - inn_data["runs"]} off {(m_instance["total_overs"]*6) - inn_data["balls"]} balls)</div>' if target_score else ''}
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Display match winner message directly under the main score box
+                # Condensed Match Status Outcome Bar
                 match_outcome = get_match_result(m_instance)
                 st.markdown(f"""
-                    <div style="background-color: #1E293B; border-left: 5px solid #3B82F6; padding: 12px 15px; border-radius: 8px; margin: 15px 0; font-size: 1.1rem; font-weight: 700; color: #F8FAFC; text-align: center;">
-                        📢 Match Status / Outcome: <span style="color: #60A5FA;">{match_outcome}</span>
+                    <div style="background-color: #1E293B; border-left: 3px solid #3B82F6; padding: 5px 10px; border-radius: 6px; margin: 4px 0; font-size: 0.85rem; font-weight: 700; color: #F8FAFC; text-align: center;">
+                        📢 Status: <span style="color: #60A5FA;">{match_outcome}</span>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -634,17 +691,17 @@ with tab_live:
                 st.markdown("#### Live Active Metrics Performances")
                 st.markdown(f"""
                     <div class="mobile-card">
-                        <div style="font-size:0.8rem; color:#94A3B8;"><b>🏏 BATTING PAIR PARTNERSHIP</b></div>
-                        <div style="display:flex; justify-content:space-between; margin:4px 0;">
+                        <div style="font-size:0.75rem; color:#94A3B8; margin-bottom: 2px;"><b>🏏 BATTING PAIR PARTNERSHIP</b></div>
+                        <div style="display:flex; justify-content:space-between; margin:2px 0; font-size:0.85rem;">
                             <span>{"👉 " if inn_data['b1']['strike'] else ""}{inn_data['b1']['name']}</span>
-                            <span><b>{inn_data['b1']['runs']}</b> <span style="color:#A1A1AA; font-size:0.8rem;">({inn_data['b1']['balls']}b)</span></span>
+                            <span><b>{inn_data['b1']['runs']}</b> <span style="color:#A1A1AA; font-size:0.75rem;">({inn_data['b1']['balls']}b)</span></span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin:4px 0;">
+                        <div style="display:flex; justify-content:space-between; margin:2px 0; font-size:0.85rem;">
                             <span>{"👉 " if inn_data['b2']['strike'] else ""}{inn_data['b2']['name']}</span>
-                            <span><b>{inn_data['b2']['runs']}</b> <span style="color:#A1A1AA; font-size:0.8rem;">({inn_data['b2']['balls']}b)</span></span>
+                            <span><b>{inn_data['b2']['runs']}</b> <span style="color:#A1A1AA; font-size:0.75rem;">({inn_data['b2']['balls']}b)</span></span>
                         </div>
-                        <div style="margin-top:12px; font-size:0.8rem; color:#94A3B8;"><b>🥎 CURRENT OPERATING BOWLER</b></div>
-                        <div style="display:flex; justify-content:space-between;">
+                        <div style="margin-top:8px; font-size:0.75rem; color:#94A3B8; margin-bottom: 2px;"><b>🥎 CURRENT OPERATING BOWLER</b></div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
                             <span>👤 {inn_data['bowler']['name']}</span>
                             <span>Wkts: <b style="color:#EF4444;">{inn_data['bowler']['wickets']}</b> | Runs: <b>{inn_data['bowler']['runs']}</b></span>
                         </div>
@@ -659,7 +716,7 @@ with tab_live:
 
                 st.markdown("#### Completed Overs Breakdown Log")
                 if inn_data["over_history"]:
-                    st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True)
+                    st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True, height=105)
                 else: st.caption("No archived records.")
 
                 # ================= REPORT GENERATION ENGINE =================
@@ -751,7 +808,7 @@ with tab_live:
                         pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=0, align="C")
                         pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=0, align="C")
                         pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=0, align="C")
-                        pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, align="C")
+                        pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, fill=True)
                         
                     # Page for Innings 2 (if active or finished)
                     if m_instance["current_innings"] == 2 or m_instance["innings_2"]["balls"] > 0:
@@ -824,7 +881,7 @@ with tab_live:
                             pdf.cell(30, 7, f" {b_ov_num}", border=1, ln=0, align="C")
                             pdf.cell(30, 7, f" {blr['runs']}", border=1, ln=0, align="C")
                             pdf.cell(30, 7, f" {blr['wickets']}", border=1, ln=0, align="C")
-                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, align="C")
+                            pdf.cell(20, 7, f" {blr['maidens']}", border=1, ln=1, fill=True)
                             
                     return get_pdf_bytes(pdf)
 
