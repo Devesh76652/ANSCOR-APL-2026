@@ -228,9 +228,8 @@ def clean_for_pdf(text):
         return ""
     text = str(text)
     
-    # Core ASCII mapping to cleanly bypass deep exceptions in FPDF layout engines
-    text = text.replace("\u2013", "-")
-    text = text.replace("\u2014", "-")
+    # Isolate characters, strip symbols, and convert smart hyphens
+    text = text.replace("\u2013", "-").replace("\u2014", "-")
     text = text.replace("\u2018", "'").replace("\u2019", "'")
     text = text.replace("\u201c", '"').replace("\u201d", '"')
     
@@ -241,33 +240,33 @@ def clean_for_pdf(text):
     for emoji, rep in replacements.items():
         text = text.replace(emoji, rep)
         
-    # Strictly isolate back down into true raw 8-bit strings discarding higher orders
     return text.encode('ascii', 'ignore').decode('ascii')
 
 def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(190, 10, clean_for_pdf("APL 2026 - OFFICIAL SCORECARD REPORT"), ln=True, align="C")
+    
+    # Reverted back to reliable standard font collection
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, clean_for_pdf("APL 2026 - OFFICIAL SCORECARD REPORT"), ln=True, align="C")
     pdf.ln(5)
     
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(190, 8, clean_for_pdf(f"Match Series: {bat_team} vs {bowl_team}"), ln=True, align="C")
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, clean_for_pdf(f"Match Series: {bat_team} vs {bowl_team}"), ln=True, align="C")
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    pdf.set_font("Arial", "B", 12)
     comp_ov = inn_data["balls"] // 6
     rem_bl = inn_data["balls"] % 6
-    pdf.cell(190, 8, clean_for_pdf(f"Batting Side Team: {bat_team}"), ln=True)
-    pdf.cell(190, 8, clean_for_pdf(f"Current Team Score: {inn_data['runs']} / {inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), ln=True)
-    pdf.cell(190, 8, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), ln=True)
-    pdf.cell(190, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
+    pdf.cell(0, 8, clean_for_pdf(f"Batting Side Team: {bat_team}"), ln=True)
+    pdf.cell(0, 8, clean_for_pdf(f"Current Team Score: {inn_data['runs']} / {inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), ln=True)
+    pdf.cell(0, 8, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), ln=True)
+    pdf.cell(0, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
     pdf.ln(4)
     
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(190, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
+    pdf.set_font("Helvetica", "", 10)
     
     b1_name = inn_data.get('b1', {}).get('name', 'Opening Batter 1') or 'Opening Batter 1'
     b2_name = inn_data.get('b2', {}).get('name', 'Opening Batter 2') or 'Opening Batter 2'
@@ -276,33 +275,33 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     s1 = " *On-Strike" if inn_data.get('b1', {}).get('strike', False) else ""
     s2 = " *On-Strike" if inn_data.get('b2', {}).get('strike', False) else ""
     
-    pdf.cell(190, 6, clean_for_pdf(f"- {b1_name}{s1}: {inn_data.get('b1', {}).get('runs', 0)} Runs scored from {inn_data.get('b1', {}).get('balls', 0)} balls"), ln=True)
-    pdf.cell(190, 6, clean_for_pdf(f"- {b2_name}{s2}: {inn_data.get('b2', {}).get('runs', 0)} Runs scored from {inn_data.get('b2', {}).get('balls', 0)} balls"), ln=True)
+    pdf.cell(0, 6, clean_for_pdf(f"- {b1_name}{s1}: {inn_data.get('b1', {}).get('runs', 0)} Runs scored from {inn_data.get('b1', {}).get('balls', 0)} balls"), ln=True)
+    pdf.cell(0, 6, clean_for_pdf(f"- {b2_name}{s2}: {inn_data.get('b2', {}).get('runs', 0)} Runs scored from {inn_data.get('b2', {}).get('balls', 0)} balls"), ln=True)
     pdf.ln(4)
     
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(190, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
-    pdf.set_font("Arial", "", 10)
-    pdf.cell(190, 6, clean_for_pdf(f"- Bowler: {bowler_name} -> Wickets Taken: {inn_data.get('bowler', {}).get('wickets', 0)} | Conceded Runs: {inn_data.get('bowler', {}).get('runs', 0)}"), ln=True)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, clean_for_pdf(f"- Bowler: {bowler_name} -> Wickets Taken: {inn_data.get('bowler', {}).get('wickets', 0)} | Conceded Runs: {inn_data.get('bowler', {}).get('runs', 0)}"), ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Arial", "B", 11)
-    pdf.cell(190, 8, clean_for_pdf("Historical Over Ledger Progress Tracker"), ln=True)
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(0, 8, clean_for_pdf("Historical Over Ledger Progress Tracker"), ln=True)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.cell(25, 6, "Over No.", 1)
     pdf.cell(55, 6, "Bowler Assigned", 1)
     pdf.cell(40, 6, "Score Progression", 1)
     pdf.cell(70, 6, "Timeline Delivery History", 1, ln=True)
     
-    pdf.set_font("Arial", "", 10)
+    pdf.set_font("Helvetica", "", 10)
     for ov in inn_data.get("over_history", []):
         pdf.cell(25, 6, clean_for_pdf(str(ov.get("Over", ""))), 1)
         pdf.cell(55, 6, clean_for_pdf(str(ov.get("Bowler", ""))), 1)
         pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
         pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
         
-    # The output byte stream will now execute purely without encoder layout conflict
-    return pdf.output(dest="S").encode("latin-1", "replace")
+    # Updated output system using your working byte compiler stream format
+    return bytes(pdf.output())
 
 @st.cache_resource
 def get_tournament_database():
@@ -431,7 +430,7 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
-            # Run Rate Core Calculations
+            # Run Rate Calculations
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
             frac_ov = comp_ov + (rem_bl / 6)
