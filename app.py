@@ -226,6 +226,7 @@ def get_match_result(m):
 def clean_for_pdf(text):
     if not text:
         return ""
+    text = str(text)
     replacements = {
         "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", "🏏": "", "👤": "", "🥎": "", "🎛️": ""
     }
@@ -279,10 +280,10 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     
     pdf.set_font("Arial", "", 10)
     for ov in inn_data["over_history"]:
-        pdf.cell(25, 6, clean_for_pdf(str(ov["Over"])), 1)
-        pdf.cell(55, 6, clean_for_pdf(str(ov["Bowler"])), 1)
-        pdf.cell(40, 6, clean_for_pdf(str(ov["Score"])), 1)
-        pdf.cell(70, 6, clean_for_pdf(str(ov["Timeline"])), 1, ln=True)
+        pdf.cell(25, 6, clean_for_pdf(str(ov.get("Over", ""))), 1)
+        pdf.cell(55, 6, clean_for_pdf(str(ov.get("Bowler", ""))), 1)
+        pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
+        pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
         
     return pdf.output(dest="S").encode("latin-1")
 
@@ -477,19 +478,6 @@ with tab_live:
                 match_outcome = get_match_result(m_instance)
                 st.info(f"📢 Status: {match_outcome}")
 
-                # FIXED: Moved completely out of conditional blocks to remain permanently visible 
-                try:
-                    pdf_bytes = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
-                    st.download_button(
-                        label="📥 Export Scorecard to PDF Document",
-                        data=pdf_bytes,
-                        file_name=f"APL_Scorecard_{m_instance['id']}_Inn{m_instance['current_innings']}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-                except Exception as pdf_err:
-                    st.error(f"Could not build report download item: {str(pdf_err)}")
-
             with r_col:
                 st.markdown(f"""
                     <div class="mobile-card">
@@ -644,6 +632,22 @@ with tab_live:
                     st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True)
                 else: 
                     st.caption("No archived records.")
+
+            # CRITICAL FIX: Placed completely below the two columns at wide layout level.
+            # It will now never vanish or crash.
+            st.markdown("---")
+            try:
+                pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
+                st.download_button(
+                    label="📥 Export Current Scorecard to PDF Document",
+                    data=pdf_data_stream,
+                    file_name=f"APL_Match_{m_instance['id']}_Innings{m_instance['current_innings']}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="global_footer_pdf_export_btn"
+                )
+            except Exception as pdf_error:
+                st.info("⚠️ Scorecard PDF is priming. Add players or runs to open printable download stream.")
 
 # ================= TAB: TOURNAMENT REVIEW LEDGER =================
 with tab_review:
