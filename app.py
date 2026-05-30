@@ -31,7 +31,7 @@ TEAM_DB = {
         ]
     },
     "Black Panther": {
-        "local": "BlackPanther.jpeg",
+        "local": "Black Panther.jpeg",
         "remote": GITHUB_RAW_BASE + "BlackPanther.jpeg",
         "squad": [
             "Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", 
