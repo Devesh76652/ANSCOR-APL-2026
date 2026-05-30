@@ -17,6 +17,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide")
 
 # Raw GitHub repository directory path configuration
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
+TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
 # Official Tournament Team Database
 TEAM_DB = {
@@ -92,6 +93,16 @@ def get_image_src(local_path, remote_url=""):
             return f"data:image/{ext};base64,{encoded}"
         except: pass
     return remote_url
+
+def get_tournament_logo_src():
+    if os.path.exists(TOURNAMENT_LOGO_FILE):
+        try:
+            with open(TOURNAMENT_LOGO_FILE, "rb") as img_file:
+                encoded = base64.b64encode(img_file.read()).decode()
+            ext = TOURNAMENT_LOGO_FILE.split('.')[-1]
+            return f"data:image/{ext};base64,{encoded}"
+        except: pass
+    return ""
 
 def smart_load_image(local_path, remote_url, width=None, use_container=True):
     if isinstance(local_path, list):
@@ -242,20 +253,16 @@ def clean_for_pdf(text):
     return text.encode('ascii', 'ignore').decode('ascii')
 
 def generate_pdf_bytes(m):
-    """
-    Generates a full post-match scorecard dashboard PDF containing comprehensive details 
-    for BOTH innings, featuring the clear final winner outcome prominently displayed at the top.
-    """
     m = ensure_match_keys(m)
     pdf = FPDF()
     pdf.add_page()
     
     # --- TOP OF PAGE: FINAL WINNER & MATCH OUTCOME ---
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.set_text_color(16, 185, 129)  # Green highlights for final winner outcome box
+    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_text_color(16, 185, 129)
     match_outcome = get_match_result(m)
     pdf.cell(0, 12, clean_for_pdf(f"🏆 MATCH STATUS / RESULT: {match_outcome.upper()}"), ln=True, align="C")
-    pdf.set_text_color(0, 0, 0) # Reset color back to black
+    pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
     
     pdf.set_font("Helvetica", "B", 16)
@@ -265,16 +272,13 @@ def generate_pdf_bytes(m):
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(6)
     
-    # Loop over both Innings data points sequentially
     for inn_idx in [1, 2]:
         inn_key = f"innings_{inn_idx}"
         inn_data = m[inn_key]
         
-        # Determine team assignments for current scope
         bat_team = m["team_1"] if inn_idx == 1 else m["team_2"]
         bowl_team = m["team_2"] if inn_idx == 1 else m["team_1"]
         
-        # Guard clause check if the innings has begun/configured yet
         if inn_data["b1"]["name"] == "":
             continue
             
@@ -283,19 +287,16 @@ def generate_pdf_bytes(m):
         frac_ov = comp_ov + (rem_bl / 6)
         crr = (inn_data["runs"] / frac_ov) if frac_ov > 0 else 0.0
         
-        # Innings Header Frame Section
         pdf.set_font("Helvetica", "B", 13)
         pdf.cell(0, 8, clean_for_pdf(f"INNINGS #{inn_idx} REPORT: {bat_team.upper()} BATTING"), ln=True)
         pdf.set_font("Helvetica", "", 10)
         
-        # Summary Grid
         pdf.cell(95, 6, clean_for_pdf(f"Total Team Score: {inn_data['runs']}/{inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), 0, 0)
         pdf.cell(95, 6, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), 0, 1)
         pdf.cell(95, 6, clean_for_pdf(f"Legitimate Extras Conceded: {inn_data['extras']}"), 0, 0)
         pdf.cell(95, 6, clean_for_pdf(f"Administrative Penalty Runs Additions: {inn_data.get('penalty', 0)}"), 0, 1)
         pdf.ln(2)
         
-        # Batting Partnerships Table Layout
         pdf.set_font("Helvetica", "B", 10)
         pdf.cell(75, 6, "Batsman Name Status", 1)
         pdf.cell(30, 6, "Runs Scored", 1, 0, "C")
@@ -304,7 +305,6 @@ def generate_pdf_bytes(m):
         pdf.cell(30, 6, "Sixes (6s)", 1, 1, "C")
         
         pdf.set_font("Helvetica", "", 9)
-        # 1. Striker / Non-Striker active
         for b_key in ["b1", "b2"]:
             b_data = inn_data[b_key]
             if b_data["name"]:
@@ -315,7 +315,6 @@ def generate_pdf_bytes(m):
                 pdf.cell(25, 6, clean_for_pdf(str(b_data.get("fours", 0))), 1, 0, "C")
                 pdf.cell(30, 6, clean_for_pdf(str(b_data.get("sixes", 0))), 1, 1, "C")
                 
-        # 2. Historical Out Batters
         for b_hist in inn_data.get("all_batsmen_history", []):
             pdf.cell(75, 6, clean_for_pdf(f"{b_hist['name']} ({b_hist.get('status', 'Out')})"), 1)
             pdf.cell(30, 6, clean_for_pdf(str(b_hist["runs"])), 1, 0, "C")
@@ -325,7 +324,6 @@ def generate_pdf_bytes(m):
             
         pdf.ln(3)
         
-        # Bowling Analysis Summary Table Layout
         pdf.set_font("Helvetica", "B", 10)
         pdf.cell(85, 6, f"Bowling Squad Analysis Profile ({bowl_team})", 1)
         pdf.cell(35, 6, "Overs Bowled", 1, 0, "C")
@@ -333,7 +331,6 @@ def generate_pdf_bytes(m):
         pdf.cell(35, 6, "Wickets Taken", 1, 1, "C")
         
         pdf.set_font("Helvetica", "", 9)
-        # Active Bowler
         cw_bowler = inn_data["bowler"]
         if cw_bowler["name"]:
             b_ov = cw_bowler["balls"] // 6
@@ -343,7 +340,6 @@ def generate_pdf_bytes(m):
             pdf.cell(35, 6, clean_for_pdf(str(cw_bowler["runs"])), 1, 0, "C")
             pdf.cell(35, 6, clean_for_pdf(str(cw_bowler["wickets"])), 1, 1, "C")
             
-        # Historical Bowlers
         for bowl_h in inn_data.get("all_bowlers_history", []):
             bh_ov = bowl_h["balls"] // 6
             bh_bl = bowl_h["balls"] % 6
@@ -354,7 +350,6 @@ def generate_pdf_bytes(m):
             
         pdf.ln(3)
         
-        # Historical Over Ledger Progress Tracker Table
         pdf.set_font("Helvetica", "B", 10)
         pdf.cell(25, 6, "Over No.", 1)
         pdf.cell(55, 6, "Bowler Assigned", 1)
@@ -499,7 +494,6 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
-            # Run Rate Calculations
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
             frac_ov = comp_ov + (rem_bl / 6)
@@ -521,12 +515,14 @@ with tab_live:
                 
                 b_logo_src = get_image_src(b_local, b_remote)
                 f_logo_src = get_image_src(f_local, f_remote)
+                t_logo_src = get_tournament_logo_src()
                 
+                # Dynamic Flex Row containing Team Logos along with the Tournament Brand logo at the center
                 st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 10px; width: 100%;">
-                        <div style="text-align: center; width: 60px;"><img src="{b_logo_src}" style="width: 55px; height: 55px; object-fit: contain; border-radius: 8px;"></div>
-                        <div style="font-size: 1.2rem; font-weight: 800; color: #3B82F6; letter-spacing: 1px;">VS</div>
-                        <div style="text-align: center; width: 60px;"><img src="{f_logo_src}" style="width: 55px; height: 55px; object-fit: contain; border-radius: 8px;"></div>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 25px; margin-bottom: 12px; width: 100%;">
+                        <div style="text-align: center; width: 65px;"><img src="{b_logo_src}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;"></div>
+                        {"<div style='text-align: center; width: 75px;'><img src='" + t_logo_src + "' style='width: 70px; height: 70px; object-fit: contain;'></div>" if t_logo_src else "<div style='font-size: 1.2rem; font-weight: 800; color: #3B82F6;'>VS</div>"}
+                        <div style="text-align: center; width: 65px;"><img src="{f_logo_src}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;"></div>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -691,7 +687,6 @@ with tab_live:
                     else:
                         st.success("🏁 Innings complete.")
 
-                    # --- EXPANDER PANEL: EXTRA RUNS & PENALTY DIRECT ADDITIONS ---
                     st.write("")
                     with st.expander("⚖️ Administrative Extra Runs & Penalty Additions", expanded=False):
                         adj_col1, adj_col2 = st.columns([2, 1])
@@ -752,10 +747,8 @@ with tab_live:
                 else: 
                     st.caption("No archived records.")
 
-            # --- EXPORT REGION ---
             st.markdown("---")
             try:
-                # Triggers full dual-innings compiler engine context 
                 pdf_data_stream = generate_pdf_bytes(m_instance)
                 st.download_button(
                     label="📥 Export Complete Match Scorecard Report (Both Innings) to PDF",
