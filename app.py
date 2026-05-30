@@ -268,7 +268,7 @@ def generate_pdf_bytes(m):
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, clean_for_pdf("APL 2026 - COMPREHENSIVE MATCH SCORECARD"), ln=True, align="C")
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 6, clean_for_pdf(f"Series Fixture: {m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs Match)"), ln=True, align="C")
+    pdf.cell(0, 6, clean_for_pdf(f"Series: {m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs Match)"), ln=True, align="C")
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(6)
     
