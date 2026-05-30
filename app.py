@@ -131,7 +131,7 @@ st.markdown("""
 
 def init_blank_innings():
     return {
-        "runs": 0, "wickets": 0, "balls": 0, "extras": 0,
+        "runs": 0, "wickets": 0, "balls": 0, "extras": 0, "penalty": 0,
         "this_over": [], "over_history": [],
         "b1": {"name": "", "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True, "status": "On Strike"},
         "b2": {"name": "", "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out"},
@@ -228,7 +228,6 @@ def clean_for_pdf(text):
         return ""
     text = str(text)
     
-    # Isolate characters, strip symbols, and convert smart hyphens
     text = text.replace("\u2013", "-").replace("\u2014", "-")
     text = text.replace("\u2018", "'").replace("\u2019", "'")
     text = text.replace("\u201c", '"').replace("\u201d", '"')
@@ -246,7 +245,6 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf = FPDF()
     pdf.add_page()
     
-    # Reverted back to reliable standard font collection
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, clean_for_pdf("APL 2026 - OFFICIAL SCORECARD REPORT"), ln=True, align="C")
     pdf.ln(5)
@@ -262,6 +260,8 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.cell(0, 8, clean_for_pdf(f"Current Team Score: {inn_data['runs']} / {inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), ln=True)
     pdf.cell(0, 8, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), ln=True)
     pdf.cell(0, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
+    if inn_data.get("penalty", 0) > 0:
+        pdf.cell(0, 8, clean_for_pdf(f"Administrative Penalty Runs: {inn_data['penalty']}"), ln=True)
     pdf.ln(4)
     
     pdf.set_font("Helvetica", "B", 11)
@@ -300,7 +300,6 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
         pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
         pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
         
-    # Updated output system using your working byte compiler stream format
     return bytes(pdf.output())
 
 @st.cache_resource
@@ -475,7 +474,7 @@ with tab_live:
                     st.warning(f"🎯 Target Chase: {target_score} (Needs {target_score - inn_data['runs']} runs off {(m_instance['total_overs']*6) - inn_data['balls']} balls)")
 
                 m_c1, m_c2 = st.columns(2)
-                m_c1.metric("Extras Granted", f"{inn_data['extras']}")
+                m_c1.metric("Extras Granted", f"{inn_data['extras'] + inn_data.get('penalty', 0)}")
                 m_c2.metric("Current Run Rate (CRR Summary)", f"{crr:.2f}")
 
                 st.markdown("##### 📦 Over Timeline Tracker")
@@ -485,7 +484,7 @@ with tab_live:
                         bg_color = "#475569"
                         if str(b) in ["4", "6"]: bg_color = "#10B981"
                         elif "W" in str(b): bg_color = "#EF4444"
-                        elif b in ["WD", "NB"]: bg_color = "#D97706"
+                        elif "WD" in str(b) or "NB" in str(b) or "Ex" in str(b) or "Pen" in str(b): bg_color = "#D97706"
                         html_b += f'<span class="ball-bubble" style="background-color:{bg_color}; color:white;">{b}</span>'
                     st.markdown(html_b, unsafe_allow_html=True)
                 else: 
@@ -521,11 +520,12 @@ with tab_live:
                         with lock:
                             state_snap = copy.deepcopy({
                                 "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
-                                "extras": inn_data["extras"], "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
+                                "extras": inn_data["extras"], "penalty": inn_data.get("penalty", 0), "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
                                 "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), "bowler": copy.deepcopy(inn_data["bowler"]),
                                 "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
                                 "awaiting_batsman": inn_data["awaiting_batsman"], "awaiting_bowler": inn_data["awaiting_bowler"]
                             })
+                            if "undo_stack" not in inn_data: inn_data["undo_stack"] = []
                             inn_data["undo_stack"].append(state_snap)
 
                             striker = inn_data["b1"] if inn_data["b1"]["strike"] else inn_data["b2"]
@@ -621,15 +621,48 @@ with tab_live:
                     else:
                         st.success("🏁 Innings complete.")
 
+                    # --- ADDED: EXTRA RUNS & PENALTY DIRECT PANELS ---
+                    st.write("")
+                    with st.expander("⚖️ Administrative Extra Runs & Penalty Additions", expanded=False):
+                        adj_col1, adj_col2 = st.columns([2, 1])
+                        with adj_col1:
+                            adjustment_type = st.selectbox("Classification Type:", ["General Inning Extras", "Field Penalty Award Runs"], key=f"adj_type_{inn_key}")
+                        with adj_col2:
+                            runs_to_add = st.number_input("Runs Value:", min_value=1, max_value=20, value=1, step=1, key=f"adj_val_{inn_key}")
+                            
+                        if st.button("Apply Direct Additive Adjustment ⚡", use_container_width=True, type="secondary", key=f"adj_btn_{inn_key}"):
+                            mapped_type = "Extras" if adjustment_type == "General Inning Extras" else "Penalty"
+                            with lock:
+                                state_snap = copy.deepcopy({
+                                    "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
+                                    "extras": inn_data["extras"], "penalty": inn_data.get("penalty", 0), "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
+                                    "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), "bowler": copy.deepcopy(inn_data["bowler"]),
+                                    "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
+                                    "awaiting_batsman": inn_data["awaiting_batsman"], "awaiting_bowler": inn_data["awaiting_bowler"]
+                                })
+                                if "undo_stack" not in inn_data: inn_data["undo_stack"] = []
+                                inn_data["undo_stack"].append(state_snap)
+                                
+                                inn_data["runs"] += runs_to_add
+                                if mapped_type == "Extras":
+                                    inn_data["extras"] += runs_to_add
+                                    inn_data["this_over"].append(f"+{runs_to_add}Ex")
+                                else:
+                                    if "penalty" not in inn_data: inn_data["penalty"] = 0
+                                    inn_data["penalty"] += runs_to_add
+                                    inn_data["this_over"].append(f"+{runs_to_add}Pen")
+                            st.success(f"Injected +{runs_to_add} adjustment runs into database score.")
+                            st.rerun()
+
                     st.write("")
                     col_undo, col_swap = st.columns(2)
                     with col_undo:
-                        if inn_data["undo_stack"]:
+                        if "undo_stack" in inn_data and inn_data["undo_stack"]:
                             if st.button("⚠️ Undo Ball", use_container_width=True):
                                 with lock:
                                     prev_state = inn_data["undo_stack"].pop()
-                                    for k in ["runs", "wickets", "balls", "extras", "this_over", "over_history", "b1", "b2", "bowler", "all_batsmen_history", "all_bowlers_history", "awaiting_batsman", "awaiting_bowler"]:
-                                        inn_data[k] = prev_state[k]
+                                    for k in ["runs", "wickets", "balls", "extras", "penalty", "this_over", "over_history", "b1", "b2", "bowler", "all_batsmen_history", "all_bowlers_history", "awaiting_batsman", "awaiting_bowler"]:
+                                        inn_data[k] = prev_state.get(k, prev_state[k] if k in prev_state else 0)
                                 st.rerun()
                         else:
                             st.button("Undo Disabled", disabled=True, use_container_width=True)
@@ -650,44 +683,3 @@ with tab_live:
                     st.caption("No archived records.")
 
             # --- EXPORT REGION ---
-            st.markdown("---")
-            try:
-                pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
-                st.download_button(
-                    label="📥 Export Current Scorecard to PDF Document",
-                    data=pdf_data_stream,
-                    file_name=f"APL_Match_{str(m_instance['id'])}_Innings{str(m_instance['current_innings'])}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="global_footer_pdf_export_btn"
-                )
-            except Exception as pdf_error:
-                st.error(f"Error compiling PDF Document content parameters: {str(pdf_error)}")
-
-# ================= TAB: TOURNAMENT REVIEW LEDGER =================
-with tab_review:
-    st.markdown("### Match Outcome Review Ledgers")
-    if not db_global["matches"]:
-        st.caption("No historical logs recorded within active engine instances.")
-    else:
-        select_review_id = st.selectbox("Select Match Profile Key to Audit:", list(db_global["matches"].keys()))
-        m_rev = ensure_match_keys(db_global["matches"][select_review_id])
-        
-        st.markdown(f"## Match Record: {m_rev['id']}")
-        st.info(f"📋 Lineup Setup: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
-        
-        d1 = m_rev["innings_1"]
-        d2 = m_rev["innings_2"]
-        
-        match_outcome = get_match_result(m_rev)
-        st.success(f"🏆 Final Result Summary: {match_outcome}")
-        
-        rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
-        with rev_i1:
-            st.metric(f"Total Innings 1 Score ({m_rev['team_1']})", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
-            if d1["over_history"]: st.table(pd.DataFrame(d1["over_history"]))
-            else: st.caption("No historical timelines stored for this inning.")
-        with rev_i2:
-            st.metric(f"Total Innings 2 Score ({m_rev['team_2']})", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
-            if d2["over_history"]: st.table(pd.DataFrame(d2["over_history"]))
-            else: st.caption("No historical timelines stored for this inning.")
