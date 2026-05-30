@@ -224,14 +224,17 @@ def get_match_result(m):
     return f"CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
 
 def clean_for_pdf(text):
-    if not text:
+    if text is None:
         return ""
+    # Strip emojis and common special UI components that crash FPDF
     text = str(text)
     replacements = {
-        "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", "🏏": "", "👤": "", "🥎": "", "🎛️": ""
+        "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", 
+        "🏏": "", "👤": "", "🥎": "", "🎛️": "", "📥": "", "🛠": "", "⚡": "", "📢": ""
     }
     for emoji, rep in replacements.items():
         text = text.replace(emoji, rep)
+    # Ensure encoding drops any remaining un-mappable special characters cleanly
     return text.encode('latin-1', 'ignore').decode('latin-1')
 
 def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
@@ -258,16 +261,23 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.set_font("Arial", "B", 11)
     pdf.cell(190, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
     pdf.set_font("Arial", "", 10)
-    s1 = " *On-Strike" if inn_data['b1']['strike'] else ""
-    s2 = " *On-Strike" if inn_data['b2']['strike'] else ""
-    pdf.cell(190, 6, clean_for_pdf(f"- {inn_data['b1']['name']}{s1}: {inn_data['b1']['runs']} Runs scored from {inn_data['b1']['balls']} balls"), ln=True)
-    pdf.cell(190, 6, clean_for_pdf(f"- {inn_data['b2']['name']}{s2}: {inn_data['b2']['runs']} Runs scored from {inn_data['b2']['balls']} balls"), ln=True)
+    
+    # Secure safe name fallbacks
+    b1_name = inn_data.get('b1', {}).get('name', 'Opening Batter 1') or 'Opening Batter 1'
+    b2_name = inn_data.get('b2', {}).get('name', 'Opening Batter 2') or 'Opening Batter 2'
+    bowler_name = inn_data.get('bowler', {}).get('name', 'Active Bowler') or 'Active Bowler'
+    
+    s1 = " *On-Strike" if inn_data.get('b1', {}).get('strike', False) else ""
+    s2 = " *On-Strike" if inn_data.get('b2', {}).get('strike', False) else ""
+    
+    pdf.cell(190, 6, clean_for_pdf(f"- {b1_name}{s1}: {inn_data.get('b1', {}).get('runs', 0)} Runs scored from {inn_data.get('b1', {}).get('balls', 0)} balls"), ln=True)
+    pdf.cell(190, 6, clean_for_pdf(f"- {b2_name}{s2}: {inn_data.get('b2', {}).get('runs', 0)} Runs scored from {inn_data.get('b2', {}).get('balls', 0)} balls"), ln=True)
     pdf.ln(4)
     
     pdf.set_font("Arial", "B", 11)
     pdf.cell(190, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
     pdf.set_font("Arial", "", 10)
-    pdf.cell(190, 6, clean_for_pdf(f"- Bowler: {inn_data['bowler']['name']} -> Wickets Taken: {inn_data['bowler']['wickets']} | Conceded Runs: {inn_data['bowler']['runs']}"), ln=True)
+    pdf.cell(190, 6, clean_for_pdf(f"- Bowler: {bowler_name} -> Wickets Taken: {inn_data.get('bowler', {}).get('wickets', 0)} | Conceded Runs: {inn_data.get('bowler', {}).get('runs', 0)}"), ln=True)
     pdf.ln(5)
     
     pdf.set_font("Arial", "B", 11)
@@ -279,7 +289,7 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.cell(70, 6, "Timeline Delivery History", 1, ln=True)
     
     pdf.set_font("Arial", "", 10)
-    for ov in inn_data["over_history"]:
+    for ov in inn_data.get("over_history", []):
         pdf.cell(25, 6, clean_for_pdf(str(ov.get("Over", ""))), 1)
         pdf.cell(55, 6, clean_for_pdf(str(ov.get("Bowler", ""))), 1)
         pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
@@ -633,21 +643,20 @@ with tab_live:
                 else: 
                     st.caption("No archived records.")
 
-            # CRITICAL FIX: Placed completely below the two columns at wide layout level.
-            # It will now never vanish or crash.
+            # --- PERMANENT SCORECARD EXPORT REGION ---
             st.markdown("---")
             try:
                 pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
                 st.download_button(
                     label="📥 Export Current Scorecard to PDF Document",
                     data=pdf_data_stream,
-                    file_name=f"APL_Match_{m_instance['id']}_Innings{m_instance['current_innings']}.pdf",
+                    file_name=f"APL_Match_{str(m_instance['id'])}_Innings{str(m_instance['current_innings'])}.pdf",
                     mime="application/pdf",
                     use_container_width=True,
                     key="global_footer_pdf_export_btn"
                 )
             except Exception as pdf_error:
-                st.info("⚠️ Scorecard PDF is priming. Add players or runs to open printable download stream.")
+                st.error(f"Error compiling PDF Document content parameters: {str(pdf_error)}")
 
 # ================= TAB: TOURNAMENT REVIEW LEDGER =================
 with tab_review:
