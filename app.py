@@ -181,38 +181,6 @@ def ensure_match_keys(m):
         m["id"] = "Match"
     return m
 
-def sanitize_for_pdf(text):
-    if not text:
-        return ""
-    replacements = {
-        "🏆": "", "🏏": "", "🥎": "", "📢": "", "👔": "", "👉": "",
-        "🟢": "", "🟡": "", "🟠": "", "☝️": "", "🏁": "", "📋": "",
-        "📺": "", "🗄️": "", "📥": ""
-    }
-    for emoji, rep in replacements.items():
-        text = text.replace(emoji, rep)
-    try:
-        text_encoded = text.encode("latin-1", errors="ignore")
-        return text_encoded.decode("latin-1")
-    except Exception:
-        return "".join(c for c in text if ord(c) < 128)
-
-def get_pdf_bytes(pdf):
-    try:
-        pdf_bytes = pdf.output()
-        if isinstance(pdf_bytes, (bytes, bytearray)):
-            return bytes(pdf_bytes)
-    except Exception:
-        pass
-    try:
-        pdf_str = pdf.output(dest='S')
-        if isinstance(pdf_str, str):
-            return pdf_str.encode('latin-1', errors='ignore')
-        return bytes(pdf_str)
-    except Exception:
-        pass
-    return b""
-
 def get_match_result(m):
     m = ensure_match_keys(m)
     d1 = m["innings_1"]
@@ -298,7 +266,7 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# App Navigation Layout Configuration (Top Banner Logo Completely Removed)
+# App Navigation Layout Configuration
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
 # ================= TAB: TEAM PROFILE REVIEWS =================
@@ -382,8 +350,10 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
+            # Unified Mathematical Engine for Ball to Over conversions
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
+            
             frac_ov = comp_ov + (rem_bl / 6)
             crr = (inn_data["runs"] / frac_ov) if frac_ov > 0 else 0.0
             
@@ -393,7 +363,6 @@ with tab_live:
                 
             status_tag = "FINISHED" if innings_ended else "LIVE"
 
-            # Horizontal Side-by-Side Dual-Column Adaptive Presentation
             l_col, r_col = st.columns([1.1, 0.9])
             
             with l_col:
@@ -468,8 +437,8 @@ with tab_live:
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
-                    # Delivery counter execution logic
-                    def submit_ball(runs_inc, extra_inc=0, is_legal=True, symbol=None):
+                    # Unified Mathematical Input Engine
+                    def submit_ball(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
                                 "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
@@ -485,6 +454,10 @@ with tab_live:
                             inn_data["extras"] += extra_inc
                             inn_data["bowler"]["runs"] += runs_inc
                             
+                            if is_wicket:
+                                inn_data["wickets"] += 1
+                                inn_data["bowler"]["wickets"] += 1
+                                
                             if is_legal:
                                 inn_data["balls"] += 1
                                 inn_data["bowler"]["balls"] += 1
@@ -494,11 +467,11 @@ with tab_live:
                             else:
                                 inn_data["this_over"].append(symbol)
                                 
-                            if is_legal and (runs_inc % 2 != 0) and symbol != "W":
+                            if is_legal and (runs_inc % 2 != 0) and not is_wicket:
                                 inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                 inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 
-                            # Over Completion validation logic (Exactly 6 valid deliveries)
+                            # Precise over calculation checks logic
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
                             if len(legal_balls_in_over) == 6:
                                 inn_data["over_history"].append({
@@ -507,6 +480,11 @@ with tab_live:
                                 })
                                 inn_data["this_over"] = []
                                 inn_data["awaiting_bowler"] = True
+                                if is_wicket and inn_data["wickets"] < 10:
+                                    inn_data["awaiting_batsman"] = True
+                            else:
+                                if is_wicket and inn_data["wickets"] < 10:
+                                    inn_data["awaiting_batsman"] = True
 
                     if inn_data["awaiting_batsman"]:
                         st.error("☝️ Wicket Fallen! Choose Incoming Batsman Below:")
@@ -551,38 +529,12 @@ with tab_live:
                         b_br1, b_br2, b_br3, b_br4 = st.columns(4)
                         if b_br1.button("🟢 4", use_container_width=True): submit_ball(4, 0, True); (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1
                         if b_br2.button("🟢 6", use_container_width=True): submit_ball(6, 0, True); (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1
-                        if b_br3.button("🟡 WD", use_container_width=True): submit_ball(1, 1, False, "WD")
-                        if b_br4.button("🟠 NB", use_container_width=True): submit_ball(1, 1, False, "NB")
+                        if b_br3.button("🟡 WD", use_container_width=True): submit_ball(1, 1, False, symbol="WD")
+                        if b_br4.button("🟠 NB", use_container_width=True): submit_ball(1, 1, False, symbol="NB")
                         
                         st.write("")
                         if st.button("☝️ OUT / FALL OF WICKET DETECTED", type="primary", use_container_width=True):
-                            with lock:
-                                state_snap = copy.deepcopy({
-                                    "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
-                                    "extras": inn_data["extras"], "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
-                                    "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), "bowler": copy.deepcopy(inn_data["bowler"]),
-                                    "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
-                                    "awaiting_batsman": inn_data["awaiting_batsman"], "awaiting_bowler": inn_data["awaiting_bowler"]
-                                })
-                                inn_data["undo_stack"].append(state_snap)
-                                inn_data["wickets"] += 1
-                                inn_data["balls"] += 1
-                                inn_data["bowler"]["wickets"] += 1
-                                inn_data["this_over"].append("W")
-                                
-                                legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
-                                if len(legal_balls_in_over) == 6:
-                                    inn_data["over_history"].append({
-                                        "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
-                                        "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
-                                    })
-                                    inn_data["this_over"] = []
-                                    if inn_data["wickets"] < 10:
-                                        inn_data["awaiting_bowler"] = True
-                                        inn_data["awaiting_batsman"] = True
-                                else:
-                                    if inn_data["wickets"] < 10:
-                                        inn_data["awaiting_batsman"] = True
+                            submit_ball(runs_inc=0, extra_inc=0, is_legal=True, is_wicket=True, symbol="W")
                             st.rerun()
                     else:
                         st.success("🏁 Innings complete.")
