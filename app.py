@@ -477,6 +477,7 @@ with tab_live:
                 match_outcome = get_match_result(m_instance)
                 st.info(f"📢 Status: {match_outcome}")
 
+                # FIXED: Moved completely out of conditional blocks to remain permanently visible 
                 try:
                     pdf_bytes = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
                     st.download_button(
@@ -512,7 +513,6 @@ with tab_live:
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
-                    # Core Single-Click Scoring Business Logic Function
                     def process_ball_input(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
@@ -548,13 +548,11 @@ with tab_live:
                                 
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
                             
-                            # Fixed: Force layout assignment flags immediately to remove selector lag
                             if len(legal_balls_in_over) == 6:
                                 inn_data["awaiting_bowler"] = True
                             if is_wicket and inn_data["wickets"] < 10:
                                 inn_data["awaiting_batsman"] = True
 
-                    # Priority Layout Block Execution: Render overlays before accepting next deliveries
                     if inn_data["awaiting_batsman"]:
                         st.error("☝️ Wicket Fallen! Choose Incoming Batsman Below:")
                         used_batsmen = [inn_data["b1"]["name"], inn_data["b2"]["name"]] + [b["name"] for b in inn_data["all_batsmen_history"]]
@@ -594,7 +592,6 @@ with tab_live:
                             st.rerun()
 
                     elif not innings_ended:
-                        # Fixed: Re-engineered click pipeline to process math state inside single-click layout contexts
                         b_c1, b_c2, b_c3, b_c4 = st.columns(4)
                         if b_c1.button("0 Runs", use_container_width=True): process_ball_input(0, 0, True); st.rerun()
                         if b_c2.button("1 Run", use_container_width=True): process_ball_input(1, 0, True); st.rerun()
