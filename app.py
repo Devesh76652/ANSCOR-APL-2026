@@ -209,19 +209,88 @@ def get_match_result(m):
     target = runs_i1 + 1
     if runs_i2 >= target:
         wickets_won = 10 - wickets_i2
-        return f"🏆 {m['team_2']} won by {wickets_won} wickets!"
+        return f"WINNER: {m['team_2']} won by {wickets_won} wickets!"
         
     i2_complete = (balls_i2 >= total_overs * 6) or (wickets_i2 >= 10)
     if i2_complete:
         if runs_i2 < runs_i1:
             margin = runs_i1 - runs_i2
-            return f"🏆 {m['team_1']} won by {margin} runs!"
+            return f"WINNER: {m['team_1']} won by {margin} runs!"
         elif runs_i2 == runs_i1:
-            return "👔 Match Ended in a Tie!"
+            return "RESULT: Match Ended in a Tie!"
             
     runs_needed = target - runs_i2
     balls_rem = (total_overs * 6) - balls_i2
-    return f"🏏 Chase: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
+    return f"CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
+
+def clean_for_pdf(text):
+    """Filter out non-latin-1 characters like emojis to prevent PDF engine crashes"""
+    if not text:
+        return ""
+    # Map out custom text elements to replace emojis safely
+    replacements = {
+        "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", "🏏": "", "👤": "", "🥎": "", "🎛️": ""
+    }
+    for emoji, rep in replacements.items():
+        text = text.replace(emoji, rep)
+    return text.encode('latin-1', 'ignore').decode('latin-1')
+
+def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(190, 10, clean_for_pdf("APL 2026 - OFFICIAL SCORECARD REPORT"), ln=True, align="C")
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(190, 8, clean_for_pdf(f"Match Series: {bat_team} vs {bowl_team}"), ln=True, align="C")
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    
+    # Primary Score Summary
+    pdf.set_font("Arial", "B", 12)
+    comp_ov = inn_data["balls"] // 6
+    rem_bl = inn_data["balls"] % 6
+    pdf.cell(190, 8, clean_for_pdf(f"Batting Side Team: {bat_team}"), ln=True)
+    pdf.cell(190, 8, clean_for_pdf(f"Current Team Score: {inn_data['runs']} / {inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), ln=True)
+    pdf.cell(190, 8, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), ln=True)
+    pdf.cell(190, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
+    pdf.ln(4)
+    
+    # Partnership info
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(190, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
+    pdf.set_font("Arial", "", 10)
+    s1 = " *On-Strike" if inn_data['b1']['strike'] else ""
+    s2 = " *On-Strike" if inn_data['b2']['strike'] else ""
+    pdf.cell(190, 6, clean_for_pdf(f"- {inn_data['b1']['name']}{s1}: {inn_data['b1']['runs']} Runs scored from {inn_data['b1']['balls']} balls"), ln=True)
+    pdf.cell(190, 6, clean_for_pdf(f"- {inn_data['b2']['name']}{s2}: {inn_data['b2']['runs']} Runs scored from {inn_data['b2']['balls']} balls"), ln=True)
+    pdf.ln(4)
+    
+    # Bowler Status
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(190, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(190, 6, clean_for_pdf(f"- Bowler: {inn_data['bowler']['name']} -> Wickets Taken: {inn_data['bowler']['wickets']} | Conceded Runs: {inn_data['bowler']['runs']}"), ln=True)
+    pdf.ln(5)
+    
+    # Completed Overs Log
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(190, 8, clean_for_pdf("Historical Over Ledger Progress Tracker"), ln=True)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(25, 6, "Over No.", 1)
+    pdf.cell(55, 6, "Bowler Assigned", 1)
+    pdf.cell(40, 6, "Score Progression", 1)
+    pdf.cell(70, 6, "Timeline Delivery History", 1, ln=True)
+    
+    pdf.set_font("Arial", "", 10)
+    for ov in inn_data["over_history"]:
+        pdf.cell(25, 6, clean_for_pdf(str(ov["Over"])), 1)
+        pdf.cell(55, 6, clean_for_pdf(str(ov["Bowler"])), 1)
+        pdf.cell(40, 6, clean_for_pdf(str(ov["Score"])), 1)
+        pdf.cell(70, 6, clean_for_pdf(str(ov["Timeline"])), 1, ln=True)
+        
+    return pdf.output(dest="S").encode("latin-1")
 
 @st.cache_resource
 def get_tournament_database():
@@ -251,7 +320,7 @@ def show_squad_popup(team_name):
     with cols[1]:
         for p in squad_members[mid:]: st.markdown(f"• {p}")
 
-# --- SECURITY SYSTEM CONTROL ---
+# --- SECURITY SYSTEM CONTROL SIDEBAR ---
 st.sidebar.markdown("### 🔑 Live System Portal")
 user_role = st.sidebar.radio("Your Access Profile:", ["📢 Player View (Live Auto-Sync)", "⚡ Scorer Panel (Admin Mode)"])
 
@@ -266,7 +335,7 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# App Navigation Layout Configuration
+# Global Fixed Tabs Declaration - Unhides and exposes the elements permanently across admin/user sessions
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
 # ================= TAB: TEAM PROFILE REVIEWS =================
@@ -350,7 +419,7 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
-            # Mathematical Engine for ball to over display
+            # Mathematical Run Rate calculations
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
             
@@ -382,12 +451,14 @@ with tab_live:
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Fixed: Added real-time Current Run Rate calculation display directly inside core UI scoreboard
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status_tag}</span>
                         <h4 style="margin:0; font-weight:700;">🏏 {bat_team} vs {bowl_team}</h4>
                         <h1 style="font-size:3.5rem; margin:5px 0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
-                        <h5 style="margin:0;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
+                        <h5 style="margin:0; color:#93C5FD;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
+                        <h5 style="margin:6px 0 0 0; font-weight:800; color:#34D399;">Current Run Rate (CRR): {crr:.2f}</h5>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -396,7 +467,7 @@ with tab_live:
 
                 m_c1, m_c2 = st.columns(2)
                 m_c1.metric("Extras Granted", f"{inn_data['extras']}")
-                m_c2.metric("Current Run Rate (CRR)", f"{crr:.2f}")
+                m_c2.metric("Current Run Rate (CRR Summary)", f"{crr:.2f}")
 
                 st.markdown("##### 📦 Over Timeline Tracker")
                 if inn_data["this_over"]:
@@ -413,6 +484,19 @@ with tab_live:
                 
                 match_outcome = get_match_result(m_instance)
                 st.info(f"📢 Status: {match_outcome}")
+
+                # Universal PDF Generator Access Action Block for both Users and Admins
+                try:
+                    pdf_bytes = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
+                    st.download_button(
+                        label="📥 Export Scorecard to PDF Document",
+                        data=pdf_bytes,
+                        file_name=f"APL_Scorecard_{m_instance['id']}_Inn{m_instance['current_innings']}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+                except Exception as pdf_err:
+                    st.error(f"Could not build report download item: {str(pdf_err)}")
 
             with r_col:
                 st.markdown(f"""
@@ -470,7 +554,6 @@ with tab_live:
                                 inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                 inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 
-                            # Keep balls visible; wait for bowler rotation confirmation before resetting timeline bubble array
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
                             if len(legal_balls_in_over) == 6:
                                 inn_data["awaiting_bowler"] = True
@@ -509,7 +592,6 @@ with tab_live:
                             with lock:
                                 if inn_data["bowler"]["name"] != "":
                                     inn_data["all_bowlers_history"].append(copy.deepcopy(inn_data["bowler"]))
-                                # Archive past over details perfectly before wiping active delivery tracking bubbles
                                 inn_data["over_history"].append({
                                     "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
                                     "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
