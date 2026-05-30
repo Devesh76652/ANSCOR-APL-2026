@@ -226,16 +226,24 @@ def get_match_result(m):
 def clean_for_pdf(text):
     if text is None:
         return ""
-    # Strip emojis and common special UI components that crash FPDF
     text = str(text)
+    
+    # 1. Force fix the exact unicode characters that cause codec crashes (\u2013, \u2014, etc.)
+    text = text.replace("\u2013", "-")  # Replace en-dash with standard hyphen
+    text = text.replace("\u2014", "-")  # Replace em-dash with standard hyphen
+    text = text.replace("\u2018", "'").replace("\u2019", "'")  # Fix curly single quotes
+    text = text.replace("\u201c", '"').replace("\u201d", '"')  # Fix curly double quotes
+    
+    # 2. General known emoji/symbol cleansing map
     replacements = {
         "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", 
         "🏏": "", "👤": "", "🥎": "", "🎛️": "", "📥": "", "🛠": "", "⚡": "", "📢": ""
     }
     for emoji, rep in replacements.items():
         text = text.replace(emoji, rep)
-    # Ensure encoding drops any remaining un-mappable special characters cleanly
-    return text.encode('latin-1', 'ignore').decode('latin-1')
+        
+    # 3. Bulletproof fallback: Encode to latin-1 while replacing un-encodable elements cleanly
+    return text.encode('latin-1', 'replace').decode('latin-1')
 
 def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf = FPDF()
@@ -262,7 +270,6 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.cell(190, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
     pdf.set_font("Arial", "", 10)
     
-    # Secure safe name fallbacks
     b1_name = inn_data.get('b1', {}).get('name', 'Opening Batter 1') or 'Opening Batter 1'
     b2_name = inn_data.get('b2', {}).get('name', 'Opening Batter 2') or 'Opening Batter 2'
     bowler_name = inn_data.get('bowler', {}).get('name', 'Active Bowler') or 'Active Bowler'
@@ -295,7 +302,7 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
         pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
         pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
         
-    return pdf.output(dest="S").encode("latin-1")
+    return pdf.output(dest="S").encode("latin-1", "replace")
 
 @st.cache_resource
 def get_tournament_database():
@@ -619,69 +626,4 @@ with tab_live:
                     col_undo, col_swap = st.columns(2)
                     with col_undo:
                         if inn_data["undo_stack"]:
-                            if st.button("⚠️ Undo Ball", use_container_width=True):
-                                with lock:
-                                    prev_state = inn_data["undo_stack"].pop()
-                                    for k in ["runs", "wickets", "balls", "extras", "this_over", "over_history", "b1", "b2", "bowler", "all_batsmen_history", "all_bowlers_history", "awaiting_batsman", "awaiting_bowler"]:
-                                        inn_data[k] = prev_state[k]
-                                st.rerun()
-                        else:
-                            st.button("Undo Disabled", disabled=True, use_container_width=True)
-                    with col_swap:
-                        if not innings_ended and not inn_data["awaiting_batsman"] and not inn_data["awaiting_bowler"]:
-                            if st.button("🔄 Swap Strike", use_container_width=True):
-                                with lock:
-                                    inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
-                                    inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
-                                st.rerun()
-                        else:
-                            st.button("Swap Disabled", disabled=True, use_container_width=True)
-
-                st.markdown("##### 📊 Completed Overs Log")
-                if inn_data["over_history"]:
-                    st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True)
-                else: 
-                    st.caption("No archived records.")
-
-            # --- PERMANENT SCORECARD EXPORT REGION ---
-            st.markdown("---")
-            try:
-                pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
-                st.download_button(
-                    label="📥 Export Current Scorecard to PDF Document",
-                    data=pdf_data_stream,
-                    file_name=f"APL_Match_{str(m_instance['id'])}_Innings{str(m_instance['current_innings'])}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="global_footer_pdf_export_btn"
-                )
-            except Exception as pdf_error:
-                st.error(f"Error compiling PDF Document content parameters: {str(pdf_error)}")
-
-# ================= TAB: TOURNAMENT REVIEW LEDGER =================
-with tab_review:
-    st.markdown("### Match Outcome Review Ledgers")
-    if not db_global["matches"]:
-        st.caption("No historical logs recorded within active engine instances.")
-    else:
-        select_review_id = st.selectbox("Select Match Profile Key to Audit:", list(db_global["matches"].keys()))
-        m_rev = ensure_match_keys(db_global["matches"][select_review_id])
-        
-        st.markdown(f"## Match Record: {m_rev['id']}")
-        st.info(f"📋 Lineup Setup: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
-        
-        d1 = m_rev["innings_1"]
-        d2 = m_rev["innings_2"]
-        
-        match_outcome = get_match_result(m_rev)
-        st.success(f"🏆 Final Result Summary: {match_outcome}")
-        
-        rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
-        with rev_i1:
-            st.metric(f"Total Innings 1 Score ({m_rev['team_1']})", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
-            if d1["over_history"]: st.table(pd.DataFrame(d1["over_history"]))
-            else: st.caption("No historical timelines stored for this inning.")
-        with rev_i2:
-            st.metric(f"Total Innings 2 Score ({m_rev['team_2']})", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
-            if d2["over_history"]: st.table(pd.DataFrame(d2["over_history"]))
-            else: st.caption("No historical timelines stored for this inning.")
+                            if st.button("⚠️ Undo Ball",
