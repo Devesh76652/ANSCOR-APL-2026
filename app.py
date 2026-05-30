@@ -224,10 +224,8 @@ def get_match_result(m):
     return f"CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
 
 def clean_for_pdf(text):
-    """Filter out non-latin-1 characters like emojis to prevent PDF engine crashes"""
     if not text:
         return ""
-    # Map out custom text elements to replace emojis safely
     replacements = {
         "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", "🏏": "", "👤": "", "🥎": "", "🎛️": ""
     }
@@ -247,7 +245,6 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     
-    # Primary Score Summary
     pdf.set_font("Arial", "B", 12)
     comp_ov = inn_data["balls"] // 6
     rem_bl = inn_data["balls"] % 6
@@ -257,7 +254,6 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.cell(190, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
     pdf.ln(4)
     
-    # Partnership info
     pdf.set_font("Arial", "B", 11)
     pdf.cell(190, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
     pdf.set_font("Arial", "", 10)
@@ -267,14 +263,12 @@ def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
     pdf.cell(190, 6, clean_for_pdf(f"- {inn_data['b2']['name']}{s2}: {inn_data['b2']['runs']} Runs scored from {inn_data['b2']['balls']} balls"), ln=True)
     pdf.ln(4)
     
-    # Bowler Status
     pdf.set_font("Arial", "B", 11)
     pdf.cell(190, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
     pdf.set_font("Arial", "", 10)
     pdf.cell(190, 6, clean_for_pdf(f"- Bowler: {inn_data['bowler']['name']} -> Wickets Taken: {inn_data['bowler']['wickets']} | Conceded Runs: {inn_data['bowler']['runs']}"), ln=True)
     pdf.ln(5)
     
-    # Completed Overs Log
     pdf.set_font("Arial", "B", 11)
     pdf.cell(190, 8, clean_for_pdf("Historical Over Ledger Progress Tracker"), ln=True)
     pdf.set_font("Arial", "B", 10)
@@ -335,7 +329,7 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# Global Fixed Tabs Declaration - Unhides and exposes the elements permanently across admin/user sessions
+# Global Permanent Navigation Structure
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
 # ================= TAB: TEAM PROFILE REVIEWS =================
@@ -419,10 +413,9 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
-            # Mathematical Run Rate calculations
+            # Run Rate Core Calculations
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
-            
             frac_ov = comp_ov + (rem_bl / 6)
             crr = (inn_data["runs"] / frac_ov) if frac_ov > 0 else 0.0
             
@@ -451,11 +444,10 @@ with tab_live:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Fixed: Added real-time Current Run Rate calculation display directly inside core UI scoreboard
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status_tag}</span>
-                        <h4 style="margin:0; font-weight:700;">🏏 {bat_team} vs {bowl_team}</h4>
+                        <h4 style="margin:0; font-weight:700;">{bat_team} vs {bowl_team}</h4>
                         <h1 style="font-size:3.5rem; margin:5px 0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
                         <h5 style="margin:0; color:#93C5FD;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
                         <h5 style="margin:6px 0 0 0; font-weight:800; color:#34D399;">Current Run Rate (CRR): {crr:.2f}</h5>
@@ -485,7 +477,6 @@ with tab_live:
                 match_outcome = get_match_result(m_instance)
                 st.info(f"📢 Status: {match_outcome}")
 
-                # Universal PDF Generator Access Action Block for both Users and Admins
                 try:
                     pdf_bytes = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
                     st.download_button(
@@ -521,7 +512,8 @@ with tab_live:
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
-                    def submit_ball(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
+                    # Core Single-Click Scoring Business Logic Function
+                    def process_ball_input(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
                                 "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
@@ -555,14 +547,14 @@ with tab_live:
                                 inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
+                            
+                            # Fixed: Force layout assignment flags immediately to remove selector lag
                             if len(legal_balls_in_over) == 6:
                                 inn_data["awaiting_bowler"] = True
-                                if is_wicket and inn_data["wickets"] < 10:
-                                    inn_data["awaiting_batsman"] = True
-                            else:
-                                if is_wicket and inn_data["wickets"] < 10:
-                                    inn_data["awaiting_batsman"] = True
+                            if is_wicket and inn_data["wickets"] < 10:
+                                inn_data["awaiting_batsman"] = True
 
+                    # Priority Layout Block Execution: Render overlays before accepting next deliveries
                     if inn_data["awaiting_batsman"]:
                         st.error("☝️ Wicket Fallen! Choose Incoming Batsman Below:")
                         used_batsmen = [inn_data["b1"]["name"], inn_data["b2"]["name"]] + [b["name"] for b in inn_data["all_batsmen_history"]]
@@ -602,21 +594,28 @@ with tab_live:
                             st.rerun()
 
                     elif not innings_ended:
+                        # Fixed: Re-engineered click pipeline to process math state inside single-click layout contexts
                         b_c1, b_c2, b_c3, b_c4 = st.columns(4)
-                        if b_c1.button("0 Runs", use_container_width=True): submit_ball(0, 0, True)
-                        if b_c2.button("1 Run", use_container_width=True): submit_ball(1, 0, True)
-                        if b_c3.button("2 Runs", use_container_width=True): submit_ball(2, 0, True)
-                        if b_c4.button("3 Runs", use_container_width=True): submit_ball(3, 0, True)
+                        if b_c1.button("0 Runs", use_container_width=True): process_ball_input(0, 0, True); st.rerun()
+                        if b_c2.button("1 Run", use_container_width=True): process_ball_input(1, 0, True); st.rerun()
+                        if b_c3.button("2 Runs", use_container_width=True): process_ball_input(2, 0, True); st.rerun()
+                        if b_c4.button("3 Runs", use_container_width=True): process_ball_input(3, 0, True); st.rerun()
                         
                         b_br1, b_br2, b_br3, b_br4 = st.columns(4)
-                        if b_br1.button("🟢 4", use_container_width=True): submit_ball(4, 0, True); (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1
-                        if b_br2.button("🟢 6", use_container_width=True): submit_ball(6, 0, True); (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1
-                        if b_br3.button("🟡 WD", use_container_width=True): submit_ball(1, 1, False, symbol="WD")
-                        if b_br4.button("🟠 NB", use_container_width=True): submit_ball(1, 1, False, symbol="NB")
+                        if b_br1.button("🟢 4", use_container_width=True): 
+                            process_ball_input(4, 0, True)
+                            (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1
+                            st.rerun()
+                        if b_br2.button("🟢 6", use_container_width=True): 
+                            process_ball_input(6, 0, True)
+                            (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1
+                            st.rerun()
+                        if b_br3.button("🟡 WD", use_container_width=True): process_ball_input(1, 1, False, symbol="WD"); st.rerun()
+                        if b_br4.button("🟠 NB", use_container_width=True): process_ball_input(1, 1, False, symbol="NB"); st.rerun()
                         
                         st.write("")
                         if st.button("☝️ OUT / FALL OF WICKET DETECTED", type="primary", use_container_width=True):
-                            submit_ball(runs_inc=0, extra_inc=0, is_legal=True, is_wicket=True, symbol="W")
+                            process_ball_input(runs_inc=0, extra_inc=0, is_legal=True, is_wicket=True, symbol="W")
                             st.rerun()
                     else:
                         st.success("🏁 Innings complete.")
