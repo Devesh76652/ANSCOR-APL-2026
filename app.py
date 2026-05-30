@@ -258,7 +258,7 @@ def generate_pdf_bytes(m):
     pdf.add_page()
     
     # --- TOP OF PAGE: FINAL WINNER & MATCH OUTCOME ---
-    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(16, 185, 129)
     match_outcome = get_match_result(m)
     pdf.cell(0, 12, clean_for_pdf(f"🏆 MATCH STATUS / RESULT: {match_outcome.upper()}"), ln=True, align="C")
