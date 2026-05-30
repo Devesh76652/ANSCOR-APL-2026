@@ -241,64 +241,134 @@ def clean_for_pdf(text):
         
     return text.encode('ascii', 'ignore').decode('ascii')
 
-def generate_pdf_bytes(m, inn_data, bat_team, bowl_team, crr):
+def generate_pdf_bytes(m):
+    """
+    Generates a full post-match scorecard dashboard PDF containing comprehensive details 
+    for BOTH innings, featuring the clear final winner outcome prominently displayed at the top.
+    """
+    m = ensure_match_keys(m)
     pdf = FPDF()
     pdf.add_page()
     
+    # --- TOP OF PAGE: FINAL WINNER & MATCH OUTCOME ---
+    pdf.set_font("Helvetica", "B", 15)
+    pdf.set_text_color(16, 185, 129)  # Green highlights for final winner outcome box
+    match_outcome = get_match_result(m)
+    pdf.cell(0, 12, clean_for_pdf(f"🏆 MATCH STATUS / RESULT: {match_outcome.upper()}"), ln=True, align="C")
+    pdf.set_text_color(0, 0, 0) # Reset color back to black
+    pdf.ln(2)
+    
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, clean_for_pdf("APL 2026 - OFFICIAL SCORECARD REPORT"), ln=True, align="C")
-    pdf.ln(5)
-    
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, clean_for_pdf(f"Match Series: {bat_team} vs {bowl_team}"), ln=True, align="C")
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(5)
-    
-    comp_ov = inn_data["balls"] // 6
-    rem_bl = inn_data["balls"] % 6
-    pdf.cell(0, 8, clean_for_pdf(f"Batting Side Team: {bat_team}"), ln=True)
-    pdf.cell(0, 8, clean_for_pdf(f"Current Team Score: {inn_data['runs']} / {inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), ln=True)
-    pdf.cell(0, 8, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), ln=True)
-    pdf.cell(0, 8, clean_for_pdf(f"Total Extras Awarded: {inn_data['extras']}"), ln=True)
-    if inn_data.get("penalty", 0) > 0:
-        pdf.cell(0, 8, clean_for_pdf(f"Administrative Penalty Runs: {inn_data['penalty']}"), ln=True)
-    pdf.ln(4)
-    
+    pdf.cell(0, 10, clean_for_pdf("APL 2026 - COMPREHENSIVE MATCH SCORECARD"), ln=True, align="C")
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, clean_for_pdf("Active Partnerships & Batters Status"), ln=True)
-    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, clean_for_pdf(f"Series Fixture: {m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs Match)"), ln=True, align="C")
+    pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
+    pdf.ln(6)
     
-    b1_name = inn_data.get('b1', {}).get('name', 'Opening Batter 1') or 'Opening Batter 1'
-    b2_name = inn_data.get('b2', {}).get('name', 'Opening Batter 2') or 'Opening Batter 2'
-    bowler_name = inn_data.get('bowler', {}).get('name', 'Active Bowler') or 'Active Bowler'
-    
-    s1 = " *On-Strike" if inn_data.get('b1', {}).get('strike', False) else ""
-    s2 = " *On-Strike" if inn_data.get('b2', {}).get('strike', False) else ""
-    
-    pdf.cell(0, 6, clean_for_pdf(f"- {b1_name}{s1}: {inn_data.get('b1', {}).get('runs', 0)} Runs scored from {inn_data.get('b1', {}).get('balls', 0)} balls"), ln=True)
-    pdf.cell(0, 6, clean_for_pdf(f"- {b2_name}{s2}: {inn_data.get('b2', {}).get('runs', 0)} Runs scored from {inn_data.get('b2', {}).get('balls', 0)} balls"), ln=True)
-    pdf.ln(4)
-    
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, clean_for_pdf("Active Bowler Analysis Profile"), ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, clean_for_pdf(f"- Bowler: {bowler_name} -> Wickets Taken: {inn_data.get('bowler', {}).get('wickets', 0)} | Conceded Runs: {inn_data.get('bowler', {}).get('runs', 0)}"), ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(0, 8, clean_for_pdf("Historical Over Ledger Progress Tracker"), ln=True)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(25, 6, "Over No.", 1)
-    pdf.cell(55, 6, "Bowler Assigned", 1)
-    pdf.cell(40, 6, "Score Progression", 1)
-    pdf.cell(70, 6, "Timeline Delivery History", 1, ln=True)
-    
-    pdf.set_font("Helvetica", "", 10)
-    for ov in inn_data.get("over_history", []):
-        pdf.cell(25, 6, clean_for_pdf(str(ov.get("Over", ""))), 1)
-        pdf.cell(55, 6, clean_for_pdf(str(ov.get("Bowler", ""))), 1)
-        pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
-        pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
+    # Loop over both Innings data points sequentially
+    for inn_idx in [1, 2]:
+        inn_key = f"innings_{inn_idx}"
+        inn_data = m[inn_key]
+        
+        # Determine team assignments for current scope
+        bat_team = m["team_1"] if inn_idx == 1 else m["team_2"]
+        bowl_team = m["team_2"] if inn_idx == 1 else m["team_1"]
+        
+        # Guard clause check if the innings has begun/configured yet
+        if inn_data["b1"]["name"] == "":
+            continue
+            
+        comp_ov = inn_data["balls"] // 6
+        rem_bl = inn_data["balls"] % 6
+        frac_ov = comp_ov + (rem_bl / 6)
+        crr = (inn_data["runs"] / frac_ov) if frac_ov > 0 else 0.0
+        
+        # Innings Header Frame Section
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(0, 8, clean_for_pdf(f"INNINGS #{inn_idx} REPORT: {bat_team.upper()} BATTING"), ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        
+        # Summary Grid
+        pdf.cell(95, 6, clean_for_pdf(f"Total Team Score: {inn_data['runs']}/{inn_data['wickets']} ({comp_ov}.{rem_bl} Overs Played)"), 0, 0)
+        pdf.cell(95, 6, clean_for_pdf(f"Current Run Rate (CRR): {crr:.2f}"), 0, 1)
+        pdf.cell(95, 6, clean_for_pdf(f"Legitimate Extras Conceded: {inn_data['extras']}"), 0, 0)
+        pdf.cell(95, 6, clean_for_pdf(f"Administrative Penalty Runs Additions: {inn_data.get('penalty', 0)}"), 0, 1)
+        pdf.ln(2)
+        
+        # Batting Partnerships Table Layout
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(75, 6, "Batsman Name Status", 1)
+        pdf.cell(30, 6, "Runs Scored", 1, 0, "C")
+        pdf.cell(30, 6, "Balls Faced", 1, 0, "C")
+        pdf.cell(25, 6, "Fours (4s)", 1, 0, "C")
+        pdf.cell(30, 6, "Sixes (6s)", 1, 1, "C")
+        
+        pdf.set_font("Helvetica", "", 9)
+        # 1. Striker / Non-Striker active
+        for b_key in ["b1", "b2"]:
+            b_data = inn_data[b_key]
+            if b_data["name"]:
+                strike_marker = " *" if b_data.get("strike", False) else ""
+                pdf.cell(75, 6, clean_for_pdf(f"{b_data['name']}{strike_marker} ({b_data.get('status', 'Active')})"), 1)
+                pdf.cell(30, 6, clean_for_pdf(str(b_data["runs"])), 1, 0, "C")
+                pdf.cell(30, 6, clean_for_pdf(str(b_data["balls"])), 1, 0, "C")
+                pdf.cell(25, 6, clean_for_pdf(str(b_data.get("fours", 0))), 1, 0, "C")
+                pdf.cell(30, 6, clean_for_pdf(str(b_data.get("sixes", 0))), 1, 1, "C")
+                
+        # 2. Historical Out Batters
+        for b_hist in inn_data.get("all_batsmen_history", []):
+            pdf.cell(75, 6, clean_for_pdf(f"{b_hist['name']} ({b_hist.get('status', 'Out')})"), 1)
+            pdf.cell(30, 6, clean_for_pdf(str(b_hist["runs"])), 1, 0, "C")
+            pdf.cell(30, 6, clean_for_pdf(str(b_hist["balls"])), 1, 0, "C")
+            pdf.cell(25, 6, clean_for_pdf(str(b_hist.get("fours", 0))), 1, 0, "C")
+            pdf.cell(30, 6, clean_for_pdf(str(b_hist.get("sixes", 0))), 1, 1, "C")
+            
+        pdf.ln(3)
+        
+        # Bowling Analysis Summary Table Layout
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(85, 6, f"Bowling Squad Analysis Profile ({bowl_team})", 1)
+        pdf.cell(35, 6, "Overs Bowled", 1, 0, "C")
+        pdf.cell(35, 6, "Runs Conceded", 1, 0, "C")
+        pdf.cell(35, 6, "Wickets Taken", 1, 1, "C")
+        
+        pdf.set_font("Helvetica", "", 9)
+        # Active Bowler
+        cw_bowler = inn_data["bowler"]
+        if cw_bowler["name"]:
+            b_ov = cw_bowler["balls"] // 6
+            b_bl = cw_bowler["balls"] % 6
+            pdf.cell(85, 6, clean_for_pdf(cw_bowler["name"] + " (Active)"), 1)
+            pdf.cell(35, 6, clean_for_pdf(f"{b_ov}.{b_bl}"), 1, 0, "C")
+            pdf.cell(35, 6, clean_for_pdf(str(cw_bowler["runs"])), 1, 0, "C")
+            pdf.cell(35, 6, clean_for_pdf(str(cw_bowler["wickets"])), 1, 1, "C")
+            
+        # Historical Bowlers
+        for bowl_h in inn_data.get("all_bowlers_history", []):
+            bh_ov = bowl_h["balls"] // 6
+            bh_bl = bowl_h["balls"] % 6
+            pdf.cell(85, 6, clean_for_pdf(bowl_h["name"]), 1)
+            pdf.cell(35, 6, clean_for_pdf(f"{bh_ov}.{bh_bl}"), 1, 0, "C")
+            pdf.cell(35, 6, clean_for_pdf(str(bowl_h["runs"])), 1, 0, "C")
+            pdf.cell(35, 6, clean_for_pdf(str(bowl_h["wickets"])), 1, 1, "C")
+            
+        pdf.ln(3)
+        
+        # Historical Over Ledger Progress Tracker Table
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(25, 6, "Over No.", 1)
+        pdf.cell(55, 6, "Bowler Assigned", 1)
+        pdf.cell(40, 6, "Score Progression", 1)
+        pdf.cell(70, 6, "Timeline Delivery History", 1, ln=True)
+        
+        pdf.set_font("Helvetica", "", 9)
+        for ov in inn_data.get("over_history", []):
+            pdf.cell(25, 6, clean_for_pdf(str(ov.get("Over", ""))), 1)
+            pdf.cell(55, 6, clean_for_pdf(str(ov.get("Bowler", ""))), 1)
+            pdf.cell(40, 6, clean_for_pdf(str(ov.get("Score", ""))), 1)
+            pdf.cell(70, 6, clean_for_pdf(str(ov.get("Timeline", ""))), 1, ln=True)
+            
+        pdf.ln(8)
         
     return bytes(pdf.output())
 
@@ -685,11 +755,12 @@ with tab_live:
             # --- EXPORT REGION ---
             st.markdown("---")
             try:
-                pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
+                # Triggers full dual-innings compiler engine context 
+                pdf_data_stream = generate_pdf_bytes(m_instance)
                 st.download_button(
-                    label="📥 Export Current Scorecard to PDF Document",
+                    label="📥 Export Complete Match Scorecard Report (Both Innings) to PDF",
                     data=pdf_data_stream,
-                    file_name=f"APL_Match_{str(m_instance['id'])}_Innings{str(m_instance['current_innings'])}.pdf",
+                    file_name=f"APL_Match_{str(m_instance['id'])}_FullScorecard.pdf",
                     mime="application/pdf",
                     use_container_width=True,
                     key="global_footer_pdf_export_btn"
