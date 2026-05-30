@@ -350,7 +350,7 @@ with tab_live:
             else:
                 st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
-            # Unified Mathematical Engine for Ball to Over conversions
+            # Mathematical Engine for ball to over display
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
             
@@ -437,7 +437,6 @@ with tab_live:
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
-                    # Unified Mathematical Input Engine
                     def submit_ball(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
@@ -471,14 +470,9 @@ with tab_live:
                                 inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                 inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 
-                            # Precise over calculation checks logic
+                            # Keep balls visible; wait for bowler rotation confirmation before resetting timeline bubble array
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
                             if len(legal_balls_in_over) == 6:
-                                inn_data["over_history"].append({
-                                    "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
-                                    "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
-                                })
-                                inn_data["this_over"] = []
                                 inn_data["awaiting_bowler"] = True
                                 if is_wicket and inn_data["wickets"] < 10:
                                     inn_data["awaiting_batsman"] = True
@@ -515,6 +509,12 @@ with tab_live:
                             with lock:
                                 if inn_data["bowler"]["name"] != "":
                                     inn_data["all_bowlers_history"].append(copy.deepcopy(inn_data["bowler"]))
+                                # Archive past over details perfectly before wiping active delivery tracking bubbles
+                                inn_data["over_history"].append({
+                                    "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
+                                    "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
+                                })
+                                inn_data["this_over"] = []
                                 inn_data["bowler"] = {"name": next_bw, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
                                 inn_data["awaiting_bowler"] = False
                             st.rerun()
