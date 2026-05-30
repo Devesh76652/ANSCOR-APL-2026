@@ -78,8 +78,6 @@ TEAM_DB = {
     }
 }
 
-MAIN_LOGOS = {"local": "le.mat.jpeg", "remote": GITHUB_RAW_BASE + "le.mat.jpeg"}
-
 def get_image_src(local_path, remote_url=""):
     if isinstance(local_path, list):
         local_path = local_path[0] if len(local_path) > 0 else ""
@@ -300,15 +298,7 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# Top Header Banner Logo Integration Only
-main_logo_src = get_image_src(MAIN_LOGOS["local"], MAIN_LOGOS["remote"])
-st.markdown(f"""
-    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px; padding-top:10px;">
-        <img src="{main_logo_src}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    </div>
-""", unsafe_allow_html=True)
-
-# App Navigation Layout Configuration
+# App Navigation Layout Configuration (Top Banner Logo Completely Removed)
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
 # ================= TAB: TEAM PROFILE REVIEWS =================
@@ -478,7 +468,7 @@ with tab_live:
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
-                    # Bulletproof delivery counter execution logic
+                    # Delivery counter execution logic
                     def submit_ball(runs_inc, extra_inc=0, is_legal=True, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
