@@ -621,7 +621,7 @@ with tab_live:
                     else:
                         st.success("🏁 Innings complete.")
 
-                    # --- ADDED: EXTRA RUNS & PENALTY DIRECT PANELS ---
+                    # --- EXPANDER PANEL: EXTRA RUNS & PENALTY DIRECT ADDITIONS ---
                     st.write("")
                     with st.expander("⚖️ Administrative Extra Runs & Penalty Additions", expanded=False):
                         adj_col1, adj_col2 = st.columns([2, 1])
@@ -683,3 +683,44 @@ with tab_live:
                     st.caption("No archived records.")
 
             # --- EXPORT REGION ---
+            st.markdown("---")
+            try:
+                pdf_data_stream = generate_pdf_bytes(m_instance, inn_data, bat_team, bowl_team, crr)
+                st.download_button(
+                    label="📥 Export Current Scorecard to PDF Document",
+                    data=pdf_data_stream,
+                    file_name=f"APL_Match_{str(m_instance['id'])}_Innings{str(m_instance['current_innings'])}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="global_footer_pdf_export_btn"
+                )
+            except Exception as pdf_error:
+                st.error(f"Error compiling PDF Document content parameters: {str(pdf_error)}")
+
+# ================= TAB: TOURNAMENT REVIEW LEDGER =================
+with tab_review:
+    st.markdown("### Match Outcome Review Ledgers")
+    if not db_global["matches"]:
+        st.caption("No historical logs recorded within active engine instances.")
+    else:
+        select_review_id = st.selectbox("Select Match Profile Key to Audit:", list(db_global["matches"].keys()))
+        m_rev = ensure_match_keys(db_global["matches"][select_review_id])
+        
+        st.markdown(f"## Match Record: {m_rev['id']}")
+        st.info(f"📋 Lineup Setup: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
+        
+        d1 = m_rev["innings_1"]
+        d2 = m_rev["innings_2"]
+        
+        match_outcome = get_match_result(m_rev)
+        st.success(f"🏆 Final Result Summary: {match_outcome}")
+        
+        rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
+        with rev_i1:
+            st.metric(f"Total Innings 1 Score ({m_rev['team_1']})", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
+            if d1["over_history"]: st.table(pd.DataFrame(d1["over_history"]))
+            else: st.caption("No historical timelines stored for this inning.")
+        with rev_i2:
+            st.metric(f"Total Innings 2 Score ({m_rev['team_2']})", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
+            if d2["over_history"]: st.table(pd.DataFrame(d2["over_history"]))
+            else: st.caption("No historical timelines stored for this inning.")
