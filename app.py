@@ -13,7 +13,7 @@ except ImportError:
     st.error("Please ensure 'streamlit-autorefresh' is added to your requirements.txt file!")
 
 # Page Configuration
-st.set_page_config(page_title="ANSCOR APL 2026", page_icon="🏏", layout="wide")
+st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide")
 
 # Raw GitHub repository directory path configuration
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
@@ -108,7 +108,7 @@ def smart_load_image(local_path, remote_url, width=None, use_container=True):
     except: pass
     return False
 
-# Updated CSS with Clean Typography, borders, and unified styling
+# Custom CSS Stylesheet Config
 st.markdown("""
     <style>
     .block-container { padding: 0.5rem 1rem !important; max-width: 100% !important; }
@@ -123,8 +123,8 @@ st.markdown("""
     }
     .mobile-card { background-color: #1E293B; border: 1px solid #334155; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
     .ball-bubble {
-        display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
-        border-radius: 50%; margin: 2px; font-weight: 800; font-size: 0.85rem;
+        display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+        border-radius: 50%; margin: 3px; font-weight: 800; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);
     }
     .team-block-container { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; }
     div[data-testid="stMetric"] { background-color: #1E293B; padding: 10px; border-radius: 8px; border: 1px solid #334155; }
@@ -213,10 +213,7 @@ def get_pdf_bytes(pdf):
         return bytes(pdf_str)
     except Exception:
         pass
-    try:
-        return bytes(pdf.output())
-    except Exception:
-        return b""
+    return b""
 
 def get_match_result(m):
     m = ensure_match_keys(m)
@@ -288,7 +285,7 @@ def show_squad_popup(team_name):
     with cols[1]:
         for p in squad_members[mid:]: st.markdown(f"• {p}")
 
-# --- SECURITY PROFILE SETTINGS ---
+# --- SECURITY SYSTEM CONTROL ---
 st.sidebar.markdown("### 🔑 Live System Portal")
 user_role = st.sidebar.radio("Your Access Profile:", ["📢 Player View (Live Auto-Sync)", "⚡ Scorer Panel (Admin Mode)"])
 
@@ -303,21 +300,18 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     st_autorefresh(interval=3000, key="broadcast_pulse")
 
-# Branding Header Banner
+# Top Header Banner Logo Integration Only
 main_logo_src = get_image_src(MAIN_LOGOS["local"], MAIN_LOGOS["remote"])
 st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; padding-top:4px;">
-        <img src="{main_logo_src}" style="width: 55px; height: 55px; object-fit: contain; border-radius: 8px;">
-        <div>
-            <h3 style='color: #FFFFFF; font-size: 1.8rem; font-weight: 900; letter-spacing: 1px; margin: 0;'>ANSCOR APL 2026</h3>
-            <p style='color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin: 1px 0 0 0;'>Corporate Tournament Broadcast Portal</p>
-        </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px; padding-top:10px;">
+        <img src="{main_logo_src}" style="width: 75px; height: 75px; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     </div>
 """, unsafe_allow_html=True)
 
+# App Navigation Layout Configuration
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
-# ================= TAB: TEAM DIRECTORIES =================
+# ================= TAB: TEAM PROFILE REVIEWS =================
 with tab_teams:
     st.markdown("### Tournament Roster Groups")
     t_cols = st.columns(3)
@@ -325,11 +319,12 @@ with tab_teams:
         with t_cols[idx % 3]:
             st.markdown('<div class="team-block-container">', unsafe_allow_html=True)
             smart_load_image(TEAM_DB[t_name]["local"], TEAM_DB[t_name]["remote"], use_container=True)
+            st.markdown(f"#### {t_name}")
             if st.button(f"View Squad Roster", key=f"squad_popup_key_{idx}", use_container_width=True):
                 show_squad_popup(t_name)
             st.markdown('</div>', unsafe_allow_html=True)
 
-# ================= TAB: LIVE SCORES ENGINE =================
+# ================= TAB: LIVE CONSOLE ENGINE =================
 with tab_live:
     if is_admin:
         with st.expander("🛠  Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
@@ -368,7 +363,6 @@ with tab_live:
                             st.success("Match flipped cleanly over to Innings 2!")
                             st.rerun()
 
-    # Scoreboard Live Session Focus Check
     if not db_global["active_match_id"] or db_global["active_match_id"] not in db_global["matches"]:
         st.info("⏳ Waiting for active tournament score tracking initiation across layers...")
     else:
@@ -409,8 +403,7 @@ with tab_live:
                 
             status_tag = "FINISHED" if innings_ended else "LIVE"
 
-            # ================= CRITICAL LAYOUT REDESIGN =================
-            # Left side handles scoreboard layout, Right handles metrics + input grid side-by-side
+            # Horizontal Side-by-Side Dual-Column Adaptive Presentation
             l_col, r_col = st.columns([1.1, 0.9])
             
             with l_col:
@@ -430,49 +423,39 @@ with tab_live:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Fixed clean layout component container replacing bad HTML representation layout
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status_tag}</span>
-                        <h4 style="margin:0; font-weight:700;">🏏 {bat_team} vs 🥎 {bowl_team}</h4>
+                        <h4 style="margin:0; font-weight:700;">🏏 {bat_team} vs {bowl_team}</h4>
                         <h1 style="font-size:3.5rem; margin:5px 0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
                         <h5 style="margin:0;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Dynamic targets indicators
                 if target_score:
                     st.warning(f"🎯 Target Chase: {target_score} (Needs {target_score - inn_data['runs']} runs off {(m_instance['total_overs']*6) - inn_data['balls']} balls)")
 
-                # Modern metrics grid
                 m_c1, m_c2 = st.columns(2)
                 m_c1.metric("Extras Granted", f"{inn_data['extras']}")
                 m_c2.metric("Current Run Rate (CRR)", f"{crr:.2f}")
 
-                # Live Timeline Trackers
                 st.markdown("##### 📦 Over Timeline Tracker")
                 if inn_data["this_over"]:
-                    html_b = "".join([f'<span class="ball-bubble" style="background-color:{"#10B981" if str(b) in ["4","6"] else ("#EF4444" if "W" in str(b) else "#475569")}; color:white;">{b}</span>' for b in inn_data["this_over"]])
+                    html_b = ""
+                    for b in inn_data["this_over"]:
+                        bg_color = "#475569"
+                        if str(b) in ["4", "6"]: bg_color = "#10B981"
+                        elif "W" in str(b): bg_color = "#EF4444"
+                        elif b in ["WD", "NB"]: bg_color = "#D97706"
+                        html_b += f'<span class="ball-bubble" style="background-color:{bg_color}; color:white;">{b}</span>'
                     st.markdown(html_b, unsafe_allow_html=True)
                 else: 
                     st.caption("Waiting for delivery logs...")
                 
-                # Status Box Display Outcome Summary
                 match_outcome = get_match_result(m_instance)
                 st.info(f"📢 Status: {match_outcome}")
 
-                # Manual custom extras adjustments row
-                st.markdown("---")
-                with st.expander("⚙️ Inject Manual Custom Extras / Overthrows", expanded=False):
-                    ex_type = st.selectbox("Category Variant:", ["Leg Byes / Byes", "Penalty Extras", "Overthrow Bound Runs"])
-                    ex_count = st.number_input("Total custom runs count:", min_value=1, max_value=10, value=1)
-                    ball_impact_legal = st.radio("Consume delivery count?", ["No", "Yes"], horizontal=True)
-                    if st.button("Inject Extras Into Dashboard", use_container_width=True):
-                        # Global logic placeholder inject call
-                        st.success("Custom extras snapshot injected.")
-
             with r_col:
-                # Active scoreboard context overview row
                 st.markdown(f"""
                     <div class="mobile-card">
                         <div style="font-size:0.75rem; color:#94A3B8;"><b>🏏 BATTING PARTNERSHIP</b></div>
@@ -492,10 +475,10 @@ with tab_live:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # ================= SCORING CONTROL PANEL SHIFTED UP ABOVE THE FOLD =================
                 if is_admin:
                     st.markdown("### 🎛️ Scoring Input Controls")
                     
+                    # Bulletproof delivery counter execution logic
                     def submit_ball(runs_inc, extra_inc=0, is_legal=True, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
@@ -521,14 +504,13 @@ with tab_live:
                             else:
                                 inn_data["this_over"].append(symbol)
                                 
-                            if is_legal and (runs_inc % 2 != 0):
+                            if is_legal and (runs_inc % 2 != 0) and symbol != "W":
                                 inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                 inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 
+                            # Over Completion validation logic (Exactly 6 valid deliveries)
                             legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
                             if len(legal_balls_in_over) == 6:
-                                runs_in_ov = sum([b for b in inn_data["this_over"] if isinstance(b, int)])
-                                if runs_in_ov == 0: inn_data["bowler"]["maidens"] += 1
                                 inn_data["over_history"].append({
                                     "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
                                     "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
@@ -563,15 +545,8 @@ with tab_live:
                         next_bw = st.selectbox("Select Next Bowler Rotation:", bowl_squad, key="inline_select_new_bowler")
                         if st.button("Confirm Bowler Rotation & Open Next Over", type="primary", use_container_width=True):
                             with lock:
-                                past_b = next((b for b in inn_data["all_bowlers_history"] if b["name"] == inn_data["bowler"]["name"]), None)
-                                if past_b:
-                                    past_b["runs"] += inn_data["bowler"]["runs"]
-                                    past_b["wickets"] += inn_data["bowler"]["wickets"]
-                                    past_b["balls"] += inn_data["bowler"]["balls"]
-                                    past_b["maidens"] += inn_data["bowler"]["maidens"]
-                                else:
-                                    if inn_data["bowler"]["name"] != "":
-                                        inn_data["all_bowlers_history"].append(copy.deepcopy(inn_data["bowler"]))
+                                if inn_data["bowler"]["name"] != "":
+                                    inn_data["all_bowlers_history"].append(copy.deepcopy(inn_data["bowler"]))
                                 inn_data["bowler"] = {"name": next_bw, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
                                 inn_data["awaiting_bowler"] = False
                             st.rerun()
@@ -604,13 +579,24 @@ with tab_live:
                                 inn_data["balls"] += 1
                                 inn_data["bowler"]["wickets"] += 1
                                 inn_data["this_over"].append("W")
-                                if inn_data["wickets"] < 10 and (inn_data["balls"] < m_instance["total_overs"] * 6):
-                                    inn_data["awaiting_batsman"] = True
+                                
+                                legal_balls_in_over = [b for b in inn_data["this_over"] if b not in ['WD', 'NB']]
+                                if len(legal_balls_in_over) == 6:
+                                    inn_data["over_history"].append({
+                                        "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
+                                        "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
+                                    })
+                                    inn_data["this_over"] = []
+                                    if inn_data["wickets"] < 10:
+                                        inn_data["awaiting_bowler"] = True
+                                        inn_data["awaiting_batsman"] = True
+                                else:
+                                    if inn_data["wickets"] < 10:
+                                        inn_data["awaiting_batsman"] = True
                             st.rerun()
                     else:
                         st.success("🏁 Innings complete.")
 
-                    # Utility operational system bar row
                     st.write("")
                     col_undo, col_swap = st.columns(2)
                     with col_undo:
@@ -639,68 +625,30 @@ with tab_live:
                 else: 
                     st.caption("No archived records.")
 
-                # ================= REPORT GENERATION ENGINE =================
-                def generate_full_pdf_report():
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Helvetica", "B", 18)
-                    pdf.set_text_color(30, 58, 138)
-                    pdf.cell(0, 12, "ANSCOR APL 2026 OFFICIAL MATCH REPORT", ln=1, align="C")
-                    pdf.ln(4)
-                    
-                    pdf.set_font("Helvetica", "B", 11)
-                    pdf.set_text_color(220, 38, 38)
-                    pdf.cell(0, 8, sanitize_for_pdf(f" MATCH RESULT: {get_match_result(m_instance).upper()}"), ln=1, align="C")
-                    pdf.ln(4)
-                    
-                    d1 = ensure_innings_keys(m_instance["innings_1"])
-                    pdf.set_font("Helvetica", "B", 12)
-                    pdf.cell(0, 10, sanitize_for_pdf(f" INNINGS 1: {m_instance['team_1'].upper()}"), ln=1, fill=True)
-                    
-                    pdf.set_font("Helvetica", "", 10)
-                    pdf.cell(95, 7, f"Total Innings Runs: {d1['runs']} / {d1['wickets']}", ln=0)
-                    pdf.cell(95, 7, f"Overs Completed: {d1['balls'] // 6}.{d1['balls'] % 6}", ln=1)
-                    
-                    return get_pdf_bytes(pdf)
-
-                try:
-                    pdf_data = generate_full_pdf_report()
-                except:
-                    pdf_data = b""
-
-                if pdf_data:
-                    st.download_button(
-                        label="📥 Export Report as PDF", 
-                        data=pdf_data, 
-                        file_name=f"APL_Scorecard_{db_global['active_match_id']}.pdf", 
-                        mime="application/pdf", 
-                        use_container_width=True
-                    )
-
-# ================= TAB: HISTORICAL ARCHIVE MUTLI-MATCH AUDIT =================
+# ================= TAB: TOURNAMENT REVIEW LEDGER =================
 with tab_review:
-    st.markdown("### Match Archive Ledgers")
+    st.markdown("### Match Outcome Review Ledgers")
     if not db_global["matches"]:
         st.caption("No historical logs recorded within active engine instances.")
     else:
-        select_review_id = st.selectbox("Select Historical Match Profile Key to Audit:", list(db_global["matches"].keys()))
+        select_review_id = st.selectbox("Select Match Profile Key to Audit:", list(db_global["matches"].keys()))
         m_rev = ensure_match_keys(db_global["matches"][select_review_id])
         
-        st.markdown(f"## Record Verification Summary: {m_rev['id']}")
-        st.info(f"Configuration Blueprint Frame Structure: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
+        st.markdown(f"## Match Record: {m_rev['id']}")
+        st.info(f"📋 Lineup Setup: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
         
         d1 = m_rev["innings_1"]
         d2 = m_rev["innings_2"]
         
         match_outcome = get_match_result(m_rev)
-        st.success(f"Outcome Summary: {match_outcome}")
+        st.success(f"🏆 Final Result Summary: {match_outcome}")
         
         rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
         with rev_i1:
-            st.metric(f"Total Innings 1 Score for {m_rev['team_1']}", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
+            st.metric(f"Total Innings 1 Score ({m_rev['team_1']})", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
             if d1["over_history"]: st.table(pd.DataFrame(d1["over_history"]))
-            else: st.caption("No historical timelines stored.")
+            else: st.caption("No historical timelines stored for this inning.")
         with rev_i2:
-            st.metric(f"Total Innings 2 Score for {m_rev['team_2']}", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
+            st.metric(f"Total Innings 2 Score ({m_rev['team_2']})", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
             if d2["over_history"]: st.table(pd.DataFrame(d2["over_history"]))
-            else: st.caption("No historical timelines stored.")
+            else: st.caption("No historical timelines stored for this inning.")
