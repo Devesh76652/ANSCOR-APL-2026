@@ -135,13 +135,12 @@ st.markdown("""
         background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
     }
     
-    /* Enhanced Score Box */
-    .score-box {
+    /* Enhanced Score Box with Logo Integration */
+    .score-box-enhanced {
         background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);
         color: white;
-        padding: 25px;
+        padding: 20px;
         border-radius: 20px;
-        text-align: center;
         margin-bottom: 20px;
         border: 2px solid rgba(59,130,246,0.5);
         position: relative;
@@ -150,8 +149,91 @@ st.markdown("""
         transition: transform 0.3s ease;
     }
     
-    .score-box:hover {
+    .score-box-enhanced:hover {
         transform: translateY(-5px);
+    }
+    
+    /* Team Header with Logos */
+    .team-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 0 10px;
+    }
+    
+    .team-logo-container {
+        text-align: center;
+        flex: 1;
+    }
+    
+    .team-logo {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 50%;
+        border: 3px solid #3B82F6;
+        padding: 5px;
+        background: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    
+    .team-logo:hover {
+        transform: scale(1.05);
+    }
+    
+    .team-name {
+        margin-top: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #F1F5F9;
+    }
+    
+    .vs-divider {
+        font-size: 1.8rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #F59E0B, #EF4444);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 20px;
+    }
+    
+    .tournament-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        margin: 0 20px;
+    }
+    
+    /* Score Display */
+    .score-display {
+        text-align: center;
+        margin: 15px 0;
+    }
+    
+    .score-number {
+        font-size: 4rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #F1F5F9, #94A3B8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: 2px;
+    }
+    
+    .overs-info {
+        color: #93C5FD;
+        font-size: 1rem;
+        margin-top: 5px;
+    }
+    
+    .crr-info {
+        color: #34D399;
+        font-weight: 800;
+        font-size: 1.1rem;
+        margin-top: 8px;
     }
     
     /* Status Badge */
@@ -326,13 +408,27 @@ st.markdown("""
         border-left: 4px solid;
     }
     
-    /* Headers */
-    h1, h2, h3, h4, h5, h6 {
-        background: linear-gradient(135deg, #F1F5F9, #94A3B8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-weight: 700;
+    /* Target Chase Box */
+    .target-chase {
+        background: linear-gradient(135deg, #1E293B, #0F172A);
+        border-left: 4px solid #F59E0B;
+        padding: 12px;
+        border-radius: 12px;
+        margin: 10px 0;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .team-logo {
+            width: 50px;
+            height: 50px;
+        }
+        .vs-divider {
+            font-size: 1.2rem;
+        }
+        .score-number {
+            font-size: 2.5rem;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -908,59 +1004,61 @@ with tab_live:
                 
             status_tag = "FINISHED" if innings_ended else "LIVE"
 
+            # Get team logos
+            b_local = TEAM_DB[bat_team]["local"] if bat_team in TEAM_DB else ""
+            b_remote = TEAM_DB[bat_team]["remote"] if bat_team in TEAM_DB else ""
+            f_local = TEAM_DB[bowl_team]["local"] if bowl_team in TEAM_DB else ""
+            f_remote = TEAM_DB[bowl_team]["remote"] if bowl_team in TEAM_DB else ""
+            
+            b_logo_src = get_image_src(b_local, b_remote)
+            f_logo_src = get_image_src(f_local, f_remote)
+            t_logo_src = get_tournament_logo_src()
+
+            # Enhanced Score Display with Logos
+            st.markdown(f"""
+                <div class="score-box-enhanced">
+                    <span class="status-badge">{status_tag}</span>
+                    <div class="team-header">
+                        <div class="team-logo-container">
+                            <img src="{b_logo_src}" class="team-logo" alt="{bat_team}">
+                            <div class="team-name">{bat_team}</div>
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="team-logo-container">
+                            <img src="{f_logo_src}" class="team-logo" alt="{bowl_team}">
+                            <div class="team-name">{bowl_team}</div>
+                        </div>
+                    </div>
+                    <div class="score-display">
+                        <div class="score-number">{inn_data['runs']} - {inn_data['wickets']}</div>
+                        <div class="overs-info">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</div>
+                        <div class="crr-info">Current Run Rate (CRR): {crr:.2f}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            if target_score:
+                runs_needed = target_score - inn_data['runs']
+                balls_left = (m_instance['total_overs']*6) - inn_data['balls']
+                required_rate = (runs_needed / (balls_left/6)) if balls_left > 0 else 0
+                st.markdown(f"""
+                    <div class="target-chase">
+                        <div style="font-weight: 700; color: #F59E0B;">🎯 TARGET CHASE</div>
+                        <div>Need <b>{runs_needed}</b> runs from <b>{balls_left}</b> balls</div>
+                        <div>Required Run Rate: <b>{required_rate:.2f}</b> runs/over</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Metrics Row
+            m_c1, m_c2, m_c3 = st.columns(3)
+            m_c1.metric("Extras", f"{inn_data['extras'] + inn_data.get('penalty', 0)}")
+            m_c2.metric("Partnership", f"{inn_data['b1']['runs'] + inn_data['b2']['runs']}")
+            m_c3.metric("CRR", f"{crr:.2f}")
+
+            # Main Content Columns
             l_col, r_col = st.columns([1.1, 0.9])
             
             with l_col:
-                b_local = TEAM_DB[bat_team]["local"] if bat_team in TEAM_DB else ""
-                b_remote = TEAM_DB[bat_team]["remote"] if bat_team in TEAM_DB else ""
-                f_local = TEAM_DB[bowl_team]["local"] if bowl_team in TEAM_DB else ""
-                f_remote = TEAM_DB[bowl_team]["remote"] if bowl_team in TEAM_DB else ""
-                
-                b_logo_src = get_image_src(b_local, b_remote)
-                f_logo_src = get_image_src(f_local, f_remote)
-                t_logo_src = get_tournament_logo_src()
-                
-                st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 25px; margin-bottom: 20px; width: 100%;">
-                        <div style="text-align: center;">
-                            <img src="{b_logo_src}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; border: 3px solid #3B82F6; padding: 5px;">
-                            <div style="margin-top: 8px; font-weight: 600; color: #F1F5F9;">{bat_team}</div>
-                        </div>
-                        {"<div style='text-align: center;'><div style='font-size: 1.5rem; font-weight: 800; color: #3B82F6;'>VS</div></div>" if not t_logo_src else f"<div style='text-align: center;'><img src='{t_logo_src}' style='width: 70px; height: 70px; object-fit: contain;'></div>"}
-                        <div style="text-align: center;">
-                            <img src="{f_logo_src}" style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; border: 3px solid #3B82F6; padding: 5px;">
-                            <div style="margin-top: 8px; font-weight: 600; color: #F1F5F9;">{bowl_team}</div>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(f"""
-                    <div class="score-box">
-                        <span class="status-badge">{status_tag}</span>
-                        <h4 style="margin:0; font-weight:700; color: #F1F5F9;">{bat_team} vs {bowl_team}</h4>
-                        <h1 style="font-size:4rem; margin:10px 0; background: linear-gradient(135deg, #F1F5F9, #94A3B8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">{inn_data['runs']} - {inn_data['wickets']}</h1>
-                        <h5 style="margin:0; color:#93C5FD;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
-                        <h5 style="margin:6px 0 0 0; font-weight:800; color:#34D399;">Current Run Rate (CRR): {crr:.2f}</h5>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                if target_score:
-                    runs_needed = target_score - inn_data['runs']
-                    balls_left = (m_instance['total_overs']*6) - inn_data['balls']
-                    required_rate = (runs_needed / (balls_left/6)) if balls_left > 0 else 0
-                    st.markdown(f"""
-                        <div style="background: linear-gradient(135deg, #1E293B, #0F172A); border-left: 4px solid #F59E0B; padding: 12px; border-radius: 12px; margin: 10px 0;">
-                            <div style="font-weight: 700; color: #F59E0B;">🎯 TARGET CHASE</div>
-                            <div>Need <b>{runs_needed}</b> runs from <b>{balls_left}</b> balls</div>
-                            <div>Required Run Rate: <b>{required_rate:.2f}</b> runs/over</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                m_c1, m_c2, m_c3 = st.columns(3)
-                m_c1.metric("Extras", f"{inn_data['extras'] + inn_data.get('penalty', 0)}")
-                m_c2.metric("Partnership", f"{inn_data['b1']['runs'] + inn_data['b2']['runs']}")
-                m_c3.metric("CRR", f"{crr:.2f}")
-
                 st.markdown("##### 📦 Over Timeline Tracker")
                 if inn_data["this_over"]:
                     html_b = ""
