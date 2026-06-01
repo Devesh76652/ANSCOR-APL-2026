@@ -10,6 +10,7 @@ from datetime import datetime
 import json
 from typing import TypedDict
 import traceback
+import io
 
 # Constants
 BALLS_PER_OVER = 6
@@ -19,7 +20,7 @@ ADMIN_PASSWORD = "anscor2026"
 
 # Page Configuration - MUST be first Streamlit command
 st.set_page_config(
-    page_title="APL 2026 - Advanced Cricket Scoring System",
+    page_title="APL 2026 - Cricket Scoring System",
     page_icon="🏏",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -101,81 +102,233 @@ DISMISSAL_TYPES = [
     "Hit Wicket", "Obstructing Field", "Retired Hurt"
 ]
 
-# Enhanced Custom CSS
+# Dark Theme CSS - Fixed background
 st.markdown("""
     <style>
-    /* Main container */
+    /* Main container - Dark background */
+    .stApp {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
     .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: transparent;
     }
     
     .block-container {
         padding: 1rem 2rem !important;
-        max-width: 100% !important;
-        background: rgba(255, 255, 255, 0.95);
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+        background: rgba(26, 26, 46, 0.95);
         border-radius: 20px;
-        margin: 1rem;
+        backdrop-filter: blur(10px);
     }
     
     /* Score card styling */
     .score-box {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
         color: white;
-        padding: 25px;
-        border-radius: 20px;
+        padding: 20px;
+        border-radius: 15px;
         text-align: center;
         margin-bottom: 20px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        border: none;
+        border: 1px solid #e94560;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         position: relative;
-        overflow: hidden;
-    }
-    
-    .score-box::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: shimmer 3s infinite;
-    }
-    
-    @keyframes shimmer {
-        0% { transform: translate(-50%, -50%) rotate(0deg); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
     
     .score-box h1 {
-        font-size: 4rem !important;
+        font-size: 3rem !important;
         margin: 10px 0;
         font-weight: 800;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        color: #e94560;
+    }
+    
+    .score-box h2 {
+        font-size: 1.2rem !important;
+        margin: 5px 0;
+        color: #fff;
+    }
+    
+    .score-box h3, .score-box h4 {
+        font-size: 0.9rem !important;
+        margin: 5px 0;
+        color: #a0a0a0;
     }
     
     .status-badge {
         position: absolute;
-        top: 15px;
-        right: 20px;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        top: 10px;
+        right: 15px;
+        background: #e94560;
         color: white;
-        padding: 5px 15px;
+        padding: 3px 12px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         font-weight: bold;
-        letter-spacing: 1px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
     
     /* Mobile card styling */
     .mobile-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 15px;
-        padding: 20px;
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+        border-radius: 12px;
+        padding: 15px;
         margin-bottom: 20px;
         color: white;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        border: 1px solid #e94560;
+    }
+    
+    .mobile-card h3 {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        color: #e94560;
+    }
+    
+    /* Team card styling */
+    .team-card {
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 15px;
+        border: 1px solid #e94560;
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    
+    .team-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(233,69,96,0.3);
+    }
+    
+    .team-card h3 {
+        color: #e94560;
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #e94560 0%, #c62a4a 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(233,69,96,0.4);
+    }
+    
+    /* Metric styling */
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #e94560;
+    }
+    
+    div[data-testid="stMetric"] label {
+        color: #a0a0a0 !important;
+        font-size: 0.8rem !important;
+    }
+    
+    div[data-testid="stMetric"] div {
+        color: #e94560 !important;
+        font-size: 1.3rem !important;
+        font-weight: bold !important;
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: #0f3460;
+        padding: 8px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: white;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: #e94560 !important;
+        color: white !important;
+    }
+    
+    /* Dataframe styling */
+    .stDataFrame {
+        background: #0f3460;
+        border-radius: 10px;
+        border: 1px solid #e94560;
+    }
+    
+    .stDataFrame table {
+        color: white;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: #0f3460;
+        border-radius: 8px;
+        color: white;
+        font-size: 0.9rem;
+    }
+    
+    /* Selectbox styling */
+    .stSelectbox div {
+        background: #0f3460;
+        color: white;
+    }
+    
+    .stSelectbox label {
+        color: #a0a0a0 !important;
+    }
+    
+    /* Text input styling */
+    .stTextInput input {
+        background: #0f3460;
+        color: white;
+        border: 1px solid #e94560;
+    }
+    
+    .stTextInput label {
+        color: #a0a0a0 !important;
+    }
+    
+    /* Number input styling */
+    .stNumberInput input {
+        background: #0f3460;
+        color: white;
+        border: 1px solid #e94560;
+    }
+    
+    /* Info/Warning/Success boxes */
+    .stAlert {
+        border-radius: 8px;
+        font-size: 0.85rem;
+        padding: 8px;
+        background: #0f3460;
+        border-left: 4px solid #e94560;
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+        border-right: 1px solid #e94560;
+    }
+    
+    [data-testid="stSidebar"] .stMarkdown {
+        color: white;
     }
     
     /* Ball bubble styling */
@@ -183,108 +336,40 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
-        margin: 5px;
+        margin: 3px;
         font-weight: bold;
-        font-size: 1.1rem;
-        transition: transform 0.2s;
-        cursor: pointer;
+        font-size: 0.9rem;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     
-    .ball-bubble:hover {
-        transform: scale(1.1);
-    }
-    
-    /* Team card styling */
-    .team-card {
-        background: white;
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        transition: transform 0.3s, box-shadow 0.3s;
-        cursor: pointer;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        margin-bottom: 15px;
-    }
-    
-    .team-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    /* Button styling */
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-weight: bold;
-        transition: all 0.3s;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    
-    /* Metric styling */
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 20px;
-        background: rgba(255,255,255,0.9);
-        padding: 10px;
-        border-radius: 15px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-weight: bold;
-    }
-    
-    /* Responsive design */
+    /* Responsive */
     @media (max-width: 768px) {
         .block-container {
             padding: 0.5rem !important;
-            margin: 0.5rem;
         }
         
         .score-box h1 {
-            font-size: 2.5rem !important;
+            font-size: 2rem !important;
         }
         
         .ball-bubble {
-            width: 35px;
-            height: 35px;
-            font-size: 0.9rem;
+            width: 32px;
+            height: 32px;
+            font-size: 0.75rem;
         }
         
-        .stTabs [data-baseweb="tab"] {
-            padding: 5px 10px;
-            font-size: 0.9rem;
+        .stButton > button {
+            padding: 4px 8px;
+            font-size: 0.7rem;
         }
     }
     
-    /* Animation for updates */
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.7; }
-        100% { opacity: 1; }
-    }
-    
-    .update-animation {
-        animation: pulse 0.5s ease-in-out;
+    hr {
+        margin: 15px 0;
+        border-color: #e94560;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -510,7 +595,7 @@ def safe_display_image(image_path: str, fallback_text: str = "🏏"):
         st.markdown(f"<div style='font-size: 3rem; text-align: center;'>{fallback_text}</div>", unsafe_allow_html=True)
 
 def generate_pdf_bytes(m: MatchData) -> bytes:
-    """Generate comprehensive match PDF report"""
+    """Generate comprehensive match PDF report - FIXED VERSION"""
     try:
         m = ensure_match_keys(m)
         pdf = FPDF()
@@ -518,38 +603,33 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         
         # Header
         pdf.set_font("Helvetica", "B", 20)
-        pdf.cell(0, 15, clean_for_pdf("APL 2026"), ln=True, align="C")
-        pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(0, 10, clean_for_pdf("COMPLETE MATCH SCORECARD"), ln=True, align="C")
+        pdf.cell(0, 15, "APL 2026 - MATCH SCORECARD", ln=True, align="C")
         pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(0, 8, clean_for_pdf(f"{m['team_1']} vs {m['team_2']}"), ln=True, align="C")
+        pdf.cell(0, 8, f"{m['team_1']} vs {m['team_2']}", ln=True, align="C")
         pdf.set_font("Helvetica", "", 10)
-        pdf.cell(0, 6, clean_for_pdf(f"Match ID: {m['id']} | Overs: {m['total_overs']} | Date: {m.get('created_at', 'N/A')[:10]}"), ln=True, align="C")
+        pdf.cell(0, 6, f"Match: {m['id']} | Overs: {m['total_overs']}", ln=True, align="C")
         pdf.ln(5)
         
         # Result
         match_outcome = get_match_result(m)
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.set_text_color(16, 185, 129)
-        pdf.cell(0, 8, clean_for_pdf(f"RESULT: {match_outcome}"), ln=True, align="C")
-        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(0, 8, match_outcome, ln=True, align="C")
         pdf.ln(5)
         
         # Innings 1
         d1 = m["innings_1"]
         if d1["b1"]["name"]:
-            pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 1: {m['team_1']} BATTING"), ln=True)
-            pdf.set_font("Helvetica", "", 10)
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 8, f"INNINGS 1: {m['team_1']}", ln=True)
+            pdf.set_font("Helvetica", "", 9)
             
             comp_ov = d1["balls"] // BALLS_PER_OVER
             rem_bl = d1["balls"] % BALLS_PER_OVER
             
-            pdf.cell(0, 6, clean_for_pdf(f"Score: {d1['runs']}/{d1['wickets']} ({comp_ov}.{rem_bl} overs)"), ln=True)
-            pdf.cell(0, 6, clean_for_pdf(f"Extras: {d1['extras']} | Penalties: {d1.get('penalty', 0)}"), ln=True)
+            pdf.cell(0, 6, f"Score: {d1['runs']}/{d1['wickets']} ({comp_ov}.{rem_bl} overs)", ln=True)
             pdf.ln(4)
             
-            # Simple batting list
+            # Batting list
             pdf.set_font("Helvetica", "B", 9)
             pdf.cell(70, 6, "Batsman", 1)
             pdf.cell(25, 6, "Runs", 1, 0, "C")
@@ -559,10 +639,10 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
             pdf.set_font("Helvetica", "", 8)
             for b in [d1["b1"], d1["b2"]] + d1.get("all_batsmen_history", []):
                 if b["name"]:
-                    pdf.cell(70, 5, clean_for_pdf(b["name"][:30]), 1)
+                    pdf.cell(70, 5, b["name"][:30], 1)
                     pdf.cell(25, 5, str(b["runs"]), 1, 0, "C")
                     pdf.cell(25, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(30, 5, clean_for_pdf(b.get("status", "Out")[:20]), 1, 1, "C")
+                    pdf.cell(30, 5, b.get("status", "Out")[:20], 1, 1, "C")
             
             pdf.ln(4)
         
@@ -570,15 +650,14 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         d2 = m["innings_2"]
         if d2["b1"]["name"]:
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 2: {m['team_2']} BATTING"), ln=True)
-            pdf.set_font("Helvetica", "", 10)
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 8, f"INNINGS 2: {m['team_2']}", ln=True)
+            pdf.set_font("Helvetica", "", 9)
             
             comp_ov = d2["balls"] // BALLS_PER_OVER
             rem_bl = d2["balls"] % BALLS_PER_OVER
             
-            pdf.cell(0, 6, clean_for_pdf(f"Score: {d2['runs']}/{d2['wickets']} ({comp_ov}.{rem_bl} overs)"), ln=True)
-            pdf.cell(0, 6, clean_for_pdf(f"Extras: {d2['extras']} | Penalties: {d2.get('penalty', 0)}"), ln=True)
+            pdf.cell(0, 6, f"Score: {d2['runs']}/{d2['wickets']} ({comp_ov}.{rem_bl} overs)", ln=True)
             pdf.ln(4)
             
             pdf.set_font("Helvetica", "B", 9)
@@ -590,14 +669,16 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
             pdf.set_font("Helvetica", "", 8)
             for b in [d2["b1"], d2["b2"]] + d2.get("all_batsmen_history", []):
                 if b["name"]:
-                    pdf.cell(70, 5, clean_for_pdf(b["name"][:30]), 1)
+                    pdf.cell(70, 5, b["name"][:30], 1)
                     pdf.cell(25, 5, str(b["runs"]), 1, 0, "C")
                     pdf.cell(25, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(30, 5, clean_for_pdf(b.get("status", "Out")[:20]), 1, 1, "C")
+                    pdf.cell(30, 5, b.get("status", "Out")[:20], 1, 1, "C")
         
-        return pdf.output(dest='S').encode('latin-1', errors='replace')
+        # Get PDF output
+        pdf_output = pdf.output(dest='S')
+        return pdf_output.encode('latin-1', errors='replace')
     except Exception as e:
-        st.error(f"PDF Generation Error: {str(e)}")
+        # Return empty bytes on error
         return b""
 
 def add_commentary(inn_data: InningsData, message: str):
@@ -670,21 +751,21 @@ def process_ball_input(
         # Update boundaries
         if runs_inc == 4:
             striker["fours"] += 1
-            add_commentary(inn_data, f"FOUR! {striker['name']} hits a boundary")
+            add_commentary(inn_data, f"FOUR! {striker['name']}")
         elif runs_inc == 6:
             striker["sixes"] += 1
-            add_commentary(inn_data, f"SIX! {striker['name']} clears the rope")
+            add_commentary(inn_data, f"SIX! {striker['name']}")
         elif runs_inc > 0 and not is_wicket:
             add_commentary(inn_data, f"{runs_inc} run(s) to {striker['name']}")
         elif runs_inc == 0 and not is_wicket:
-            add_commentary(inn_data, f"Dot ball! {striker['name']} defends")
+            add_commentary(inn_data, f"Dot ball! {striker['name']}")
         
         # Add to over
         display_symbol = symbol if symbol is not None else str(runs_inc)
         inn_data["this_over"].append(display_symbol)
     else:
         # Extra delivery
-        add_commentary(inn_data, f"Extra: {symbol} - {runs_inc} run(s) added")
+        add_commentary(inn_data, f"Extra: {symbol} - {runs_inc} run(s)")
         inn_data["this_over"].append(symbol)
     
     # Swap strike on odd runs (if not wicket)
@@ -701,40 +782,6 @@ def process_ball_input(
     # Check for wicket and need for new batsman
     if is_wicket and inn_data["wickets"] < MAX_WICKETS:
         inn_data["awaiting_batsman"] = True
-
-def export_match_to_csv(m: MatchData) -> str:
-    """Export match data to CSV format"""
-    import io
-    
-    output = io.StringIO()
-    
-    # Match info
-    output.write(f"Match ID,{m['id']}\n")
-    output.write(f"Teams,{m['team_1']} vs {m['team_2']}\n")
-    output.write(f"Overs,{m['total_overs']}\n")
-    output.write(f"Result,{get_match_result(m)}\n\n")
-    
-    # Innings 1 batting
-    output.write("INNINGS 1 BATTING\n")
-    output.write("Player,Runs,Balls,4s,6s,Status\n")
-    inn1 = m["innings_1"]
-    for b in [inn1["b1"], inn1["b2"]] + inn1.get("all_batsmen_history", []):
-        if b["name"]:
-            output.write(f"{b['name']},{b['runs']},{b['balls']},{b.get('fours',0)},{b.get('sixes',0)},{b.get('status','')}\n")
-    
-    output.write(f"\nTotal,{inn1['runs']}/{inn1['wickets']}\n\n")
-    
-    # Innings 2 batting
-    output.write("INNINGS 2 BATTING\n")
-    output.write("Player,Runs,Balls,4s,6s,Status\n")
-    inn2 = m["innings_2"]
-    for b in [inn2["b1"], inn2["b2"]] + inn2.get("all_batsmen_history", []):
-        if b["name"]:
-            output.write(f"{b['name']},{b['runs']},{b['balls']},{b.get('fours',0)},{b.get('sixes',0)},{b.get('status','')}\n")
-    
-    output.write(f"\nTotal,{inn2['runs']}/{inn2['wickets']}\n")
-    
-    return output.getvalue()
 
 @st.cache_resource
 def get_tournament_database():
@@ -753,13 +800,13 @@ with lock:
     for m_id in list(db_global["matches"].keys()):
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
-# --- SQUAD MODAL - Fixed to not auto-close ---
+# --- SQUAD MODAL ---
 @st.dialog("📋 Team Squad", width="large")
 def show_squad_popup(team_name: str):
     """Display squad popup dialog that stays open until user closes"""
     st.markdown(f"""
         <div style="text-align: center; margin-bottom: 20px;">
-            <h2>{team_name}</h2>
+            <h2 style="color: #e94560;">{team_name}</h2>
             <hr>
         </div>
     """, unsafe_allow_html=True)
@@ -771,9 +818,9 @@ def show_squad_popup(team_name: str):
     for idx, player in enumerate(squad_members):
         with cols[idx % 3]:
             st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                <div style="background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%); 
                             color: white; padding: 10px; margin: 5px; border-radius: 10px; 
-                            text-align: center;">
+                            text-align: center; border: 1px solid #e94560;">
                     🏏 {player}
                 </div>
             """, unsafe_allow_html=True)
@@ -781,7 +828,7 @@ def show_squad_popup(team_name: str):
     st.markdown("---")
     st.info(f"Total Players: {len(squad_members)}")
     
-    # Close button at bottom
+    # Close button
     if st.button("Close", use_container_width=True):
         st.rerun()
 
@@ -815,12 +862,12 @@ def delete_match(match_id: str):
             return True
     return False
 
-# --- SECURITY SYSTEM CONTROL SIDEBAR ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
-            <h2>🏏 APL 2026</h2>
-            <p>Advanced Cricket Scoring System</p>
+            <h2 style="color: #e94560;">🏏 APL 2026</h2>
+            <p style="color: #a0a0a0;">Advanced Cricket Scoring System</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -1030,12 +1077,12 @@ with tab_live:
                 if inn_data["this_over"]:
                     cols = st.columns(min(len(inn_data["this_over"]), 6))
                     for idx, ball in enumerate(inn_data["this_over"][:6]):
-                        bg_color = "#10B981" if ball in ["4", "6"] else "#EF4444" if "W" in str(ball) else "#D97706" if any(x in str(ball) for x in ["WD", "NB"]) else "#475569"
+                        bg_color = "#10B981" if ball in ["4", "6"] else "#EF4444" if "W" in str(ball) else "#F59E0B" if any(x in str(ball) for x in ["WD", "NB"]) else "#4A5568"
                         with cols[idx]:
                             st.markdown(f"""
                                 <div style="background-color: {bg_color}; color: white; 
-                                            text-align: center; padding: 10px; border-radius: 10px;
-                                            font-weight: bold; font-size: 1.2rem;">
+                                            text-align: center; padding: 8px; border-radius: 10px;
+                                            font-weight: bold; font-size: 1rem;">
                                     {ball}
                                 </div>
                             """, unsafe_allow_html=True)
@@ -1056,18 +1103,18 @@ with tab_live:
                     <div class="mobile-card">
                         <h3>🏏 BATTING</h3>
                         <div style="margin: 15px 0;">
-                            <div style="display: flex; justify-content: space-between; font-size: 1.1rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 1rem;">
                                 <span>{'👉 ' if inn_data['b1']['strike'] else ''}{inn_data['b1']['name']}</span>
                                 <span><b>{inn_data['b1']['runs']}</b> ({inn_data['b1']['balls']})</span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 1.1rem; margin-top: 10px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 1rem; margin-top: 10px;">
                                 <span>{'👉 ' if inn_data['b2']['strike'] else ''}{inn_data['b2']['name']}</span>
                                 <span><b>{inn_data['b2']['runs']}</b> ({inn_data['b2']['balls']})</span>
                             </div>
                         </div>
                         <h3>🥎 BOWLING</h3>
                         <div style="margin: 15px 0;">
-                            <div style="display: flex; justify-content: space-between; font-size: 1.1rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 1rem;">
                                 <span>{inn_data['bowler']['name']}</span>
                                 <span>W: {inn_data['bowler']['wickets']} | R: {inn_data['bowler']['runs']}</span>
                             </div>
@@ -1169,6 +1216,7 @@ with tab_live:
                                 with lock:
                                     inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                     inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
+                                    add_commentary(inn_data, "Strike rotated")
                                 st.rerun()
                         
                         # Undo button
@@ -1216,35 +1264,24 @@ with tab_live:
                     else:
                         st.caption("No commentary available")
             
-            # Export section
+            # Export section - Only PDF Button (CSV Removed)
             st.markdown("---")
-            col_export1, col_export2 = st.columns(2)
             
-            with col_export1:
-                try:
-                    pdf_data = generate_pdf_bytes(m_instance)
-                    if pdf_data and len(pdf_data) > 0:
-                        st.download_button(
-                            label="📥 Download PDF Scorecard",
-                            data=pdf_data,
-                            file_name=f"APL_{m_instance['id']}_Scorecard.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    else:
-                        st.warning("PDF generation in progress...")
-                except Exception as e:
-                    st.error(f"PDF generation temporarily unavailable")
-            
-            with col_export2:
-                csv_data = export_match_to_csv(m_instance)
-                st.download_button(
-                    label="📊 Download CSV Data",
-                    data=csv_data,
-                    file_name=f"APL_{m_instance['id']}_Data.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+            # Generate PDF and provide download button
+            try:
+                pdf_data = generate_pdf_bytes(m_instance)
+                if pdf_data and len(pdf_data) > 500:  # Valid PDF has reasonable size
+                    st.download_button(
+                        label="📥 Download PDF Scorecard",
+                        data=pdf_data,
+                        file_name=f"APL_{m_instance['id']}_Scorecard.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+                else:
+                    st.info("📄 PDF will be available once match has sufficient data")
+            except Exception as e:
+                st.info("📄 PDF ready when match has data")
 
 # ================= TAB: MATCH ARCHIVES =================
 with tab_review:
@@ -1294,16 +1331,16 @@ with tab_review:
                 else:
                     st.caption("Innings not played")
             
-            # Download button for archived match
+            # PDF Download for archived match
             try:
                 pdf_data = generate_pdf_bytes(m_rev)
-                if pdf_data and len(pdf_data) > 0:
+                if pdf_data and len(pdf_data) > 500:
                     st.download_button(
-                        label="📥 Download Full Scorecard",
+                        label="📥 Download Full Scorecard PDF",
                         data=pdf_data,
                         file_name=f"APL_{m_rev['id']}_FullScorecard.pdf",
                         mime="application/pdf",
                         use_container_width=True
                     )
             except Exception:
-                st.warning("PDF generation temporarily unavailable")
+                st.info("📄 PDF available")
