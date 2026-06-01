@@ -17,7 +17,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
-# Team Database - FIXED FILE NAMES
+# Team Database
 TEAM_DB = {
     "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
@@ -74,7 +74,6 @@ def get_team_data(team_name):
     """Safely get team data with fallback"""
     if team_name in TEAM_DB:
         return TEAM_DB[team_name]
-    # Try to find by case-insensitive match
     for key in TEAM_DB:
         if key.lower() == team_name.lower():
             return TEAM_DB[key]
@@ -101,9 +100,19 @@ def get_team_logo_base64(team_name):
     return ""
 
 def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=False, overs=0, runs_conceded=0):
-    if not player_name:
+    """Update player statistics - FIXED to handle new players"""
+    if not player_name or player_name == "":
         return
+    
+    # Initialize player if not exists
+    if player_name not in st.session_state.player_stats:
+        st.session_state.player_stats[player_name] = {
+            "matches": 0, "runs": 0, "balls": 0, "fours": 0, "sixes": 0,
+            "wickets": 0, "overs": 0, "runs_conceded": 0, "fifties": 0, "hundreds": 0
+        }
+    
     stats = st.session_state.player_stats[player_name]
+    
     if runs > 0 or balls > 0:
         stats["runs"] += runs
         stats["balls"] += balls
@@ -114,8 +123,10 @@ def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=F
         if runs >= 100:
             stats["hundreds"] += 1
         stats["matches"] += 1
+    
     if wicket:
         stats["wickets"] += 1
+    
     if overs > 0:
         stats["overs"] += overs
         stats["runs_conceded"] += runs_conceded
@@ -434,12 +445,7 @@ with tab_teams:
     cols = st.columns(3)
     for idx, (team_name, team_data) in enumerate(TEAM_DB.items()):
         with cols[idx % 3]:
-            # Display logo
-            logo_base64 = get_team_logo_base64(team_name)
-            if logo_base64:
-                st.image(f"data:image/jpeg;base64,{logo_base64}", width=100)
-            else:
-                st.image(team_data["remote"], width=100)
+            st.image(team_data["remote"], width=100)
             st.markdown(f"<div style='text-align:center; font-weight:bold; margin-top:5px;'>{team_name}</div>", unsafe_allow_html=True)
             
             if st.button(f"📋 Squad", key=f"squad_{idx}"):
@@ -819,19 +825,29 @@ with tab_live:
                             inn["extras"] += extra
                             inn["bowler"]["runs"] += runs
                             
-                            if runs > 0 and not wicket:
-                                update_player_stats(striker["name"], runs=runs, balls=1, fours=1 if runs==4 else 0, sixes=1 if runs==6 else 0)
+                            # Update batsman stats
+                            if runs > 0 and not wicket and striker["name"]:
+                                update_player_stats(striker["name"], runs=runs, balls=1, 
+                                                  fours=1 if runs==4 else 0, sixes=1 if runs==6 else 0)
                             
+                            # Update bowler stats on wicket
                             if wicket:
                                 inn["wickets"] += 1
                                 inn["bowler"]["wickets"] += 1
-                                update_player_stats(inn["bowler"]["name"], wicket=True, overs=0.166 if legal else 0, runs_conceded=runs)
+                                if inn["bowler"]["name"]:
+                                    update_player_stats(inn["bowler"]["name"], wicket=True, 
+                                                      overs=0.166 if legal else 0, runs_conceded=runs)
+                            
+                            # Update batsman stats on ball faced (even if dot ball)
+                            if legal and not wicket and striker["name"]:
+                                update_player_stats(striker["name"], balls=1)
                             
                             if legal:
                                 inn["balls"] += 1
                                 inn["bowler"]["balls"] += 1
-                                striker["balls"] += 1
-                                striker["runs"] += (runs - extra)
+                                if not wicket:
+                                    striker["balls"] += 1
+                                    striker["runs"] += (runs - extra)
                                 inn["this_over"].append(symbol if symbol else runs)
                             else:
                                 inn["this_over"].append(symbol)
