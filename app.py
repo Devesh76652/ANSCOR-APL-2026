@@ -443,10 +443,12 @@ def clean_for_pdf(text):
     return text.encode('ascii', 'ignore').decode('ascii')
 
 def generate_pdf_bytes(m):
+    """Generate PDF scorecard with full match details"""
     m = ensure_match_keys(m)
     pdf = FPDF()
     pdf.add_page()
     
+    # Header
     pdf.set_font("Helvetica", "B", 18)
     pdf.cell(0, 15, "APL 2026 - MATCH SCORECARD", ln=True, align="C")
     pdf.set_font("Helvetica", "B", 12)
@@ -456,6 +458,7 @@ def generate_pdf_bytes(m):
     pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
     pdf.ln(8)
     
+    # Result
     match_outcome = get_match_result(m)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(16, 185, 129)
@@ -463,6 +466,7 @@ def generate_pdf_bytes(m):
     pdf.set_text_color(0, 0, 0)
     pdf.ln(6)
     
+    # Process both innings
     for inn_idx in [1, 2]:
         inn_key = f"innings_{inn_idx}"
         inn_data = m[inn_key]
@@ -488,6 +492,7 @@ def generate_pdf_bytes(m):
         pdf.cell(95, 6, clean_for_pdf(f"Penalties: {inn_data.get('penalty', 0)}"), 0, 1)
         pdf.ln(4)
         
+        # Batting table
         pdf.set_font("Helvetica", "B", 9)
         pdf.cell(70, 6, "Batsman", 1)
         pdf.cell(25, 6, "Runs", 1, 0, "C")
@@ -518,6 +523,7 @@ def generate_pdf_bytes(m):
             
         pdf.ln(4)
         
+        # Bowling table
         pdf.set_font("Helvetica", "B", 9)
         pdf.cell(80, 6, "Bowler", 1)
         pdf.cell(30, 6, "Overs", 1, 0, "C")
@@ -551,6 +557,7 @@ def generate_pdf_bytes(m):
             
         pdf.ln(6)
         
+        # Over history
         if inn_data.get("over_history"):
             pdf.set_font("Helvetica", "B", 9)
             pdf.cell(25, 6, "Over", 1)
@@ -697,6 +704,25 @@ with tab_live:
         bat_team = m_instance["team_1"] if m_instance["current_innings"] == 1 else m_instance["team_2"]
         bowl_team = m_instance["team_2"] if m_instance["current_innings"] == 1 else m_instance["team_1"]
         target_score = (m_instance["innings_1"]["runs"] + 1) if m_instance["current_innings"] == 2 else None
+        
+        # Add PDF Export Button at Top of Live Match
+        st.markdown("---")
+        col_pdf_top1, col_pdf_top2, col_pdf_top3 = st.columns([1, 2, 1])
+        with col_pdf_top2:
+            try:
+                pdf_data = generate_pdf_bytes(m_instance)
+                st.download_button(
+                    label="📥 EXPORT MATCH SCORECARD (PDF)",
+                    data=pdf_data,
+                    file_name=f"APL_{m_instance['id']}_Match_Report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    type="primary",
+                    key="pdf_top_export_btn"
+                )
+            except Exception as e:
+                st.error(f"PDF Generation Error: {str(e)}")
+        st.markdown("---")
         
         if inn_data["b1"]["name"] == "":
             if is_admin:
@@ -997,21 +1023,24 @@ with tab_live:
                 else: 
                     st.caption("No overs recorded")
 
-            # PDF Export
+            # PDF Export Button at Bottom
             st.markdown("---")
-            try:
-                pdf_data_stream = generate_pdf_bytes(m_instance)
-                st.download_button(
-                    label="📥 Download PDF Scorecard",
-                    data=pdf_data_stream,
-                    file_name=f"APL_{m_instance['id']}_Scorecard.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    type="primary",
-                    key="pdf_download_btn"
-                )
-            except Exception as pdf_error:
-                st.error(f"PDF Error: {str(pdf_error)}")
+            col_pdf_bottom1, col_pdf_bottom2, col_pdf_bottom3 = st.columns([1, 2, 1])
+            with col_pdf_bottom2:
+                try:
+                    pdf_data = generate_pdf_bytes(m_instance)
+                    st.download_button(
+                        label="📥 EXPORT MATCH SCORECARD (PDF)",
+                        data=pdf_data,
+                        file_name=f"APL_{m_instance['id']}_Match_Report.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        type="primary",
+                        key="pdf_bottom_export_btn"
+                    )
+                except Exception as e:
+                    st.error(f"PDF Generation Error: {str(e)}")
+            st.markdown("---")
 
 # ================= TAB: TOURNAMENT REVIEW LEDGER =================
 with tab_review:
@@ -1053,16 +1082,18 @@ with tab_review:
             else: 
                 st.caption("No overs recorded")
         
-        # PDF for archived match
+        # PDF Export Button for Archives
+        st.markdown("---")
         try:
             pdf_data = generate_pdf_bytes(m_rev)
             st.download_button(
-                label="📥 Download Full Scorecard PDF",
+                label="📥 DOWNLOAD FULL SCORECARD (PDF)",
                 data=pdf_data,
-                file_name=f"APL_{m_rev['id']}_FullScorecard.pdf",
+                file_name=f"APL_{m_rev['id']}_Full_Scorecard.pdf",
                 mime="application/pdf",
                 use_container_width=True,
+                type="primary",
                 key="archive_pdf_download"
             )
         except Exception:
-            st.info("PDF available")
+            st.info("📄 PDF available for this match")
