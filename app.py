@@ -178,26 +178,6 @@ st.markdown("""
         box-shadow: 0 5px 20px rgba(0,0,0,0.15);
     }
     
-    /* Ball bubble styling */
-    .ball-bubble {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        margin: 5px;
-        font-weight: bold;
-        font-size: 1.1rem;
-        transition: transform 0.2s;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    
-    .ball-bubble:hover {
-        transform: scale(1.1);
-    }
-    
     /* Team card styling */
     .team-card {
         background: white;
@@ -264,27 +244,10 @@ st.markdown("""
             font-size: 2.5rem !important;
         }
         
-        .ball-bubble {
-            width: 35px;
-            height: 35px;
-            font-size: 0.9rem;
-        }
-        
         .stTabs [data-baseweb="tab"] {
             padding: 5px 10px;
             font-size: 0.9rem;
         }
-    }
-    
-    /* Animation for updates */
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.7; }
-        100% { opacity: 1; }
-    }
-    
-    .update-animation {
-        animation: pulse 0.5s ease-in-out;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -497,17 +460,8 @@ def clean_for_pdf(text: str) -> str:
         "]+", flags=re.UNICODE)
     text = emoji_pattern.sub(r'', text)
     
+    # Convert to bytes and back to string safely
     return text.encode('ascii', 'ignore').decode('ascii')
-
-def safe_display_image(image_path: str, fallback_text: str = "🏏"):
-    """Safely display an image or fallback to emoji"""
-    try:
-        if image_path and os.path.exists(image_path):
-            st.image(image_path, use_container_width=True)
-        else:
-            st.markdown(f"<div style='font-size: 3rem; text-align: center;'>{fallback_text}</div>", unsafe_allow_html=True)
-    except Exception:
-        st.markdown(f"<div style='font-size: 3rem; text-align: center;'>{fallback_text}</div>", unsafe_allow_html=True)
 
 def generate_pdf_bytes(m: MatchData) -> bytes:
     """Generate comprehensive match PDF report"""
@@ -520,11 +474,11 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         pdf.set_font("Helvetica", "B", 20)
         pdf.cell(0, 15, clean_for_pdf("APL 2026"), ln=True, align="C")
         pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(0, 10, clean_for_pdf("COMPLETE MATCH SCORECARD"), ln=True, align="C")
+        pdf.cell(0, 10, clean_for_pdf("MATCH SCORECARD"), ln=True, align="C")
         pdf.set_font("Helvetica", "B", 12)
         pdf.cell(0, 8, clean_for_pdf(f"{m['team_1']} vs {m['team_2']}"), ln=True, align="C")
         pdf.set_font("Helvetica", "", 10)
-        pdf.cell(0, 6, clean_for_pdf(f"Match ID: {m['id']} | Overs: {m['total_overs']} | Date: {m.get('created_at', 'N/A')[:10]}"), ln=True, align="C")
+        pdf.cell(0, 6, clean_for_pdf(f"Match: {m['id']} | Overs: {m['total_overs']}"), ln=True, align="C")
         pdf.ln(5)
         
         # Result
@@ -539,17 +493,16 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         d1 = m["innings_1"]
         if d1["b1"]["name"]:
             pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 1: {m['team_1']} BATTING"), ln=True)
+            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 1: {m['team_1']}"), ln=True)
             pdf.set_font("Helvetica", "", 10)
             
             comp_ov = d1["balls"] // BALLS_PER_OVER
             rem_bl = d1["balls"] % BALLS_PER_OVER
             
             pdf.cell(0, 6, clean_for_pdf(f"Score: {d1['runs']}/{d1['wickets']} ({comp_ov}.{rem_bl} overs)"), ln=True)
-            pdf.cell(0, 6, clean_for_pdf(f"Extras: {d1['extras']} | Penalties: {d1.get('penalty', 0)}"), ln=True)
             pdf.ln(4)
             
-            # Simple batting list
+            # Batting list
             pdf.set_font("Helvetica", "B", 9)
             pdf.cell(70, 6, "Batsman", 1)
             pdf.cell(25, 6, "Runs", 1, 0, "C")
@@ -571,14 +524,13 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         if d2["b1"]["name"]:
             pdf.add_page()
             pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 2: {m['team_2']} BATTING"), ln=True)
+            pdf.cell(0, 8, clean_for_pdf(f"INNINGS 2: {m['team_2']}"), ln=True)
             pdf.set_font("Helvetica", "", 10)
             
             comp_ov = d2["balls"] // BALLS_PER_OVER
             rem_bl = d2["balls"] % BALLS_PER_OVER
             
             pdf.cell(0, 6, clean_for_pdf(f"Score: {d2['runs']}/{d2['wickets']} ({comp_ov}.{rem_bl} overs)"), ln=True)
-            pdf.cell(0, 6, clean_for_pdf(f"Extras: {d2['extras']} | Penalties: {d2.get('penalty', 0)}"), ln=True)
             pdf.ln(4)
             
             pdf.set_font("Helvetica", "B", 9)
@@ -595,9 +547,11 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
                     pdf.cell(25, 5, str(b["balls"]), 1, 0, "C")
                     pdf.cell(30, 5, clean_for_pdf(b.get("status", "Out")[:20]), 1, 1, "C")
         
-        return pdf.output(dest='S').encode('latin-1', errors='replace')
+        # Get PDF output as string then encode to bytes
+        pdf_output = pdf.output(dest='S')
+        return pdf_output.encode('latin-1', errors='replace')
     except Exception as e:
-        st.error(f"PDF Generation Error: {str(e)}")
+        # Return empty bytes on error
         return b""
 
 def add_commentary(inn_data: InningsData, message: str):
@@ -753,10 +707,10 @@ with lock:
     for m_id in list(db_global["matches"].keys()):
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
-# --- SQUAD MODAL - Fixed to not auto-close ---
+# --- SQUAD MODAL ---
 @st.dialog("📋 Team Squad", width="large")
 def show_squad_popup(team_name: str):
-    """Display squad popup dialog that stays open until user closes"""
+    """Display squad popup dialog"""
     st.markdown(f"""
         <div style="text-align: center; margin-bottom: 20px;">
             <h2>{team_name}</h2>
@@ -781,7 +735,6 @@ def show_squad_popup(team_name: str):
     st.markdown("---")
     st.info(f"Total Players: {len(squad_members)}")
     
-    # Close button at bottom
     if st.button("Close", use_container_width=True):
         st.rerun()
 
@@ -815,7 +768,7 @@ def delete_match(match_id: str):
             return True
     return False
 
-# --- SECURITY SYSTEM CONTROL SIDEBAR ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
@@ -828,8 +781,7 @@ with st.sidebar:
     st.markdown("### 🔑 Access Control")
     user_role = st.radio(
         "Select Role:",
-        ["👁️ Viewer Mode", "⚡ Scorer Mode"],
-        help="Viewer mode auto-refreshes, Scorer mode allows match updates"
+        ["👁️ Viewer Mode", "⚡ Scorer Mode"]
     )
     
     is_admin = False
@@ -854,84 +806,80 @@ tab_live, tab_review, tab_teams = st.tabs([
 # ================= TAB: TEAM PROFILES =================
 with tab_teams:
     st.markdown("### 🏏 Tournament Teams")
-    st.markdown("Click on any team card to view their squad")
     
     # Create responsive grid
     cols = st.columns(3)
-    for idx, (team_name, team_data) in enumerate(TEAM_DB.items()):
+    for idx, (team_name, _) in enumerate(TEAM_DB.items()):
         with cols[idx % 3]:
             with st.container():
                 st.markdown(f"""
                     <div class="team-card">
-                        <h3>{team_name}</h3>
+                        <h3>{team_name.upper()}</h3>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Display team logo safely
-                safe_display_image(team_data["local"], "🏏")
-                
-                # View Squad button
                 if st.button(f"📋 View Squad", key=f"squad_btn_{idx}", use_container_width=True):
                     show_squad_popup(team_name)
 
 # ================= TAB: LIVE MATCH =================
 with tab_live:
-    # Admin controls in expander
+    # Admin controls
     if is_admin:
         with st.expander("⚙️ Match Administration", expanded=not bool(db_global["active_match_id"])):
             st.markdown("#### Create New Match")
-            col1, col2 = st.columns(2)
             
-            with col1:
-                with st.form("create_match_form"):
+            with st.form("create_match_form"):
+                col1, col2 = st.columns(2)
+                with col1:
                     match_id = st.text_input("Match ID:", placeholder="e.g., Match_01")
-                    team1 = st.selectbox("Team 1 (Batting First):", list(TEAM_DB.keys()), key="team1_select")
-                    team2 = st.selectbox("Team 2 (Bowling First):", list(TEAM_DB.keys()), key="team2_select")
+                    team1 = st.selectbox("Team 1 (Batting First):", list(TEAM_DB.keys()))
+                with col2:
+                    team2 = st.selectbox("Team 2 (Bowling First):", list(TEAM_DB.keys()))
                     overs = st.slider("Overs per innings:", 1, 10, DEFAULT_OVERS)
-                    
-                    if st.form_submit_button("🚀 Create Match", use_container_width=True):
-                        if match_id and team1 != team2:
-                            with lock:
-                                db_global["matches"][match_id] = {
-                                    "id": match_id,
-                                    "team_1": team1,
-                                    "team_2": team2,
-                                    "total_overs": overs,
-                                    "current_innings": 1,
-                                    "match_complete": False,
-                                    "innings_1": init_blank_innings(),
-                                    "innings_2": init_blank_innings(),
-                                    "created_at": datetime.now().isoformat(),
-                                    "winner": None,
-                                    "win_margin": None
-                                }
-                                db_global["active_match_id"] = match_id
-                            st.success(f"✅ Match '{match_id}' created!")
-                            st.rerun()
-                        else:
-                            st.error("Please enter unique ID and different teams")
+                
+                if st.form_submit_button("🚀 Create Match", use_container_width=True):
+                    if match_id and team1 != team2:
+                        with lock:
+                            db_global["matches"][match_id] = {
+                                "id": match_id,
+                                "team_1": team1,
+                                "team_2": team2,
+                                "total_overs": overs,
+                                "current_innings": 1,
+                                "match_complete": False,
+                                "innings_1": init_blank_innings(),
+                                "innings_2": init_blank_innings(),
+                                "created_at": datetime.now().isoformat(),
+                                "winner": None,
+                                "win_margin": None
+                            }
+                            db_global["active_match_id"] = match_id
+                        st.success(f"✅ Match '{match_id}' created!")
+                        st.rerun()
+                    else:
+                        st.error("Please enter unique ID and different teams")
             
-            with col2:
-                if db_global["matches"]:
-                    st.markdown("#### Manage Existing Matches")
-                    matches_list = list(db_global["matches"].keys())
-                    selected_match = st.selectbox("Select Match:", matches_list)
-                    
-                    col_a, col_b, col_c = st.columns(3)
-                    with col_a:
-                        if st.button("🎯 Set Active", use_container_width=True):
-                            db_global["active_match_id"] = selected_match
+            if db_global["matches"]:
+                st.markdown("---")
+                st.markdown("#### Manage Existing Matches")
+                matches_list = list(db_global["matches"].keys())
+                selected_match = st.selectbox("Select Match:", matches_list)
+                
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    if st.button("🎯 Set Active", use_container_width=True):
+                        db_global["active_match_id"] = selected_match
+                        st.rerun()
+                with col_b:
+                    if st.button("🔄 Reset", use_container_width=True):
+                        if reset_match(selected_match):
+                            st.success("Match reset!")
                             st.rerun()
-                    with col_b:
-                        if st.button("🔄 Reset", use_container_width=True):
-                            if reset_match(selected_match):
-                                st.success("Match reset!")
-                                st.rerun()
-                    with col_c:
-                        if st.button("🗑️ Delete", use_container_width=True):
-                            if delete_match(selected_match):
-                                st.success("Match deleted!")
-                                st.rerun()
+                with col_c:
+                    if st.button("🗑️ Delete", use_container_width=True):
+                        if delete_match(selected_match):
+                            st.success("Match deleted!")
+                            st.rerun()
     
     # Live match display
     if not db_global["active_match_id"] or db_global["active_match_id"] not in db_global["matches"]:
@@ -939,7 +887,6 @@ with tab_live:
             ### 🏏 No Active Match
         
             Please create a new match using the administration panel above.
-            Click on the expander and fill in the match details to get started.
         """)
     else:
         m_instance = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
@@ -1028,8 +975,9 @@ with tab_live:
                 # Current over display
                 st.markdown("#### 📦 Current Over")
                 if inn_data["this_over"]:
-                    cols = st.columns(min(len(inn_data["this_over"]), 6))
-                    for idx, ball in enumerate(inn_data["this_over"][:6]):
+                    display_balls = inn_data["this_over"][-6:]  # Show last 6 balls
+                    cols = st.columns(min(len(display_balls), 6))
+                    for idx, ball in enumerate(display_balls):
                         bg_color = "#10B981" if ball in ["4", "6"] else "#EF4444" if "W" in str(ball) else "#D97706" if any(x in str(ball) for x in ["WD", "NB"]) else "#475569"
                         with cols[idx]:
                             st.markdown(f"""
@@ -1129,43 +1077,60 @@ with tab_live:
                             st.rerun()
                     
                     else:
-                        # Run buttons in grid
-                        run_cols = st.columns(5)
-                        run_values = [0, 1, 2, 3, 4]
-                        for idx, runs in enumerate(run_values):
-                            with run_cols[idx]:
-                                if st.button(f"{runs}", use_container_width=True):
-                                    with lock:
-                                        process_ball_input(inn_data, runs, 0, True)
-                                    st.rerun()
+                        # Run buttons
+                        col1, col2, col3, col4, col5 = st.columns(5)
+                        with col1:
+                            if st.button("0", use_container_width=True):
+                                with lock:
+                                    process_ball_input(inn_data, 0, 0, True)
+                                st.rerun()
+                        with col2:
+                            if st.button("1", use_container_width=True):
+                                with lock:
+                                    process_ball_input(inn_data, 1, 0, True)
+                                st.rerun()
+                        with col3:
+                            if st.button("2", use_container_width=True):
+                                with lock:
+                                    process_ball_input(inn_data, 2, 0, True)
+                                st.rerun()
+                        with col4:
+                            if st.button("3", use_container_width=True):
+                                with lock:
+                                    process_ball_input(inn_data, 3, 0, True)
+                                st.rerun()
+                        with col5:
+                            if st.button("4", use_container_width=True):
+                                with lock:
+                                    process_ball_input(inn_data, 4, 0, True)
+                                st.rerun()
                         
-                        # Special buttons
-                        col_a, col_b, col_c, col_d, col_e = st.columns(5)
-                        with col_a:
-                            if st.button("6️⃣", use_container_width=True):
+                        col6, col7, col8, col9, col10 = st.columns(5)
+                        with col6:
+                            if st.button("6", use_container_width=True):
                                 with lock:
                                     process_ball_input(inn_data, 6, 0, True)
                                 st.rerun()
-                        with col_b:
-                            if st.button("🟡 WD", use_container_width=True):
+                        with col7:
+                            if st.button("WD", use_container_width=True):
                                 with lock:
                                     process_ball_input(inn_data, 1, 1, False, symbol="WD")
                                 st.rerun()
-                        with col_c:
-                            if st.button("🟠 NB", use_container_width=True):
+                        with col8:
+                            if st.button("NB", use_container_width=True):
                                 with lock:
                                     process_ball_input(inn_data, 1, 1, False, symbol="NB")
                                 st.rerun()
-                        with col_d:
-                            with st.popover("☝️ WICKET", use_container_width=True):
+                        with col9:
+                            with st.popover("WICKET", use_container_width=True):
                                 st.markdown("### Dismissal Type")
                                 dismissal = st.selectbox("Select:", DISMISSAL_TYPES, key="wicket_type")
                                 if st.button("Confirm", type="primary", use_container_width=True):
                                     with lock:
                                         process_ball_input(inn_data, 0, 0, True, True, symbol="W", dismissal_type=dismissal)
                                     st.rerun()
-                        with col_e:
-                            if st.button("🔄 SWAP", use_container_width=True):
+                        with col10:
+                            if st.button("SWAP", use_container_width=True):
                                 with lock:
                                     inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                     inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
@@ -1221,20 +1186,17 @@ with tab_live:
             col_export1, col_export2 = st.columns(2)
             
             with col_export1:
-                try:
-                    pdf_data = generate_pdf_bytes(m_instance)
-                    if pdf_data and len(pdf_data) > 0:
-                        st.download_button(
-                            label="📥 Download PDF Scorecard",
-                            data=pdf_data,
-                            file_name=f"APL_{m_instance['id']}_Scorecard.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    else:
-                        st.warning("PDF generation in progress...")
-                except Exception as e:
-                    st.error(f"PDF generation temporarily unavailable")
+                pdf_data = generate_pdf_bytes(m_instance)
+                if pdf_data and len(pdf_data) > 100:  # Valid PDF has some size
+                    st.download_button(
+                        label="📥 Download PDF Scorecard",
+                        data=pdf_data,
+                        file_name=f"APL_{m_instance['id']}_Scorecard.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+                else:
+                    st.info("PDF ready when match has data")
             
             with col_export2:
                 csv_data = export_match_to_csv(m_instance)
@@ -1251,7 +1213,7 @@ with tab_review:
     st.markdown("### 📊 Match Archives")
     
     if not db_global["matches"]:
-        st.info("No matches played yet. Create a match in the Live Match tab to get started!")
+        st.info("No matches played yet. Create a match in the Live Match tab!")
     else:
         archive_match = st.selectbox("Select Match to Review:", list(db_global["matches"].keys()))
         
@@ -1295,15 +1257,12 @@ with tab_review:
                     st.caption("Innings not played")
             
             # Download button for archived match
-            try:
-                pdf_data = generate_pdf_bytes(m_rev)
-                if pdf_data and len(pdf_data) > 0:
-                    st.download_button(
-                        label="📥 Download Full Scorecard",
-                        data=pdf_data,
-                        file_name=f"APL_{m_rev['id']}_FullScorecard.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-            except Exception:
-                st.warning("PDF generation temporarily unavailable")
+            pdf_data = generate_pdf_bytes(m_rev)
+            if pdf_data and len(pdf_data) > 100:
+                st.download_button(
+                    label="📥 Download Full Scorecard",
+                    data=pdf_data,
+                    file_name=f"APL_{m_rev['id']}_FullScorecard.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
