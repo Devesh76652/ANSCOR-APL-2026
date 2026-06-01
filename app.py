@@ -258,14 +258,14 @@ def generate_pdf_bytes(m):
     pdf.add_page()
     
     # --- TOP OF PAGE: FINAL WINNER & MATCH OUTCOME ---
-    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(16, 185, 129)
     match_outcome = get_match_result(m)
     pdf.cell(0, 12, clean_for_pdf(f"🏆 MATCH STATUS / RESULT: {match_outcome.upper()}"), ln=True, align="C")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
     
-    pdf.set_font("Helvetica", "B", 16)
+    pdf.set_font("Helvetica", "B", 15)
     pdf.cell(0, 10, clean_for_pdf("APL 2026 - COMPREHENSIVE MATCH SCORECARD"), ln=True, align="C")
     pdf.set_font("Helvetica", "B", 11)
     pdf.cell(0, 6, clean_for_pdf(f"Series: {m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs Match)"), ln=True, align="C")
