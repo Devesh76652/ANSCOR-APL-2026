@@ -236,7 +236,7 @@ def get_match_result(m):
     balls_rem = (total_overs * 6) - balls_i2
     return f"CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
 
-# SIMPLIFIED PDF GENERATION - FIXED VERSION
+# FIXED PDF GENERATION FUNCTION
 def generate_simple_pdf(m):
     """Generate a simple PDF scorecard"""
     try:
@@ -245,6 +245,15 @@ def generate_simple_pdf(m):
         # Create PDF
         pdf = FPDF()
         pdf.add_page()
+        
+        # Add Unicode support for fonts
+        try:
+            # Try to add a Unicode font if available (DejaVu)
+            pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+            pdf.set_font('DejaVu', '', 12)
+        except:
+            # Fallback to standard font
+            pdf.set_font("Arial", "", 12)
         
         # Title
         pdf.set_font("Arial", "B", 16)
@@ -259,6 +268,7 @@ def generate_simple_pdf(m):
         # Result
         result = get_match_result(m)
         pdf.set_text_color(0, 150, 0)
+        pdf.set_font("Arial", "B", 11)
         pdf.cell(0, 10, result, ln=True, align="C")
         pdf.set_text_color(0, 0, 0)
         
@@ -273,35 +283,74 @@ def generate_simple_pdf(m):
             pdf.cell(0, 6, f"Score: {d1['runs']}/{d1['wickets']} ({overs1} overs)", ln=True)
             pdf.ln(3)
             
-            # Batting
+            # Batting Header
             pdf.set_font("Arial", "B", 9)
-            pdf.cell(50, 6, "Batsman", 1)
+            pdf.cell(55, 6, "Batsman", 1)
             pdf.cell(20, 6, "Runs", 1, 0, "C")
             pdf.cell(20, 6, "Balls", 1, 0, "C")
             pdf.cell(20, 6, "4s", 1, 0, "C")
             pdf.cell(20, 6, "6s", 1, 0, "C")
-            pdf.cell(60, 6, "Status", 1, 1, "C")
+            pdf.cell(50, 6, "Status", 1, 1, "C")
             
             pdf.set_font("Arial", "", 8)
-            for b in [d1["b1"], d1["b2"]]:
-                if b["name"]:
-                    pdf.cell(50, 5, b["name"][:25], 1)
-                    pdf.cell(20, 5, str(b["runs"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
-                    pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
-                    pdf.cell(60, 5, b.get("status", "Active")[:20], 1, 1, "C")
+            # Current batsmen
+            if d1["b1"]["name"]:
+                pdf.cell(55, 5, d1["b1"]["name"][:25], 1)
+                pdf.cell(20, 5, str(d1["b1"]["runs"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b1"]["balls"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b1"].get("fours", 0)), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b1"].get("sixes", 0)), 1, 0, "C")
+                pdf.cell(50, 5, d1["b1"].get("status", "Active")[:20], 1, 1, "C")
             
+            if d1["b2"]["name"]:
+                pdf.cell(55, 5, d1["b2"]["name"][:25], 1)
+                pdf.cell(20, 5, str(d1["b2"]["runs"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b2"]["balls"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b2"].get("fours", 0)), 1, 0, "C")
+                pdf.cell(20, 5, str(d1["b2"].get("sixes", 0)), 1, 0, "C")
+                pdf.cell(50, 5, d1["b2"].get("status", "Active")[:20], 1, 1, "C")
+            
+            # Dismissed batsmen
             for b in d1.get("all_batsmen_history", []):
-                if b["name"]:
-                    pdf.cell(50, 5, b["name"][:25], 1)
-                    pdf.cell(20, 5, str(b["runs"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b["balls"]), 1, 0, "C")
+                if b.get("name"):
+                    pdf.cell(55, 5, b["name"][:25], 1)
+                    pdf.cell(20, 5, str(b.get("runs", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("balls", 0)), 1, 0, "C")
                     pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
                     pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
-                    pdf.cell(60, 5, b.get("status", "Out")[:20], 1, 1, "C")
+                    pdf.cell(50, 5, b.get("status", "Out")[:20], 1, 1, "C")
+            
+            # Bowling figures for innings 1
+            pdf.ln(3)
+            pdf.set_font("Arial", "B", 9)
+            pdf.cell(0, 6, "Bowling", ln=True)
+            pdf.cell(55, 6, "Bowler", 1)
+            pdf.cell(25, 6, "Overs", 1, 0, "C")
+            pdf.cell(25, 6, "Runs", 1, 0, "C")
+            pdf.cell(25, 6, "Wickets", 1, 0, "C")
+            pdf.cell(55, 6, "Economy", 1, 1, "C")
+            
+            pdf.set_font("Arial", "", 8)
+            if d1["bowler"]["name"]:
+                overs_bowled = d1["bowler"]["balls"] / 6
+                economy = d1["bowler"]["runs"] / overs_bowled if overs_bowled > 0 else 0
+                pdf.cell(55, 5, d1["bowler"]["name"][:25], 1)
+                pdf.cell(25, 5, f"{overs_bowled:.1f}", 1, 0, "C")
+                pdf.cell(25, 5, str(d1["bowler"]["runs"]), 1, 0, "C")
+                pdf.cell(25, 5, str(d1["bowler"]["wickets"]), 1, 0, "C")
+                pdf.cell(55, 5, f"{economy:.2f}", 1, 1, "C")
+            
+            for b in d1.get("all_bowlers_history", []):
+                if b.get("name"):
+                    overs_bowled = b.get("balls", 0) / 6
+                    economy = b.get("runs", 0) / overs_bowled if overs_bowled > 0 else 0
+                    pdf.cell(55, 5, b["name"][:25], 1)
+                    pdf.cell(25, 5, f"{overs_bowled:.1f}", 1, 0, "C")
+                    pdf.cell(25, 5, str(b.get("runs", 0)), 1, 0, "C")
+                    pdf.cell(25, 5, str(b.get("wickets", 0)), 1, 0, "C")
+                    pdf.cell(55, 5, f"{economy:.2f}", 1, 1, "C")
         
-        # Innings 2
+        # Innings 2 (similar structure)
         d2 = m["innings_2"]
         if d2["b1"]["name"]:
             pdf.add_page()
@@ -312,42 +361,105 @@ def generate_simple_pdf(m):
             pdf.cell(0, 6, f"Score: {d2['runs']}/{d2['wickets']} ({overs2} overs)", ln=True)
             pdf.ln(3)
             
+            # Batting Header
             pdf.set_font("Arial", "B", 9)
-            pdf.cell(50, 6, "Batsman", 1)
+            pdf.cell(55, 6, "Batsman", 1)
             pdf.cell(20, 6, "Runs", 1, 0, "C")
             pdf.cell(20, 6, "Balls", 1, 0, "C")
             pdf.cell(20, 6, "4s", 1, 0, "C")
             pdf.cell(20, 6, "6s", 1, 0, "C")
-            pdf.cell(60, 6, "Status", 1, 1, "C")
+            pdf.cell(50, 6, "Status", 1, 1, "C")
             
             pdf.set_font("Arial", "", 8)
-            for b in [d2["b1"], d2["b2"]]:
-                if b["name"]:
-                    pdf.cell(50, 5, b["name"][:25], 1)
-                    pdf.cell(20, 5, str(b["runs"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
-                    pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
-                    pdf.cell(60, 5, b.get("status", "Active")[:20], 1, 1, "C")
+            if d2["b1"]["name"]:
+                pdf.cell(55, 5, d2["b1"]["name"][:25], 1)
+                pdf.cell(20, 5, str(d2["b1"]["runs"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b1"]["balls"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b1"].get("fours", 0)), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b1"].get("sixes", 0)), 1, 0, "C")
+                pdf.cell(50, 5, d2["b1"].get("status", "Active")[:20], 1, 1, "C")
+            
+            if d2["b2"]["name"]:
+                pdf.cell(55, 5, d2["b2"]["name"][:25], 1)
+                pdf.cell(20, 5, str(d2["b2"]["runs"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b2"]["balls"]), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b2"].get("fours", 0)), 1, 0, "C")
+                pdf.cell(20, 5, str(d2["b2"].get("sixes", 0)), 1, 0, "C")
+                pdf.cell(50, 5, d2["b2"].get("status", "Active")[:20], 1, 1, "C")
             
             for b in d2.get("all_batsmen_history", []):
-                if b["name"]:
-                    pdf.cell(50, 5, b["name"][:25], 1)
-                    pdf.cell(20, 5, str(b["runs"]), 1, 0, "C")
-                    pdf.cell(20, 5, str(b["balls"]), 1, 0, "C")
+                if b.get("name"):
+                    pdf.cell(55, 5, b["name"][:25], 1)
+                    pdf.cell(20, 5, str(b.get("runs", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("balls", 0)), 1, 0, "C")
                     pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
                     pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
-                    pdf.cell(60, 5, b.get("status", "Out")[:20], 1, 1, "C")
+                    pdf.cell(50, 5, b.get("status", "Out")[:20], 1, 1, "C")
+            
+            # Bowling figures for innings 2
+            pdf.ln(3)
+            pdf.set_font("Arial", "B", 9)
+            pdf.cell(0, 6, "Bowling", ln=True)
+            pdf.cell(55, 6, "Bowler", 1)
+            pdf.cell(25, 6, "Overs", 1, 0, "C")
+            pdf.cell(25, 6, "Runs", 1, 0, "C")
+            pdf.cell(25, 6, "Wickets", 1, 0, "C")
+            pdf.cell(55, 6, "Economy", 1, 1, "C")
+            
+            pdf.set_font("Arial", "", 8)
+            if d2["bowler"]["name"]:
+                overs_bowled = d2["bowler"]["balls"] / 6
+                economy = d2["bowler"]["runs"] / overs_bowled if overs_bowled > 0 else 0
+                pdf.cell(55, 5, d2["bowler"]["name"][:25], 1)
+                pdf.cell(25, 5, f"{overs_bowled:.1f}", 1, 0, "C")
+                pdf.cell(25, 5, str(d2["bowler"]["runs"]), 1, 0, "C")
+                pdf.cell(25, 5, str(d2["bowler"]["wickets"]), 1, 0, "C")
+                pdf.cell(55, 5, f"{economy:.2f}", 1, 1, "C")
+            
+            for b in d2.get("all_bowlers_history", []):
+                if b.get("name"):
+                    overs_bowled = b.get("balls", 0) / 6
+                    economy = b.get("runs", 0) / overs_bowled if overs_bowled > 0 else 0
+                    pdf.cell(55, 5, b["name"][:25], 1)
+                    pdf.cell(25, 5, f"{overs_bowled:.1f}", 1, 0, "C")
+                    pdf.cell(25, 5, str(b.get("runs", 0)), 1, 0, "C")
+                    pdf.cell(25, 5, str(b.get("wickets", 0)), 1, 0, "C")
+                    pdf.cell(55, 5, f"{economy:.2f}", 1, 1, "C")
         
-        # Get PDF output as bytes
-        output = pdf.output(dest='S')
-        if isinstance(output, str):
-            return output.encode('latin-1')
-        return output
+        # Generate PDF output as bytes (FIXED)
+        try:
+            # For newer versions of fpdf2
+            pdf_output = pdf.output()
+            if isinstance(pdf_output, str):
+                return pdf_output.encode('latin-1')
+            elif isinstance(pdf_output, bytes):
+                return pdf_output
+            else:
+                # Alternative method for older versions
+                output_buffer = io.BytesIO()
+                pdf.output(output_buffer)
+                return output_buffer.getvalue()
+        except:
+            # Fallback: use BytesIO directly
+            output_buffer = io.BytesIO()
+            pdf.output(output_buffer)
+            return output_buffer.getvalue()
         
     except Exception as e:
-        st.error(f"PDF Error: {str(e)}")
-        return b""
+        st.error(f"PDF Generation Error: {str(e)}")
+        # Return a minimal valid PDF
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "Error Generating Scorecard", ln=True, align="C")
+            pdf.set_font("Arial", "", 12)
+            pdf.cell(0, 10, f"Error: {str(e)[:50]}", ln=True, align="C")
+            output_buffer = io.BytesIO()
+            pdf.output(output_buffer)
+            return output_buffer.getvalue()
+        except:
+            return b""
 
 @st.cache_resource
 def get_tournament_database():
@@ -414,7 +526,7 @@ with tab_teams:
 # ================= TAB: LIVE CONSOLE ENGINE =================
 with tab_live:
     if is_admin:
-        with st.expander("🛠  Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
+        with st.expander("🛠 Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
             st.markdown("#### Initialize a Brand New Match Instance")
             with st.form("new_match_allocation_form"):
                 new_m_id = st.text_input("Unique Match Identifier Name (e.g., Match_01):")
