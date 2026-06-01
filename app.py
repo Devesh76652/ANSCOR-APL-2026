@@ -17,7 +17,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
-# Team Database
+# Team Database - FIXED FILE NAMES
 TEAM_DB = {
     "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
@@ -57,7 +57,7 @@ TEAM_DB = {
     }
 }
 
-# Initialize session state for additional features
+# Initialize session state
 if 'player_stats' not in st.session_state:
     st.session_state.player_stats = defaultdict(lambda: {
         "matches": 0, "runs": 0, "balls": 0, "fours": 0, "sixes": 0,
@@ -70,6 +70,16 @@ if 'commentary_store' not in st.session_state:
 if 'scheduled_matches' not in st.session_state:
     st.session_state.scheduled_matches = []
 
+def get_team_data(team_name):
+    """Safely get team data with fallback"""
+    if team_name in TEAM_DB:
+        return TEAM_DB[team_name]
+    # Try to find by case-insensitive match
+    for key in TEAM_DB:
+        if key.lower() == team_name.lower():
+            return TEAM_DB[key]
+    return {"remote": "", "local": "", "squad": []}
+
 def get_image_base64(local_path, remote_url=""):
     if local_path and os.path.exists(local_path):
         try:
@@ -80,7 +90,7 @@ def get_image_base64(local_path, remote_url=""):
     return ""
 
 def get_team_logo_base64(team_name):
-    team_data = TEAM_DB.get(team_name, {})
+    team_data = get_team_data(team_name)
     local_path = team_data.get("local", "")
     if local_path and os.path.exists(local_path):
         try:
@@ -103,6 +113,7 @@ def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=F
             stats["fifties"] += 1
         if runs >= 100:
             stats["hundreds"] += 1
+        stats["matches"] += 1
     if wicket:
         stats["wickets"] += 1
     if overs > 0:
@@ -216,7 +227,6 @@ st.markdown("""
         margin: 10px;
         border: 1px solid rgba(59,130,246,0.3);
         transition: all 0.3s ease;
-        cursor: pointer;
     }
     .team-card:hover {
         transform: translateY(-5px);
@@ -411,7 +421,7 @@ with st.sidebar:
         except:
             pass
 
-# Main Tabs - ALL 6 TABS
+# Main Tabs
 tab_live, tab_analytics, tab_players, tab_rankings, tab_schedule, tab_teams = st.tabs([
     "🏏 Live", "📊 Analytics", "👤 Players", "🏆 Rankings", "📅 Schedule", "👥 Teams"
 ])
@@ -424,17 +434,13 @@ with tab_teams:
     cols = st.columns(3)
     for idx, (team_name, team_data) in enumerate(TEAM_DB.items()):
         with cols[idx % 3]:
+            # Display logo
             logo_base64 = get_team_logo_base64(team_name)
             if logo_base64:
-                st.markdown(f"""
-                    <div class="team-card">
-                        <img src="data:image/jpeg;base64,{logo_base64}" class="team-logo-large">
-                        <div class="team-name-large">{team_name}</div>
-                    </div>
-                """, unsafe_allow_html=True)
+                st.image(f"data:image/jpeg;base64,{logo_base64}", width=100)
             else:
                 st.image(team_data["remote"], width=100)
-                st.markdown(f"<div style='text-align:center; font-weight:bold;'>{team_name}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; font-weight:bold; margin-top:5px;'>{team_name}</div>", unsafe_allow_html=True)
             
             if st.button(f"📋 Squad", key=f"squad_{idx}"):
                 with st.expander(f"{team_name} Squad ({len(team_data['squad'])} Players)", expanded=True):
@@ -704,8 +710,12 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
-            bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
+            # Get team data safely
+            batting_data = get_team_data(batting)
+            bowling_data = get_team_data(bowling)
+            
+            b_logo = get_image_base64(batting_data.get("local", ""), batting_data.get("remote", ""))
+            bowl_logo = get_image_base64(bowling_data.get("local", ""), bowling_data.get("remote", ""))
             
             if innings_complete:
                 status_badge = '<span class="finished-indicator">FINISHED</span>'
@@ -1035,5 +1045,3 @@ with tab_live:
                             mime="application/pdf",
                             use_container_width=True
                         )
-
-print("✅ APL 2026 Cricket Scorer is ready!")
