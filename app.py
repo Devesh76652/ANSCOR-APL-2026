@@ -10,17 +10,11 @@ from datetime import datetime
 # Background auto-refresh integration
 try:
     from streamlit_autorefresh import st_autorefresh
-    AUTOREFRESH_AVAILABLE = True
 except ImportError:
-    AUTOREFRESH_AVAILABLE = False
+    st.error("Please ensure 'streamlit-autorefresh' is added to your requirements.txt file!")
 
 # Page Configuration
-st.set_page_config(
-    page_title="APL 2026 - Cricket Scoring System", 
-    page_icon="🏏", 
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide")
 
 # Raw GitHub repository directory path configuration
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
@@ -124,209 +118,26 @@ def smart_load_image(local_path, remote_url, width=None, use_container=True):
     except: pass
     return False
 
-# Enhanced Custom CSS Stylesheet
+# Custom CSS Stylesheet Config
 st.markdown("""
     <style>
-    .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    
-    .block-container {
-        padding: 1rem 1.5rem !important;
-        max-width: 1400px !important;
-        margin: 0 auto !important;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    }
-    
+    .block-container { padding: 0.5rem 1rem !important; max-width: 100% !important; }
     .score-box {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        padding: 20px 25px;
-        border-radius: 16px;
-        text-align: center;
-        margin-bottom: 20px;
-        position: relative;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        transition: transform 0.3s;
+        background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); color: white;
+        padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 10px;
+        border: 2px solid #1E40AF; position: relative; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
-    
-    .score-box:hover {
-        transform: translateY(-2px);
-    }
-    
     .status-badge {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: bold;
-        letter-spacing: 1px;
+        position: absolute; top: 10px; right: 15px; background-color: #EF4444; color: white;
+        padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; letter-spacing: 1px;
     }
-    
-    .mobile-card {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 15px;
-        color: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    
+    .mobile-card { background-color: #1E293B; border: 1px solid #334155; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
     .ball-bubble {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        margin: 4px;
-        font-weight: 800;
-        font-size: 0.9rem;
-        transition: transform 0.2s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+        border-radius: 50%; margin: 3px; font-weight: 800; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);
     }
-    
-    .ball-bubble:hover {
-        transform: scale(1.1);
-    }
-    
-    .team-block-container {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        border-radius: 16px;
-        padding: 20px;
-        text-align: center;
-        margin-bottom: 15px;
-        transition: transform 0.3s;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    
-    .team-block-container:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    }
-    
-    .team-block-container h4 {
-        color: #ffd700;
-        margin-top: 10px;
-        font-weight: bold;
-    }
-    
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 12px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    div[data-testid="stMetric"] label {
-        color: #1e3c72 !important;
-        font-weight: 600 !important;
-    }
-    
-    div[data-testid="stMetric"] div {
-        color: #e94560 !important;
-        font-weight: bold !important;
-    }
-    
-    .stButton > button {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 8px 20px;
-        font-weight: 600;
-        transition: all 0.3s;
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(30,60,114,0.3);
-    }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background: #f0f2f5;
-        padding: 8px;
-        border-radius: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 25px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #1e3c72;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
-        color: white !important;
-    }
-    
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 10px;
-        color: #1e3c72;
-        font-weight: 600;
-    }
-    
-    [data-testid="stSidebar"] {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: white !important;
-    }
-    
-    [data-testid="stSidebar"] .stRadio label {
-        color: white !important;
-    }
-    
-    @media (max-width: 768px) {
-        .block-container {
-            padding: 0.5rem !important;
-        }
-        
-        .score-box h1 {
-            font-size: 2rem !important;
-        }
-        
-        .ball-bubble {
-            width: 30px;
-            height: 30px;
-            font-size: 0.75rem;
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            padding: 5px 12px;
-            font-size: 0.75rem;
-        }
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .score-box, .mobile-card, .team-block-container {
-        animation: fadeIn 0.5s ease-out;
-    }
-    
-    hr {
-        margin: 20px 0;
-        border: none;
-        height: 2px;
-        background: linear-gradient(90deg, #1e3c72, #2a5298, #1e3c72);
-    }
+    .team-block-container { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 12px; text-align: center; margin-bottom: 10px; }
+    div[data-testid="stMetric"] { background-color: #1E293B; padding: 10px; border-radius: 8px; border: 1px solid #334155; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -388,7 +199,7 @@ def get_match_result(m):
     d2 = m["innings_2"]
     
     if d1["b1"]["name"] == "":
-        return "⚙️ Setup State: Awaiting match lineup configuration."
+        return "Setup State: Awaiting match lineup configuration."
         
     runs_i1 = d1["runs"]
     wickets_i1 = d1["wickets"]
@@ -403,26 +214,26 @@ def get_match_result(m):
     
     if m["current_innings"] == 1:
         if i1_complete:
-            return f"📊 Innings 1 Finished: {m['team_1']} scored {runs_i1}/{wickets_i1}. Ready for run chase."
+            return f"Innings 1 Finished: {m['team_1']} scored {runs_i1}/{wickets_i1}. Ready for run chase."
         else:
-            return f"🏏 Match Active: {m['team_1']} is batting in the 1st Innings."
+            return f"Match Active: {m['team_1']} is batting in the 1st Innings."
             
     target = runs_i1 + 1
     if runs_i2 >= target:
         wickets_won = 10 - wickets_i2
-        return f"🏆 WINNER: {m['team_2']} won by {wickets_won} wickets!"
+        return f"WINNER: {m['team_2']} won by {wickets_won} wickets!"
         
     i2_complete = (balls_i2 >= total_overs * 6) or (wickets_i2 >= 10)
     if i2_complete:
         if runs_i2 < runs_i1:
             margin = runs_i1 - runs_i2
-            return f"🏆 WINNER: {m['team_1']} won by {margin} runs!"
+            return f"WINNER: {m['team_1']} won by {margin} runs!"
         elif runs_i2 == runs_i1:
-            return "🤝 RESULT: Match Ended in a Tie!"
+            return "RESULT: Match Ended in a Tie!"
             
     runs_needed = target - runs_i2
     balls_rem = (total_overs * 6) - balls_i2
-    return f"🎯 CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
+    return f"CHASE: {m['team_2']} needs {runs_needed} runs from {balls_rem} balls to win."
 
 def clean_for_pdf(text):
     if text is None:
@@ -445,10 +256,18 @@ def clean_for_pdf(text):
         "]+", flags=re.UNICODE)
     text = emoji_pattern.sub(r'', text)
     
+    replacements = {
+        "🏆": "WINNER:", "👔": "TIE:", "👉": ">", "🟢": "", "🟠": "", "🟡": "", 
+        "🏏": "", "👤": "", "🥎": "", "🎛️": "", "📥": "", "🛠": "", "⚡": "", "📢": ""
+    }
+    for emoji, rep in replacements.items():
+        text = text.replace(emoji, rep)
+        
     return text.encode('ascii', 'ignore').decode('ascii')
 
+# FIXED PDF GENERATION FUNCTION
 def generate_pdf_bytes(m):
-    """Generate PDF scorecard with full match details - FIXED VERSION"""
+    """Generate PDF scorecard - FIXED VERSION"""
     try:
         m = ensure_match_keys(m)
         
@@ -463,14 +282,14 @@ def generate_pdf_bytes(m):
         pdf.add_page()
         
         # Header
-        pdf.set_font("Arial", "B", 18)
-        pdf.cell(0, 15, "APL 2026 - MATCH SCORECARD", ln=True, align="C")
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 10, "APL 2026 - MATCH SCORECARD", ln=True, align="C")
         pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 8, clean_for_pdf(f"{m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs Match)"), ln=True, align="C")
         pdf.set_font("Arial", "", 10)
         pdf.cell(0, 6, f"Match ID: {m['id']} | Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
         pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
-        pdf.ln(8)
+        pdf.ln(6)
         
         # Result
         match_outcome = get_match_result(m)
@@ -599,8 +418,10 @@ def generate_pdf_bytes(m):
                     
             pdf.ln(8)
         
-        # Get PDF output and convert to bytes correctly
+        # FIXED: Get PDF output properly
         pdf_output = pdf.output(dest='S')
+        
+        # Convert to bytes correctly
         if isinstance(pdf_output, str):
             return pdf_output.encode('latin-1', errors='replace')
         elif isinstance(pdf_output, bytes):
@@ -628,123 +449,92 @@ with lock:
         db_global["matches"][m_id] = ensure_match_keys(db_global["matches"][m_id])
 
 # --- SQUAD MODAL ---
-@st.dialog("📋 Squad Roster Profile", width="large")
+@st.dialog("📋 Squad Roster Profile")
 def show_squad_popup(team_name):
-    st.markdown(f"### 🏏 {team_name} Squad")
+    st.markdown(f"### {team_name} Squad")
     st.write("---")
     squad_members = TEAM_DB[team_name]["squad"]
-    cols = st.columns(3)
-    mid = (len(squad_members) + 2) // 3
-    for i, col in enumerate(cols):
-        with col:
-            start = i * mid
-            end = min((i + 1) * mid, len(squad_members))
-            for p in squad_members[start:end]:
-                st.markdown(f"• {p}")
+    cols = st.columns(2)
+    mid = (len(squad_members) + 1) // 2
+    with cols[0]:
+        for p in squad_members[:mid]: st.markdown(f"• {p}")
+    with cols[1]:
+        for p in squad_members[mid:]: st.markdown(f"• {p}")
 
 # --- SECURITY SYSTEM CONTROL SIDEBAR ---
-with st.sidebar:
-    st.markdown("## 🏏 APL 2026")
-    st.markdown("### 🔑 Live System Portal")
-    st.markdown("---")
-    
-    user_role = st.radio("Your Access Profile:", ["📢 Player View", "⚡ Scorer Mode"], key="user_role_radio")
-    
-    is_admin = False
-    if user_role == "⚡ Scorer Mode":
-        password = st.text_input("Enter Admin Password:", type="password", key="admin_password_input")
-        if password == "anscor2026":
-            is_admin = True
-            st.success("✅ Admin Controls Connected!")
-        elif password != "":
-            st.error("❌ Invalid Security Credentials")
-    else:
-        if AUTOREFRESH_AVAILABLE:
-            st_autorefresh(interval=3000, key="broadcast_pulse")
-    
-    st.markdown("---")
-    st.caption("© 2026 APL Tournament")
+st.sidebar.markdown("### 🔑 Live System Portal")
+user_role = st.sidebar.radio("Your Access Profile:", ["📢 Player View (Live Auto-Sync)", "⚡ Scorer Panel (Admin Mode)"])
+
+is_admin = False
+if user_role == "⚡ Scorer Panel (Admin Mode)":
+    password = st.sidebar.text_input("Enter Admin Password:", type="password")
+    if password == "anscor2026":
+        is_admin = True
+        st.sidebar.success("Admin Controls Connected!")
+    elif password != "":
+        st.sidebar.error("Invalid Security Credentials")
+else:
+    st_autorefresh(interval=3000, key="broadcast_pulse")
 
 # Global Permanent Navigation Structure
-tab_live, tab_review, tab_teams = st.tabs(["📺 LIVE MATCH", "🗄️ MATCH ARCHIVES", "📋 TEAM PROFILES"])
+tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
 
 # ================= TAB: TEAM PROFILE REVIEWS =================
 with tab_teams:
-    st.markdown("### 🏆 Tournament Teams")
+    st.markdown("### Tournament Roster Groups")
     t_cols = st.columns(3)
     for idx, t_name in enumerate(TEAM_DB.keys()):
         with t_cols[idx % 3]:
             st.markdown('<div class="team-block-container">', unsafe_allow_html=True)
             smart_load_image(TEAM_DB[t_name]["local"], TEAM_DB[t_name]["remote"], use_container=True)
             st.markdown(f"#### {t_name}")
-            if st.button(f"📋 View Squad", key=f"squad_popup_key_{idx}", use_container_width=True):
+            if st.button(f"View Squad Roster", key=f"squad_popup_key_{idx}", use_container_width=True):
                 show_squad_popup(t_name)
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= TAB: LIVE CONSOLE ENGINE =================
 with tab_live:
     if is_admin:
-        with st.expander("🛠 Match Administration Hub", expanded=not bool(db_global["active_match_id"])):
-            st.markdown("#### Create New Match")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                with st.form("new_match_allocation_form"):
-                    new_m_id = st.text_input("Match ID:", placeholder="Match_01", key="new_match_id_input")
-                    team_a = st.selectbox("Batting First:", list(TEAM_DB.keys()), index=0, key="team_a_select")
-                    team_b = st.selectbox("Bowling First:", list(TEAM_DB.keys()), index=1, key="team_b_select")
-                    match_ovs = st.number_input("Overs:", min_value=1, max_value=20, value=4, key="match_overs_input")
-                    
-                    submitted = st.form_submit_button("🚀 Create Match", use_container_width=True)
-                    if submitted:
-                        if new_m_id and team_a != team_b:
-                            with lock:
-                                db_global["matches"][new_m_id] = {
-                                    "id": new_m_id, "team_1": team_a, "team_2": team_b,
-                                    "total_overs": match_ovs, "current_innings": 1, "match_complete": False,
-                                    "innings_1": init_blank_innings(), "innings_2": init_blank_innings()
-                                }
-                                db_global["active_match_id"] = new_m_id
-                            st.success(f"✅ Match '{new_m_id}' created successfully!")
-                            st.rerun()
-                        else:
-                            st.error("Please enter unique ID and different teams")
-            
-            with col2:
-                if db_global["matches"]:
-                    st.markdown("#### Manage Matches")
-                    matches_list = list(db_global["matches"].keys())
-                    default_index = matches_list.index(db_global["active_match_id"]) if db_global["active_match_id"] in matches_list else 0
-                    selected_focus = st.selectbox("Select Match:", matches_list, index=default_index, key="select_match_admin")
-                    
-                    if st.button("Set Active", use_container_width=True, key="set_active_btn"):
-                        db_global["active_match_id"] = selected_focus
+        with st.expander("🛠  Match Allocation Parameters & Inning Control Hub", expanded=not bool(db_global["active_match_id"])):
+            st.markdown("#### Initialize a Brand New Match Instance")
+            with st.form("new_match_allocation_form"):
+                new_m_id = st.text_input("Unique Match Identifier Name (e.g., Match_01):")
+                team_a = st.selectbox("Innings 1 - Batting Team", list(TEAM_DB.keys()), index=0)
+                team_b = st.selectbox("Innings 1 - Bowling Team", list(TEAM_DB.keys()), index=1)
+                match_ovs = st.number_input("Target Match Overs Limits:", min_value=1, max_value=20, value=4)
+                
+                if st.form_submit_button("Launch & Register Match Ecosystem 🏁"):
+                    if new_m_id and team_a != team_b:
+                        with lock:
+                            db_global["matches"][new_m_id] = {
+                                "id": new_m_id, "team_1": team_a, "team_2": team_b,
+                                "total_overs": match_ovs, "current_innings": 1, "match_complete": False,
+                                "innings_1": init_blank_innings(), "innings_2": init_blank_innings()
+                            }
+                            db_global["active_match_id"] = new_m_id
+                        st.success(f"Match '{new_m_id}' configured successfully.")
                         st.rerun()
-                    
-                    if db_global["active_match_id"] in db_global["matches"]:
-                        active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
-                        if active_match["current_innings"] == 1:
-                            innings1_complete = (active_match["innings_1"]["balls"] >= active_match["total_overs"] * 6) or (active_match["innings_1"]["wickets"] >= 10)
-                            if innings1_complete:
-                                if st.button("➡️ Start Innings 2", type="primary", use_container_width=True, key="start_innings_2_btn"):
-                                    with lock:
-                                        active_match["current_innings"] = 2
-                                    st.success("Moving to Innings 2!")
-                                    st.rerun()
+
+            if db_global["matches"]:
+                st.markdown("---")
+                selected_focus = st.selectbox("Switch Active Admin Stream Focus Window:", list(db_global["matches"].keys()), index=list(db_global["matches"].keys()).index(db_global["active_match_id"]) if db_global["active_match_id"] else 0)
+                if st.button("Apply Selected Focus Switch Stream"):
+                    db_global["active_match_id"] = selected_focus
+                    st.rerun()
+                
+                if db_global["active_match_id"] in db_global["matches"]:
+                    active_match = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
+                    if active_match["current_innings"] == 1:
+                        if st.button("🔄 Transition Match to Innings 2 ➡️", type="primary", use_container_width=True):
+                            with lock:
+                                active_match["current_innings"] = 2
+                            st.success("Match flipped cleanly over to Innings 2!")
+                            st.rerun()
 
     if not db_global["active_match_id"] or db_global["active_match_id"] not in db_global["matches"]:
-        st.info("⏳ No active match. Please create one using admin panel.")
+        st.info("⏳ Waiting for active tournament score tracking initiation across layers...")
     else:
         m_instance = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
-        
-        # Auto-switch to innings 2 when innings 1 is complete
-        if m_instance["current_innings"] == 1:
-            inn1_complete = (m_instance["innings_1"]["balls"] >= m_instance["total_overs"] * 6) or (m_instance["innings_1"]["wickets"] >= 10)
-            if inn1_complete and m_instance["innings_1"]["b1"]["name"]:
-                with lock:
-                    m_instance["current_innings"] = 2
-                st.rerun()
-        
         inn_key = "innings_1" if m_instance["current_innings"] == 1 else "innings_2"
         inn_data = m_instance[inn_key]
         
@@ -752,48 +542,23 @@ with tab_live:
         bowl_team = m_instance["team_2"] if m_instance["current_innings"] == 1 else m_instance["team_1"]
         target_score = (m_instance["innings_1"]["runs"] + 1) if m_instance["current_innings"] == 2 else None
         
-        # PDF Export Button at Top
-        st.markdown("---")
-        col_pdf_top1, col_pdf_top2, col_pdf_top3 = st.columns([1, 2, 1])
-        with col_pdf_top2:
-            pdf_data = generate_pdf_bytes(m_instance)
-            if pdf_data and len(pdf_data) > 100:
-                st.download_button(
-                    label="📥 EXPORT MATCH SCORECARD (PDF)",
-                    data=pdf_data,
-                    file_name=f"APL_{m_instance['id']}_Match_Report.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    type="primary",
-                    key="pdf_top_export_btn"
-                )
-            else:
-                st.info("📄 PDF will be available once match has data")
-        st.markdown("---")
-        
         if inn_data["b1"]["name"] == "":
             if is_admin:
-                st.warning(f"⚙️ Configure batting lineup for Innings #{m_instance['current_innings']}")
+                st.warning(f"Configure active opening rosters for Innings #{m_instance['current_innings']}")
                 with st.form(f"opening_lineup_setup_{inn_key}"):
                     bat_squad = TEAM_DB[bat_team]["squad"] if bat_team in TEAM_DB else ["Player 1", "Player 2"]
                     bowl_squad = TEAM_DB[bowl_team]["squad"] if bowl_team in TEAM_DB else ["Player 1", "Player 2"]
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        p1 = st.selectbox("Striker", bat_squad, index=0, key="striker_select")
-                    with col2:
-                        p2 = st.selectbox("Non-Striker", bat_squad, index=1 if len(bat_squad) > 1 else 0, key="non_striker_select")
-                    with col3:
-                        bw = st.selectbox("Opening Bowler", bowl_squad, index=0, key="opening_bowler_select")
-                    
-                    if st.form_submit_button("🏏 Start Match", use_container_width=True):
+                    p1 = st.selectbox("Striker Batsman", bat_squad, index=0)
+                    p2 = st.selectbox("Non-Striker Batsman", bat_squad, index=1 if len(bat_squad) > 1 else 0)
+                    bw = st.selectbox("Opening Bowler Assignment", bowl_squad, index=0)
+                    if st.form_submit_button("Activate Opening Rosters Lineups"):
                         with lock:
                             inn_data["b1"]["name"] = p1
                             inn_data["b2"]["name"] = p2
                             inn_data["bowler"]["name"] = bw
                         st.rerun()
             else:
-                st.info(f"⏳ Waiting for scorer to start Innings #{m_instance['current_innings']}")
+                st.info(f"⏳ Waiting for scorer initialization parameters for Innings #{m_instance['current_innings']}")
         else:
             comp_ov = inn_data["balls"] // 6
             rem_bl = inn_data["balls"] % 6
@@ -804,9 +569,9 @@ with tab_live:
             if target_score and inn_data["runs"] >= target_score:
                 innings_ended = True
                 
-            status_tag = "🏁 FINISHED" if innings_ended else "🟢 LIVE"
+            status_tag = "FINISHED" if innings_ended else "LIVE"
 
-            l_col, r_col = st.columns([1.2, 0.8])
+            l_col, r_col = st.columns([1.1, 0.9])
             
             with l_col:
                 b_local = TEAM_DB[bat_team]["local"] if bat_team in TEAM_DB else ""
@@ -816,91 +581,80 @@ with tab_live:
                 
                 b_logo_src = get_image_src(b_local, b_remote)
                 f_logo_src = get_image_src(f_local, f_remote)
+                t_logo_src = get_tournament_logo_src()
                 
+                # Dynamic Flex Row containing Team Logos along with the Tournament Brand logo at the center
                 st.markdown(f"""
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 15px;">
-                        <div style="text-align: center;">
-                            <img src="{b_logo_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 12px;">
-                            <div style="font-weight: bold; margin-top: 5px;">{bat_team}</div>
-                        </div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #e94560;">VS</div>
-                        <div style="text-align: center;">
-                            <img src="{f_logo_src}" style="width: 70px; height: 70px; object-fit: contain; border-radius: 12px;">
-                            <div style="font-weight: bold; margin-top: 5px;">{bowl_team}</div>
-                        </div>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 25px; margin-bottom: 12px; width: 100%;">
+                        <div style="text-align: center; width: 65px;"><img src="{b_logo_src}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;"></div>
+                        {"<div style='text-align: center; width: 75px;'><img src='" + t_logo_src + "' style='width: 70px; height: 70px; object-fit: contain;'></div>" if t_logo_src else "<div style='font-size: 1.2rem; font-weight: 800; color: #3B82F6;'>VS</div>"}
+                        <div style="text-align: center; width: 65px;"><img src="{f_logo_src}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;"></div>
                     </div>
                 """, unsafe_allow_html=True)
 
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status_tag}</span>
-                        <h1 style="font-size: 3.5rem; margin: 5px 0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
-                        <h4>Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h4>
-                        <h4>Run Rate: {crr:.2f}</h4>
+                        <h4 style="margin:0; font-weight:700;">{bat_team} vs {bowl_team}</h4>
+                        <h1 style="font-size:3.5rem; margin:5px 0;">{inn_data['runs']} - {inn_data['wickets']}</h1>
+                        <h5 style="margin:0; color:#93C5FD;">Overs: {comp_ov}.{rem_bl} / {m_instance['total_overs']}</h5>
+                        <h5 style="margin:6px 0 0 0; font-weight:800; color:#34D399;">Current Run Rate (CRR): {crr:.2f}</h5>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 if target_score:
-                    runs_needed = target_score - inn_data['runs']
-                    balls_rem = (m_instance['total_overs'] * 6) - inn_data['balls']
-                    if runs_needed > 0:
-                        st.warning(f"🎯 Target: {target_score} | Need {runs_needed} runs from {balls_rem} balls")
-                    else:
-                        st.success(f"🏆 {bat_team} WINS!")
+                    st.warning(f"🎯 Target Chase: {target_score} (Needs {target_score - inn_data['runs']} runs off {(m_instance['total_overs']*6) - inn_data['balls']} balls)")
 
-                col1, col2 = st.columns(2)
-                col1.metric("Extras", f"{inn_data['extras'] + inn_data.get('penalty', 0)}")
-                col2.metric("CRR", f"{crr:.2f}")
+                m_c1, m_c2 = st.columns(2)
+                m_c1.metric("Extras Granted", f"{inn_data['extras'] + inn_data.get('penalty', 0)}")
+                m_c2.metric("Current Run Rate (CRR Summary)", f"{crr:.2f}")
 
-                st.markdown("##### 📦 Current Over")
+                st.markdown("##### 📦 Over Timeline Tracker")
                 if inn_data["this_over"]:
                     html_b = ""
                     for b in inn_data["this_over"]:
                         bg_color = "#475569"
                         if str(b) in ["4", "6"]: bg_color = "#10B981"
                         elif "W" in str(b): bg_color = "#EF4444"
-                        elif "WD" in str(b) or "NB" in str(b): bg_color = "#F59E0B"
-                        html_b += f'<span class="ball-bubble" style="background-color:{bg_color};">{b}</span>'
+                        elif "WD" in str(b) or "NB" in str(b) or "Ex" in str(b) or "Pen" in str(b): bg_color = "#D97706"
+                        html_b += f'<span class="ball-bubble" style="background-color:{bg_color}; color:white;">{b}</span>'
                     st.markdown(html_b, unsafe_allow_html=True)
                 else: 
-                    st.caption("No deliveries yet")
+                    st.caption("Waiting for delivery logs...")
                 
                 match_outcome = get_match_result(m_instance)
-                st.info(f"📢 {match_outcome}")
+                st.info(f"📢 Status: {match_outcome}")
 
             with r_col:
                 st.markdown(f"""
                     <div class="mobile-card">
-                        <div style="font-size:0.7rem;"><b>🏏 BATTING</b></div>
-                        <div style="display:flex; justify-content:space-between; margin:5px 0;">
+                        <div style="font-size:0.75rem; color:#94A3B8;"><b>🏏 BATTING PARTNERSHIP</b></div>
+                        <div style="display:flex; justify-content:space-between; margin:2px 0; font-size:0.9rem;">
                             <span>{"👉 " if inn_data['b1']['strike'] else ""}{inn_data['b1']['name']}</span>
-                            <span><b>{inn_data['b1']['runs']}</b> ({inn_data['b1']['balls']}b)</span>
+                            <span><b>{inn_data['b1']['runs']}</b> <span style="color:#A1A1AA; font-size:0.75rem;">({inn_data['b1']['balls']}b)</span></span>
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin:5px 0;">
+                        <div style="display:flex; justify-content:space-between; margin:2px 0; font-size:0.9rem;">
                             <span>{"👉 " if inn_data['b2']['strike'] else ""}{inn_data['b2']['name']}</span>
-                            <span><b>{inn_data['b2']['runs']}</b> ({inn_data['b2']['balls']}b)</span>
+                            <span><b>{inn_data['b2']['runs']}</b> <span style="color:#A1A1AA; font-size:0.75rem;">({inn_data['b2']['balls']}b)</span></span>
                         </div>
-                        <div style="margin-top:10px; font-size:0.7rem;"><b>🥎 BOWLING</b></div>
-                        <div style="display:flex; justify-content:space-between; margin:5px 0;">
-                            <span>{inn_data['bowler']['name']}</span>
-                            <span>W: {inn_data['bowler']['wickets']} | R: {inn_data['bowler']['runs']}</span>
+                        <div style="margin-top:8px; font-size:0.75rem; color:#94A3B8;"><b>🥎 CURRENT OPERATING BOWLER</b></div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+                            <span>👤 {inn_data['bowler']['name']}</span>
+                            <span>Wkts: <b style="color:#EF4444;">{inn_data['bowler']['wickets']}</b> | Runs: <b>{inn_data['bowler']['runs']}</b></span>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
 
                 if is_admin:
-                    st.markdown("### 🎮 Scoring Controls")
+                    st.markdown("### 🎛️ Scoring Input Controls")
                     
                     def process_ball_input(runs_inc, extra_inc=0, is_legal=True, is_wicket=False, symbol=None):
                         with lock:
                             state_snap = copy.deepcopy({
                                 "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
-                                "extras": inn_data["extras"], "penalty": inn_data.get("penalty", 0), 
-                                "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
-                                "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), 
-                                "bowler": copy.deepcopy(inn_data["bowler"]),
-                                "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), 
-                                "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
+                                "extras": inn_data["extras"], "penalty": inn_data.get("penalty", 0), "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
+                                "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), "bowler": copy.deepcopy(inn_data["bowler"]),
+                                "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
                                 "awaiting_batsman": inn_data["awaiting_batsman"], "awaiting_bowler": inn_data["awaiting_bowler"]
                             })
                             if "undo_stack" not in inn_data: inn_data["undo_stack"] = []
@@ -936,14 +690,14 @@ with tab_live:
                                 inn_data["awaiting_batsman"] = True
 
                     if inn_data["awaiting_batsman"]:
-                        st.error("☝️ Wicket! Select new batsman:")
+                        st.error("☝️ Wicket Fallen! Choose Incoming Batsman Below:")
                         used_batsmen = [inn_data["b1"]["name"], inn_data["b2"]["name"]] + [b["name"] for b in inn_data["all_batsmen_history"]]
-                        bat_squad = TEAM_DB[bat_team]["squad"] if bat_team in TEAM_DB else []
+                        bat_squad = TEAM_DB[bat_team]["squad"] if bat_team in TEAM_DB else ["Player 1", "Player 2"]
                         available_batters = [p for p in bat_squad if p not in used_batsmen]
                         if not available_batters: available_batters = bat_squad
                         
-                        next_b = st.selectbox("New Batsman:", available_batters, key="new_batsman_select")
-                        if st.button("Confirm Batsman", type="primary", use_container_width=True, key="confirm_batsman_btn"):
+                        next_b = st.selectbox("Select New Batter:", available_batters, key="inline_select_new_batter")
+                        if st.button("Confirm New Batsman & Resume Play", type="primary", use_container_width=True):
                             with lock:
                                 if inn_data["b1"]["strike"]:
                                     inn_data["b1"]["status"] = f"b {inn_data['bowler']['name']}"
@@ -957,18 +711,16 @@ with tab_live:
                             st.rerun()
                             
                     elif inn_data["awaiting_bowler"]:
-                        st.success("🔄 Over complete! Select next bowler:")
-                        bowl_squad = TEAM_DB[bowl_team]["squad"] if bowl_team in TEAM_DB else []
-                        next_bw = st.selectbox("Next Bowler:", bowl_squad, key="next_bowler_select")
-                        if st.button("Confirm Bowler", type="primary", use_container_width=True, key="confirm_bowler_btn"):
+                        st.success("🔄 Over Completed! Choose the Next Bowler Below:")
+                        bowl_squad = TEAM_DB[bowl_team]["squad"] if bowl_team in TEAM_DB else ["Player 1", "Player 2"]
+                        next_bw = st.selectbox("Select Next Bowler Rotation:", bowl_squad, key="inline_select_new_bowler")
+                        if st.button("Confirm Bowler Rotation & Open Next Over", type="primary", use_container_width=True):
                             with lock:
                                 if inn_data["bowler"]["name"] != "":
                                     inn_data["all_bowlers_history"].append(copy.deepcopy(inn_data["bowler"]))
                                 inn_data["over_history"].append({
-                                    "Over": len(inn_data["over_history"]) + 1, 
-                                    "Bowler": inn_data["bowler"]["name"],
-                                    "Score": f"{inn_data['runs']}/{inn_data['wickets']}", 
-                                    "Timeline": ", ".join(map(str, inn_data["this_over"]))
+                                    "Over": len(inn_data["over_history"]) + 1, "Bowler": inn_data["bowler"]["name"],
+                                    "Score": f"{inn_data['runs']}/{inn_data['wickets']}", "Timeline": ", ".join(map(str, inn_data["this_over"]))
                                 })
                                 inn_data["this_over"] = []
                                 inn_data["bowler"] = {"name": next_bw, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
@@ -976,63 +728,48 @@ with tab_live:
                             st.rerun()
 
                     elif not innings_ended:
-                        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
-                        with col_btn1:
-                            if st.button("0", use_container_width=True, key="runs_0"):
-                                process_ball_input(0, 0, True)
-                                st.rerun()
-                        with col_btn2:
-                            if st.button("1", use_container_width=True, key="runs_1"):
-                                process_ball_input(1, 0, True)
-                                st.rerun()
-                        with col_btn3:
-                            if st.button("2", use_container_width=True, key="runs_2"):
-                                process_ball_input(2, 0, True)
-                                st.rerun()
-                        with col_btn4:
-                            if st.button("3", use_container_width=True, key="runs_3"):
-                                process_ball_input(3, 0, True)
-                                st.rerun()
+                        b_c1, b_c2, b_c3, b_c4 = st.columns(4)
+                        if b_c1.button("0 Runs", use_container_width=True): process_ball_input(0, 0, True); st.rerun()
+                        if b_c2.button("1 Run", use_container_width=True): process_ball_input(1, 0, True); st.rerun()
+                        if b_c3.button("2 Runs", use_container_width=True): process_ball_input(2, 0, True); st.rerun()
+                        if b_c4.button("3 Runs", use_container_width=True): process_ball_input(3, 0, True); st.rerun()
                         
-                        col_btn5, col_btn6, col_btn7, col_btn8 = st.columns(4)
-                        with col_btn5:
-                            if st.button("4", use_container_width=True, key="runs_4"):
-                                process_ball_input(4, 0, True)
-                                (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1
-                                st.rerun()
-                        with col_btn6:
-                            if st.button("6", use_container_width=True, key="runs_6"):
-                                process_ball_input(6, 0, True)
-                                (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1
-                                st.rerun()
-                        with col_btn7:
-                            if st.button("WD", use_container_width=True, key="wide_btn"):
-                                process_ball_input(1, 1, False, symbol="WD")
-                                st.rerun()
-                        with col_btn8:
-                            if st.button("NB", use_container_width=True, key="no_ball_btn"):
-                                process_ball_input(1, 1, False, symbol="NB")
-                                st.rerun()
+                        b_br1, b_br2, b_br3, b_br4 = st.columns(4)
+                        if b_br1.button("🟢 4", use_container_width=True): 
+                            process_ball_input(4, 0, True)
+                            (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1
+                            st.rerun()
+                        if b_br2.button("🟢 6", use_container_width=True): 
+                            process_ball_input(6, 0, True)
+                            (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1
+                            st.rerun()
+                        if b_br3.button("🟡 WD", use_container_width=True): process_ball_input(1, 1, False, symbol="WD"); st.rerun()
+                        if b_br4.button("🟠 NB", use_container_width=True): process_ball_input(1, 1, False, symbol="NB"); st.rerun()
                         
-                        if st.button("☝️ WICKET", type="primary", use_container_width=True, key="wicket_btn"):
+                        st.write("")
+                        if st.button("☝️ OUT / FALL OF WICKET DETECTED", type="primary", use_container_width=True):
                             process_ball_input(runs_inc=0, extra_inc=0, is_legal=True, is_wicket=True, symbol="W")
                             st.rerun()
                     else:
-                        st.success("🏁 Innings complete!")
+                        st.success("🏁 Innings complete.")
 
-                    with st.expander("⚖️ Add Extras/Penalty"):
+                    st.write("")
+                    with st.expander("⚖️ Administrative Extra Runs & Penalty Additions", expanded=False):
                         adj_col1, adj_col2 = st.columns([2, 1])
                         with adj_col1:
-                            adjustment_type = st.selectbox("Type:", ["General Extras", "Penalty Runs"], key="adj_type")
+                            adjustment_type = st.selectbox("Classification Type:", ["General Inning Extras", "Field Penalty Award Runs"], key=f"adj_type_{inn_key}")
                         with adj_col2:
-                            runs_to_add = st.number_input("Runs:", min_value=1, max_value=20, value=1, key="runs_to_add")
+                            runs_to_add = st.number_input("Runs Value:", min_value=1, max_value=20, value=1, step=1, key=f"adj_val_{inn_key}")
                             
-                        if st.button("Add Runs", use_container_width=True, key="add_runs_btn"):
-                            mapped_type = "Extras" if adjustment_type == "General Extras" else "Penalty"
+                        if st.button("Apply Direct Additive Adjustment ⚡", use_container_width=True, type="secondary", key=f"adj_btn_{inn_key}"):
+                            mapped_type = "Extras" if adjustment_type == "General Inning Extras" else "Penalty"
                             with lock:
                                 state_snap = copy.deepcopy({
-                                    "runs": inn_data["runs"], "extras": inn_data["extras"],
-                                    "penalty": inn_data.get("penalty", 0), "this_over": list(inn_data["this_over"])
+                                    "runs": inn_data["runs"], "wickets": inn_data["wickets"], "balls": inn_data["balls"],
+                                    "extras": inn_data["extras"], "penalty": inn_data.get("penalty", 0), "this_over": list(inn_data["this_over"]), "over_history": copy.deepcopy(inn_data["over_history"]),
+                                    "b1": copy.deepcopy(inn_data["b1"]), "b2": copy.deepcopy(inn_data["b2"]), "bowler": copy.deepcopy(inn_data["bowler"]),
+                                    "all_batsmen_history": copy.deepcopy(inn_data["all_batsmen_history"]), "all_bowlers_history": copy.deepcopy(inn_data["all_bowlers_history"]),
+                                    "awaiting_batsman": inn_data["awaiting_batsman"], "awaiting_bowler": inn_data["awaiting_bowler"]
                                 })
                                 if "undo_stack" not in inn_data: inn_data["undo_stack"] = []
                                 inn_data["undo_stack"].append(state_snap)
@@ -1040,111 +777,112 @@ with tab_live:
                                 inn_data["runs"] += runs_to_add
                                 if mapped_type == "Extras":
                                     inn_data["extras"] += runs_to_add
-                                    inn_data["this_over"].append(f"+{runs_to_add}")
+                                    inn_data["this_over"].append(f"+{runs_to_add}Ex")
                                 else:
                                     if "penalty" not in inn_data: inn_data["penalty"] = 0
                                     inn_data["penalty"] += runs_to_add
-                                    inn_data["this_over"].append(f"P+{runs_to_add}")
+                                    inn_data["this_over"].append(f"+{runs_to_add}Pen")
+                            st.success(f"Injected +{runs_to_add} adjustment runs into database score.")
                             st.rerun()
 
+                    st.write("")
                     col_undo, col_swap = st.columns(2)
                     with col_undo:
                         if "undo_stack" in inn_data and inn_data["undo_stack"]:
-                            if st.button("↩️ Undo", use_container_width=True, key="undo_btn"):
+                            if st.button("⚠️ Undo Ball", use_container_width=True):
                                 with lock:
                                     prev_state = inn_data["undo_stack"].pop()
-                                    for k in ["runs", "wickets", "balls", "extras", "penalty", "this_over", 
-                                              "over_history", "b1", "b2", "bowler", "all_batsmen_history", 
-                                              "all_bowlers_history", "awaiting_batsman", "awaiting_bowler"]:
-                                        if k in prev_state:
-                                            inn_data[k] = prev_state[k]
+                                    for k in ["runs", "wickets", "balls", "extras", "penalty", "this_over", "over_history", "b1", "b2", "bowler", "all_batsmen_history", "all_bowlers_history", "awaiting_batsman", "awaiting_bowler"]:
+                                        inn_data[k] = prev_state.get(k, prev_state[k] if k in prev_state else 0)
                                 st.rerun()
+                        else:
+                            st.button("Undo Disabled", disabled=True, use_container_width=True)
                     with col_swap:
                         if not innings_ended and not inn_data["awaiting_batsman"] and not inn_data["awaiting_bowler"]:
-                            if st.button("🔄 Swap", use_container_width=True, key="swap_btn"):
+                            if st.button("🔄 Swap Strike", use_container_width=True):
                                 with lock:
                                     inn_data["b1"]["strike"] = not inn_data["b1"]["strike"]
                                     inn_data["b2"]["strike"] = not inn_data["b2"]["strike"]
                                 st.rerun()
+                        else:
+                            st.button("Swap Disabled", disabled=True, use_container_width=True)
 
-                st.markdown("##### 📊 Over History")
+                st.markdown("##### 📊 Completed Overs Log")
                 if inn_data["over_history"]:
-                    df = pd.DataFrame(inn_data["over_history"])
-                    st.dataframe(df[["Over", "Bowler", "Score", "Timeline"]], use_container_width=True, hide_index=True)
+                    st.dataframe(pd.DataFrame(inn_data["over_history"]), use_container_width=True, hide_index=True)
                 else: 
-                    st.caption("No overs recorded")
+                    st.caption("No archived records.")
 
-            # PDF Export Button at Bottom
+            # PDF Export Section - FIXED
             st.markdown("---")
-            col_pdf_bottom1, col_pdf_bottom2, col_pdf_bottom3 = st.columns([1, 2, 1])
-            with col_pdf_bottom2:
-                pdf_data = generate_pdf_bytes(m_instance)
-                if pdf_data and len(pdf_data) > 100:
-                    st.download_button(
-                        label="📥 EXPORT MATCH SCORECARD (PDF)",
-                        data=pdf_data,
-                        file_name=f"APL_{m_instance['id']}_Match_Report.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                        type="primary",
-                        key="pdf_bottom_export_btn"
-                    )
+            st.markdown("### 📄 Export Match Report")
+            
+            # Generate PDF and provide download button
+            pdf_data = generate_pdf_bytes(m_instance)
+            
+            # Check if PDF has valid data
+            if pdf_data and len(pdf_data) > 500:  # Valid PDF has at least 500 bytes
+                st.download_button(
+                    label="📥 Download Complete Match Scorecard (PDF)",
+                    data=pdf_data,
+                    file_name=f"APL_Match_{str(m_instance['id'])}_FullScorecard.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="global_footer_pdf_export_btn"
+                )
+            else:
+                # Show a helpful message
+                if m_instance["innings_1"]["balls"] > 0 or m_instance["innings_2"]["balls"] > 0:
+                    st.warning("⚠️ PDF is being generated. Please wait a moment and try again.")
                 else:
-                    st.info("📄 PDF will be available once match has data")
-            st.markdown("---")
+                    st.info("📄 PDF will be available once match has data (after some overs are bowled)")
 
 # ================= TAB: TOURNAMENT REVIEW LEDGER =================
 with tab_review:
-    st.markdown("### 📊 Match Archives")
+    st.markdown("### Match Outcome Review Ledgers")
     if not db_global["matches"]:
-        st.info("No matches recorded yet.")
+        st.caption("No historical logs recorded within active engine instances.")
     else:
-        matches_list = list(db_global["matches"].keys())
-        select_review_id = st.selectbox("Select Match:", matches_list, key="review_match_select")
+        select_review_id = st.selectbox("Select Match Profile Key to Audit:", list(db_global["matches"].keys()))
         m_rev = ensure_match_keys(db_global["matches"][select_review_id])
         
-        st.markdown(f"## 🏏 {m_rev['id']}")
-        st.info(f"**{m_rev['team_1']}** vs **{m_rev['team_2']}**")
+        st.markdown(f"## Match Record: {m_rev['id']}")
+        st.info(f"📋 Lineup Setup: **{m_rev['team_1']}** vs **{m_rev['team_2']}**")
         
         d1 = m_rev["innings_1"]
         d2 = m_rev["innings_2"]
         
         match_outcome = get_match_result(m_rev)
-        if "WINNER" in match_outcome:
-            st.success(match_outcome)
-        elif "Tie" in match_outcome:
-            st.warning(match_outcome)
-        else:
-            st.info(match_outcome)
+        st.success(f"🏆 Final Result Summary: {match_outcome}")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader(f"Innings 1: {m_rev['team_1']}")
-            st.metric("Score", f"{d1['runs']} - {d1['wickets']}", f"{d1['balls'] // 6}.{d1['balls'] % 6} overs")
+        rev_i1, rev_i2 = st.tabs(["Innings #1 Complete Report Log", "Innings #2 Complete Report Log"])
+        with rev_i1:
+            st.metric(f"Total Innings 1 Score ({m_rev['team_1']})", f"{d1['runs']} - {d1['wickets']}", f"Overs: {d1['balls'] // 6}.{d1['balls'] % 6}")
             if d1["over_history"]: 
-                st.dataframe(pd.DataFrame(d1["over_history"]), use_container_width=True, hide_index=True)
+                st.table(pd.DataFrame(d1["over_history"]))
             else: 
-                st.caption("No overs recorded")
-        with col2:
-            st.subheader(f"Innings 2: {m_rev['team_2']}")
-            st.metric("Score", f"{d2['runs']} - {d2['wickets']}", f"{d2['balls'] // 6}.{d2['balls'] % 6} overs")
+                st.caption("No historical timelines stored for this inning.")
+        with rev_i2:
+            st.metric(f"Total Innings 2 Score ({m_rev['team_2']})", f"{d2['runs']} - {d2['wickets']}", f"Overs: {d2['balls'] // 6}.{d2['balls'] % 6}")
             if d2["over_history"]: 
-                st.dataframe(pd.DataFrame(d2["over_history"]), use_container_width=True, hide_index=True)
+                st.table(pd.DataFrame(d2["over_history"]))
             else: 
-                st.caption("No overs recorded")
+                st.caption("No historical timelines stored for this inning.")
         
-        # PDF Export Button for Archives
+        # PDF Export for archived match
         st.markdown("---")
         pdf_data = generate_pdf_bytes(m_rev)
-        if pdf_data and len(pdf_data) > 100:
+        if pdf_data and len(pdf_data) > 500:
             st.download_button(
-                label="📥 DOWNLOAD FULL SCORECARD (PDF)",
+                label="📥 Download Archived Match Scorecard (PDF)",
                 data=pdf_data,
-                file_name=f"APL_{m_rev['id']}_Full_Scorecard.pdf",
+                file_name=f"APL_Match_{str(m_rev['id'])}_ArchivedScorecard.pdf",
                 mime="application/pdf",
                 use_container_width=True,
-                type="primary",
-                key="archive_pdf_download"
+                key="archive_pdf_export_btn"
             )
         else:
-            st.info("📄 PDF will be available when match has data")
+            if m_rev["innings_1"]["balls"] > 0 or m_rev["innings_2"]["balls"] > 0:
+                st.info("📄 PDF generation in progress...")
+            else:
+                st.info("📄 No match data available for PDF export")
