@@ -77,15 +77,6 @@ st.markdown("""
         box-shadow: 0 5px 20px rgba(59,130,246,0.5);
         background: linear-gradient(135deg, #2563EB, #1D4ED8);
     }
-    .pdf-button button {
-        background: linear-gradient(135deg, #10B981, #059669);
-        font-size: 18px;
-        padding: 12px 24px;
-    }
-    .pdf-button button:hover {
-        background: linear-gradient(135deg, #059669, #047857);
-        box-shadow: 0 5px 20px rgba(16,185,129,0.5);
-    }
     div[data-testid="column"] button {
         padding: 10px 0;
         font-size: 18px;
@@ -128,6 +119,21 @@ st.markdown("""
     .six-ball { background: #10B981; color: white; }
     .wicket-ball { background: #EF4444; color: white; }
     .extra-ball { background: #F59E0B; color: white; }
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #10B981, #059669) !important;
+        color: white !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        padding: 12px 24px !important;
+        border-radius: 12px !important;
+        width: 100% !important;
+        border: none !important;
+    }
+    .stDownloadButton > button:hover {
+        background: linear-gradient(135deg, #059669, #047857) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 20px rgba(16,185,129,0.5) !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -171,60 +177,62 @@ def get_match_status(m):
             return "🏆 MATCH TIED"
     return f"Need {target - d2['runs']} runs from {total_balls - d2['balls']} balls"
 
-def generate_complete_pdf(m):
+# FIXED PDF GENERATION FUNCTION
+def generate_match_pdf(m):
+    """Generate a simple but complete PDF scorecard"""
     try:
         m = ensure_match(m)
+        
+        # Create PDF
         pdf = FPDF()
         pdf.add_page()
         
-        # Header
-        pdf.set_fill_color(59, 130, 246)
-        pdf.rect(0, 0, 210, 10, 'F')
-        
-        pdf.set_font("Arial", "B", 24)
+        # Tournament Title
+        pdf.set_font("Arial", "B", 20)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 20, "APL 2026", ln=True, align="C")
+        pdf.cell(0, 15, "APL 2026", ln=True, align="C")
         pdf.set_font("Arial", "B", 14)
         pdf.set_text_color(59, 130, 246)
-        pdf.cell(0, 8, "OFFICIAL MATCH SCORECARD", ln=True, align="C")
+        pdf.cell(0, 8, "MATCH SCORECARD", ln=True, align="C")
         pdf.set_text_color(0, 0, 0)
         
-        # Match Info
-        pdf.set_font("Arial", "", 10)
-        pdf.cell(0, 8, f"{m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs)", ln=True, align="C")
-        pdf.cell(0, 6, f"Match ID: {m['id']} | Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+        # Match Details
+        pdf.set_font("Arial", "", 11)
+        pdf.cell(0, 10, f"{m['team_1']} vs {m['team_2']} ({m['total_overs']} Overs)", ln=True, align="C")
+        pdf.set_font("Arial", "", 9)
+        pdf.cell(0, 6, f"Match ID: {m['id']}", ln=True, align="C")
+        pdf.cell(0, 6, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
         
         # Result
         result = get_match_status(m)
         pdf.set_font("Arial", "B", 11)
-        pdf.set_fill_color(220, 240, 220)
+        pdf.set_fill_color(200, 230, 200)
         pdf.rect(10, 70, 190, 10, 'F')
         pdf.set_xy(15, 73)
-        pdf.cell(0, 5, result, ln=True)
-        
-        y = 90
+        pdf.cell(0, 6, result, ln=True)
         
         # Innings 1
         d1 = m["innings_1"]
         if d1["b1"]["name"]:
+            y = 95
             pdf.set_font("Arial", "B", 12)
             pdf.set_fill_color(59, 130, 246)
             pdf.set_text_color(255, 255, 255)
             pdf.rect(10, y, 190, 8, 'F')
             pdf.set_xy(15, y + 2)
-            pdf.cell(0, 5, f"INNINGS 1: {m['team_1']} BATTING", ln=True)
+            pdf.cell(0, 5, f"INNINGS 1: {m['team_1']}", ln=True)
             pdf.set_text_color(0, 0, 0)
-            y += 13
+            y += 12
             
             overs1 = f"{d1['balls']//6}.{d1['balls']%6}"
             rr = d1['runs']/(d1['balls']/6) if d1['balls'] > 0 else 0
             pdf.set_font("Arial", "", 10)
             pdf.cell(0, 7, f"Score: {d1['runs']}/{d1['wickets']} in {overs1} overs (Run Rate: {rr:.2f})", ln=True)
-            y += 5
+            y += 8
             
             # Batting Table
             pdf.set_font("Arial", "B", 9)
-            pdf.set_fill_color(200, 200, 200)
+            pdf.set_fill_color(230, 230, 230)
             pdf.cell(55, 8, "BATSMAN", 1, 0, "C", 1)
             pdf.cell(20, 8, "R", 1, 0, "C", 1)
             pdf.cell(20, 8, "B", 1, 0, "C", 1)
@@ -234,8 +242,9 @@ def generate_complete_pdf(m):
             pdf.cell(50, 8, "STATUS", 1, 1, "C", 1)
             
             pdf.set_font("Arial", "", 8)
+            # Current batsmen
             if d1["b1"]["name"]:
-                sr = d1["b1"]["runs"] * 100 / d1["b1"]["balls"] if d1["b1"]["balls"] > 0 else 0
+                sr = (d1["b1"]["runs"] * 100 / d1["b1"]["balls"]) if d1["b1"]["balls"] > 0 else 0
                 pdf.cell(55, 6, d1["b1"]["name"][:22], 1)
                 pdf.cell(20, 6, str(d1["b1"]["runs"]), 1, 0, "C")
                 pdf.cell(20, 6, str(d1["b1"]["balls"]), 1, 0, "C")
@@ -245,7 +254,7 @@ def generate_complete_pdf(m):
                 pdf.cell(50, 6, "Not Out", 1, 1, "C")
             
             if d1["b2"]["name"]:
-                sr = d1["b2"]["runs"] * 100 / d1["b2"]["balls"] if d1["b2"]["balls"] > 0 else 0
+                sr = (d1["b2"]["runs"] * 100 / d1["b2"]["balls"]) if d1["b2"]["balls"] > 0 else 0
                 pdf.cell(55, 6, d1["b2"]["name"][:22], 1)
                 pdf.cell(20, 6, str(d1["b2"]["runs"]), 1, 0, "C")
                 pdf.cell(20, 6, str(d1["b2"]["balls"]), 1, 0, "C")
@@ -254,9 +263,10 @@ def generate_complete_pdf(m):
                 pdf.cell(25, 6, f"{sr:.1f}", 1, 0, "C")
                 pdf.cell(50, 6, "Not Out", 1, 1, "C")
             
+            # Dismissed batsmen
             for b in d1.get("all_batsmen", []):
                 if b.get("name"):
-                    sr = b.get("runs", 0) * 100 / b.get("balls", 1) if b.get("balls", 0) > 0 else 0
+                    sr = (b.get("runs", 0) * 100 / b.get("balls", 1)) if b.get("balls", 0) > 0 else 0
                     pdf.cell(55, 6, b["name"][:22], 1)
                     pdf.cell(20, 6, str(b.get("runs", 0)), 1, 0, "C")
                     pdf.cell(20, 6, str(b.get("balls", 0)), 1, 0, "C")
@@ -268,22 +278,22 @@ def generate_complete_pdf(m):
             y = pdf.get_y() + 5
             
             # Bowling Table
-            pdf.set_font("Arial", "B", 11)
+            pdf.set_font("Arial", "B", 10)
             pdf.set_fill_color(59, 130, 246)
             pdf.set_text_color(255, 255, 255)
-            pdf.rect(10, y, 190, 8, 'F')
-            pdf.set_xy(15, y + 2)
-            pdf.cell(0, 5, "BOWLING FIGURES", ln=True)
+            pdf.rect(10, y, 190, 7, 'F')
+            pdf.set_xy(15, y + 1.5)
+            pdf.cell(0, 4, "BOWLING", ln=True)
             pdf.set_text_color(0, 0, 0)
-            y += 12
+            y += 10
             
             pdf.set_font("Arial", "B", 9)
-            pdf.set_fill_color(200, 200, 200)
+            pdf.set_fill_color(230, 230, 230)
             pdf.cell(55, 7, "BOWLER", 1, 0, "C", 1)
             pdf.cell(25, 7, "OVERS", 1, 0, "C", 1)
             pdf.cell(25, 7, "RUNS", 1, 0, "C", 1)
-            pdf.cell(25, 7, "WICKETS", 1, 0, "C", 1)
-            pdf.cell(30, 7, "ECONOMY", 1, 0, "C", 1)
+            pdf.cell(25, 7, "WKTS", 1, 0, "C", 1)
+            pdf.cell(30, 7, "ECON", 1, 0, "C", 1)
             pdf.cell(30, 7, "MAIDENS", 1, 1, "C", 1)
             
             pdf.set_font("Arial", "", 8)
@@ -319,20 +329,20 @@ def generate_complete_pdf(m):
             pdf.set_text_color(255, 255, 255)
             pdf.rect(10, y, 190, 8, 'F')
             pdf.set_xy(15, y + 2)
-            pdf.cell(0, 5, f"INNINGS 2: {m['team_2']} BATTING", ln=True)
+            pdf.cell(0, 5, f"INNINGS 2: {m['team_2']}", ln=True)
             pdf.set_text_color(0, 0, 0)
-            y += 13
+            y += 12
             
             target = d1["runs"] + 1
             overs2 = f"{d2['balls']//6}.{d2['balls']%6}"
             rr = d2['runs']/(d2['balls']/6) if d2['balls'] > 0 else 0
             pdf.set_font("Arial", "", 10)
-            pdf.cell(0, 7, f"Target: {target} | Current: {d2['runs']}/{d2['wickets']} in {overs2} overs (RR: {rr:.2f})", ln=True)
-            y += 5
+            pdf.cell(0, 7, f"Target: {target} | Score: {d2['runs']}/{d2['wickets']} in {overs2} overs (RR: {rr:.2f})", ln=True)
+            y += 8
             
             # Batting Table
             pdf.set_font("Arial", "B", 9)
-            pdf.set_fill_color(200, 200, 200)
+            pdf.set_fill_color(230, 230, 230)
             pdf.cell(55, 8, "BATSMAN", 1, 0, "C", 1)
             pdf.cell(20, 8, "R", 1, 0, "C", 1)
             pdf.cell(20, 8, "B", 1, 0, "C", 1)
@@ -343,7 +353,7 @@ def generate_complete_pdf(m):
             
             pdf.set_font("Arial", "", 8)
             if d2["b1"]["name"]:
-                sr = d2["b1"]["runs"] * 100 / d2["b1"]["balls"] if d2["b1"]["balls"] > 0 else 0
+                sr = (d2["b1"]["runs"] * 100 / d2["b1"]["balls"]) if d2["b1"]["balls"] > 0 else 0
                 pdf.cell(55, 6, d2["b1"]["name"][:22], 1)
                 pdf.cell(20, 6, str(d2["b1"]["runs"]), 1, 0, "C")
                 pdf.cell(20, 6, str(d2["b1"]["balls"]), 1, 0, "C")
@@ -353,7 +363,7 @@ def generate_complete_pdf(m):
                 pdf.cell(50, 6, "Not Out", 1, 1, "C")
             
             if d2["b2"]["name"]:
-                sr = d2["b2"]["runs"] * 100 / d2["b2"]["balls"] if d2["b2"]["balls"] > 0 else 0
+                sr = (d2["b2"]["runs"] * 100 / d2["b2"]["balls"]) if d2["b2"]["balls"] > 0 else 0
                 pdf.cell(55, 6, d2["b2"]["name"][:22], 1)
                 pdf.cell(20, 6, str(d2["b2"]["runs"]), 1, 0, "C")
                 pdf.cell(20, 6, str(d2["b2"]["balls"]), 1, 0, "C")
@@ -364,7 +374,7 @@ def generate_complete_pdf(m):
             
             for b in d2.get("all_batsmen", []):
                 if b.get("name"):
-                    sr = b.get("runs", 0) * 100 / b.get("balls", 1) if b.get("balls", 0) > 0 else 0
+                    sr = (b.get("runs", 0) * 100 / b.get("balls", 1)) if b.get("balls", 0) > 0 else 0
                     pdf.cell(55, 6, b["name"][:22], 1)
                     pdf.cell(20, 6, str(b.get("runs", 0)), 1, 0, "C")
                     pdf.cell(20, 6, str(b.get("balls", 0)), 1, 0, "C")
@@ -373,11 +383,35 @@ def generate_complete_pdf(m):
                     pdf.cell(25, 6, f"{sr:.1f}", 1, 0, "C")
                     pdf.cell(50, 6, b.get("status", "Out")[:18], 1, 1, "C")
         
-        output = io.BytesIO()
-        pdf.output(output)
-        return output.getvalue()
+        # Output PDF as bytes
+        try:
+            # Get PDF output as string
+            output_str = pdf.output(dest='S')
+            # Convert to bytes
+            if isinstance(output_str, str):
+                return output_str.encode('latin-1')
+            return output_str
+        except:
+            # Alternative method
+            output_buffer = io.BytesIO()
+            pdf.output(output_buffer)
+            return output_buffer.getvalue()
+            
     except Exception as e:
-        return b""
+        st.error(f"PDF Error: {str(e)}")
+        # Return a simple error PDF
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", "B", 16)
+            pdf.cell(0, 10, "PDF Generation Error", ln=True, align="C")
+            pdf.set_font("Arial", "", 12)
+            pdf.cell(0, 10, f"Error: {str(e)[:50]}", ln=True, align="C")
+            output_buffer = io.BytesIO()
+            pdf.output(output_buffer)
+            return output_buffer.getvalue()
+        except:
+            return b""
 
 @st.cache_resource
 def get_db():
@@ -755,37 +789,14 @@ with tab_live:
                                     inn["this_over"].append(f"+{extra_runs}Pen")
                             st.rerun()
                     
-                    # PDF Export Button - PROMINENT AND VISIBLE
+                    # PDF Export Button - FIXED
                     st.markdown("---")
                     st.markdown("### 📄 EXPORT MATCH REPORT")
                     
-                    # Always show PDF button if there's any match data
                     has_data = match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0
                     
                     if has_data:
-                        # Create PDF data on demand
-                        pdf_data = generate_complete_pdf(match)
-                        
-                        # Use custom HTML for button styling to ensure visibility
-                        st.markdown("""
-                            <style>
-                            .stDownloadButton > button {
-                                background: linear-gradient(135deg, #10B981, #059669) !important;
-                                color: white !important;
-                                font-size: 18px !important;
-                                font-weight: 700 !important;
-                                padding: 12px 24px !important;
-                                border-radius: 12px !important;
-                                width: 100% !important;
-                                border: none !important;
-                            }
-                            .stDownloadButton > button:hover {
-                                background: linear-gradient(135deg, #059669, #047857) !important;
-                                transform: translateY(-2px) !important;
-                                box-shadow: 0 5px 20px rgba(16,185,129,0.5) !important;
-                            }
-                            </style>
-                        """, unsafe_allow_html=True)
+                        pdf_data = generate_match_pdf(match)
                         
                         if pdf_data and len(pdf_data) > 500:
                             st.download_button(
@@ -797,8 +808,8 @@ with tab_live:
                                 key="pdf_download_main"
                             )
                         else:
-                            # If PDF generation failed, show retry button
-                            if st.button("🔄 Generate PDF Now", use_container_width=True):
+                            st.warning("⏳ Preparing PDF... Please wait a moment then try again.")
+                            if st.button("🔄 Regenerate PDF", use_container_width=True):
                                 st.rerun()
                     else:
                         st.info("📄 PDF will be available after the first ball is bowled")
@@ -860,7 +871,7 @@ with tab_live:
                 # PDF Export for Player View
                 st.markdown("---")
                 if match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0:
-                    pdf_data = generate_complete_pdf(match)
+                    pdf_data = generate_match_pdf(match)
                     if pdf_data and len(pdf_data) > 500:
                         st.download_button(
                             label="📥 DOWNLOAD SCORECARD (PDF)",
@@ -894,7 +905,7 @@ with tab_review:
         
         # PDF Export in Review Tab
         if m["innings_1"]["balls"] > 0 or m["innings_2"]["balls"] > 0:
-            pdf_data = generate_complete_pdf(m)
+            pdf_data = generate_match_pdf(m)
             if pdf_data and len(pdf_data) > 500:
                 st.markdown("---")
                 st.download_button(
