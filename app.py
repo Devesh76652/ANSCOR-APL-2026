@@ -658,7 +658,7 @@ with tab_live:
             with col5:
                 if st.button("Create Match", use_container_width=True):
                     if match_id and team1 != team2:
-                        reset_match_players()  # Reset player tracking for new match
+                        reset_match_players()
                         with db["lock"]:
                             db["matches"][match_id] = {
                                 "id": match_id, "team_1": team1, "team_2": team2,
@@ -757,23 +757,26 @@ with tab_live:
                 balls_left = (match['total_overs'] * 6) - inn['balls']
                 req_rate = runs_needed / (balls_left/6) if balls_left > 0 else 0
                 if inn['runs'] >= target:
-                    st.success(f"🏆 Target Achieved! {batting} wins!")
+                    st.success(f"Target Achieved! {batting} wins!")
                 else:
-                    st.info(f"🎯 Target: {target} | Need {runs_needed} runs from {balls_left} balls | RR: {req_rate:.2f}")
+                    st.info(f"Target: {target} | Need {runs_needed} runs from {balls_left} balls | RR: {req_rate:.2f}")
             
             if is_admin:
                 col_left, col_right = st.columns([1, 1])
                 
                 with col_left:
+                    # Fixed f-string syntax - no nested quotes
+                    strike1 = "👉 " if inn['b1']['strike'] else ""
+                    strike2 = "👉 " if inn['b2']['strike'] else ""
                     st.markdown(f"""
                         <div class="info-row">
                             <b>🏏 BATTING PARTNERSHIP</b><br>
                             <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-                                <span>{"👉 " if inn['b1']['strike'] else ""}{inn['b1']['name'][:18]}</span>
+                                <span>{strike1}{inn['b1']['name'][:18]}</span>
                                 <span><b>{inn['b1']['runs']}</b> ({inn['b1']['balls']}) | SR: {inn['b1']['runs']*100/inn['b1']['balls'] if inn['b1']['balls']>0 else 0:.1f}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                                <span>{"👉 " if inn['b2']['strike'] else ""}{inn['b2']['name'][:18]}</span>
+                                <span>{strike2}{inn['b2']['name'][:18]}</span>
                                 <span><b>{inn['b2']['runs']}</b> ({inn['b2']['balls']}) | SR: {inn['b2']['runs']*100/inn['b2']['balls'] if inn['b2']['balls']>0 else 0:.1f}</span>
                             </div>
                         </div>
@@ -828,13 +831,11 @@ with tab_live:
                             inn["extras"] += extra
                             inn["bowler"]["runs"] += runs
                             
-                            # Update batsman stats (with match_id for proper match counting)
                             if runs > 0 and not wicket and striker["name"]:
                                 update_player_stats(striker["name"], runs=runs, balls=1, 
                                                   fours=1 if runs==4 else 0, sixes=1 if runs==6 else 0,
                                                   match_id=current_match_id)
                             
-                            # Update bowler stats on wicket
                             if wicket:
                                 inn["wickets"] += 1
                                 inn["bowler"]["wickets"] += 1
@@ -843,7 +844,6 @@ with tab_live:
                                                       overs=0.166 if legal else 0, runs_conceded=runs,
                                                       match_id=current_match_id)
                             
-                            # Update batsman stats on ball faced (even if dot ball)
                             if legal and not wicket and striker["name"]:
                                 update_player_stats(striker["name"], balls=1, match_id=current_match_id)
                             
@@ -1006,15 +1006,17 @@ with tab_live:
             
             else:
                 # Player View
+                strike1 = "👉 " if inn['b1']['strike'] else ""
+                strike2 = "👉 " if inn['b2']['strike'] else ""
                 st.markdown(f"""
                     <div class="info-row">
                         <b>🏏 BATTING PARTNERSHIP</b><br>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-                            <span>{"👉 " if inn['b1']['strike'] else ""}{inn['b1']['name'][:18]}</span>
+                            <span>{strike1}{inn['b1']['name'][:18]}</span>
                             <span><b>{inn['b1']['runs']}</b> ({inn['b1']['balls']}) | SR: {inn['b1']['runs']*100/inn['b1']['balls'] if inn['b1']['balls']>0 else 0:.1f}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                            <span>{"👉 " if inn['b2']['strike'] else ""}{inn['b2']['name'][:18]}</span>
+                            <span>{strike2}{inn['b2']['name'][:18]}</span>
                             <span><b>{inn['b2']['runs']}</b> ({inn['b2']['balls']}) | SR: {inn['b2']['runs']*100/inn['b2']['balls'] if inn['b2']['balls']>0 else 0:.1f}</span>
                         </div>
                     </div>
