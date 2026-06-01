@@ -15,9 +15,8 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
-TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
-# Team Database
+# Team Database - FIXED NAMES
 TEAM_DB = {
     "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
@@ -70,27 +69,21 @@ if 'commentary_store' not in st.session_state:
 if 'scheduled_matches' not in st.session_state:
     st.session_state.scheduled_matches = []
 
-def get_team_data(team_name):
-    """Safely get team data with fallback"""
-    if team_name in TEAM_DB:
-        return TEAM_DB[team_name]
+def get_team_squad(team_name):
+    """Safely get team squad"""
     for key in TEAM_DB:
         if key.lower() == team_name.lower():
-            return TEAM_DB[key]
-    return {"remote": "", "local": "", "squad": []}
+            return TEAM_DB[key]["squad"]
+    return []
 
-def get_image_base64(local_path, remote_url=""):
-    if local_path and os.path.exists(local_path):
-        try:
-            with open(local_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode()
-        except:
-            pass
+def get_team_logo(team_name):
+    """Safely get team logo URL"""
+    for key in TEAM_DB:
+        if key.lower() == team_name.lower():
+            return TEAM_DB[key]["remote"]
     return ""
 
-def get_team_logo_base64(team_name):
-    team_data = get_team_data(team_name)
-    local_path = team_data.get("local", "")
+def get_image_base64(local_path, remote_url=""):
     if local_path and os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
@@ -699,11 +692,11 @@ with tab_live:
                 st.warning(f"Setup {batting} Batting")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    striker = st.selectbox("Striker:", TEAM_DB[batting]["squad"])
+                    striker = st.selectbox("Striker:", get_team_squad(batting))
                 with col2:
-                    non_striker = st.selectbox("Non-Striker:", TEAM_DB[batting]["squad"])
+                    non_striker = st.selectbox("Non-Striker:", get_team_squad(batting))
                 with col3:
-                    bowler = st.selectbox("Bowler:", TEAM_DB[bowling]["squad"])
+                    bowler = st.selectbox("Bowler:", get_team_squad(bowling))
                 if st.form_submit_button("Start Match", use_container_width=True):
                     with db["lock"]:
                         inn["b1"]["name"] = striker
@@ -716,12 +709,10 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get team data safely
-            batting_data = get_team_data(batting)
-            bowling_data = get_team_data(bowling)
-            
-            b_logo = get_image_base64(batting_data.get("local", ""), batting_data.get("remote", ""))
-            bowl_logo = get_image_base64(bowling_data.get("local", ""), bowling_data.get("remote", ""))
+            b_logo = get_team_logo(batting)
+            bowl_logo = get_team_logo(bowling)
+            b_logo_base64 = get_image_base64("", b_logo)
+            bowl_logo_base64 = get_image_base64("", bowl_logo)
             
             if innings_complete:
                 status_badge = '<span class="finished-indicator">FINISHED</span>'
@@ -734,7 +725,7 @@ with tab_live:
                     {status_badge}
                     <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                         <div style="text-align: center;">
-                            <img src="data:image/jpeg;base64,{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            <img src="{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6; object-fit: cover;">
                             <div style="font-size: 10px; font-weight: bold; margin-top: 3px;">{batting[:10]}</div>
                         </div>
                         <div style="text-align: center;">
@@ -742,7 +733,7 @@ with tab_live:
                             <div style="font-size: 12px;">{overs_done}.{balls_in_over}/{match['total_overs']} | CRR: {crr:.2f}</div>
                         </div>
                         <div style="text-align: center;">
-                            <img src="data:image/jpeg;base64,{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            <img src="{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6; object-fit: cover;">
                             <div style="font-size: 10px; font-weight: bold; margin-top: 3px;">{bowling[:10]}</div>
                         </div>
                     </div>
@@ -865,9 +856,9 @@ with tab_live:
                     if inn["awaiting_batsman"]:
                         st.warning("⚠️ New Batsman Required")
                         used = [inn["b1"]["name"], inn["b2"]["name"]] + [b["name"] for b in inn["all_batsmen"]]
-                        available = [p for p in TEAM_DB[batting]["squad"] if p not in used]
+                        available = [p for p in get_team_squad(batting) if p not in used]
                         if not available:
-                            available = TEAM_DB[batting]["squad"]
+                            available = get_team_squad(batting)
                         new_bat = st.selectbox("Select Batsman:", available)
                         if st.button("✅ Confirm", use_container_width=True):
                             with db["lock"]:
@@ -882,7 +873,7 @@ with tab_live:
                     
                     elif inn["awaiting_bowler"]:
                         st.success("🔄 Over Complete! New Bowler Needed")
-                        new_bowl = st.selectbox("Select Bowler:", TEAM_DB[bowling]["squad"])
+                        new_bowl = st.selectbox("Select Bowler:", get_team_squad(bowling))
                         if st.button("✅ Start Next Over", use_container_width=True):
                             with db["lock"]:
                                 if inn["bowler"]["name"]:
