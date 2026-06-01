@@ -16,7 +16,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Team Database - FIXED NAMES
+# Team Database
 TEAM_DB = {
     "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
@@ -56,6 +56,10 @@ TEAM_DB = {
     }
 }
 
+# Track which players have been counted for the current match
+if 'players_in_current_match' not in st.session_state:
+    st.session_state.players_in_current_match = set()
+
 # Initialize session state
 if 'player_stats' not in st.session_state:
     st.session_state.player_stats = defaultdict(lambda: {
@@ -83,21 +87,31 @@ def get_team_logo(team_name):
             return TEAM_DB[key]["remote"]
     return ""
 
-def get_image_base64(local_path, remote_url=""):
-    if local_path and os.path.exists(local_path):
-        try:
-            with open(local_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode()
-        except:
-            pass
-    return ""
+def mark_player_played_match(player_name, match_id):
+    """Mark that a player has played in this match (only once per match)"""
+    if not player_name:
+        return
+    
+    match_player_key = f"{match_id}_{player_name}"
+    
+    if match_player_key not in st.session_state.players_in_current_match:
+        st.session_state.players_in_current_match.add(match_player_key)
+        
+        if player_name not in st.session_state.player_stats:
+            st.session_state.player_stats[player_name] = {
+                "matches": 0, "runs": 0, "balls": 0, "fours": 0, "sixes": 0,
+                "wickets": 0, "overs": 0, "runs_conceded": 0, "fifties": 0, "hundreds": 0
+            }
+        st.session_state.player_stats[player_name]["matches"] += 1
 
-def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=False, overs=0, runs_conceded=0):
-    """Update player statistics - FIXED to handle new players"""
+def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=False, overs=0, runs_conceded=0, match_id=""):
+    """Update player statistics - matches counted only once per match"""
     if not player_name or player_name == "":
         return
     
-    # Initialize player if not exists
+    if match_id:
+        mark_player_played_match(player_name, match_id)
+    
     if player_name not in st.session_state.player_stats:
         st.session_state.player_stats[player_name] = {
             "matches": 0, "runs": 0, "balls": 0, "fours": 0, "sixes": 0,
@@ -115,7 +129,6 @@ def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=F
             stats["fifties"] += 1
         if runs >= 100:
             stats["hundreds"] += 1
-        stats["matches"] += 1
     
     if wicket:
         stats["wickets"] += 1
@@ -123,6 +136,10 @@ def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=F
     if overs > 0:
         stats["overs"] += overs
         stats["runs_conceded"] += runs_conceded
+
+def reset_match_players():
+    """Reset the players tracking for a new match"""
+    st.session_state.players_in_current_match = set()
 
 def add_commentary(description):
     st.session_state.commentary_store.insert(0, {
@@ -243,11 +260,6 @@ st.markdown("""
         border: 3px solid #3B82F6;
         object-fit: cover;
         margin-bottom: 15px;
-    }
-    .team-name-large {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #F1F5F9;
     }
     .squad-player {
         padding: 5px 10px;
@@ -646,6 +658,7 @@ with tab_live:
             with col5:
                 if st.button("Create Match", use_container_width=True):
                     if match_id and team1 != team2:
+                        reset_match_players()  # Reset player tracking for new match
                         with db["lock"]:
                             db["matches"][match_id] = {
                                 "id": match_id, "team_1": team1, "team_2": team2,
@@ -676,6 +689,7 @@ with tab_live:
         st.info("No active match. Create one above.")
     else:
         match = ensure_match(db["matches"][db["active_match_id"]])
+        current_match_id = match["id"]
         inn = match["innings_1"] if match["current_innings"] == 1 else match["innings_2"]
         batting = match["team_1"] if match["current_innings"] == 1 else match["team_2"]
         bowling = match["team_2"] if match["current_innings"] == 1 else match["team_1"]
@@ -711,8 +725,6 @@ with tab_live:
             
             b_logo = get_team_logo(batting)
             bowl_logo = get_team_logo(bowling)
-            b_logo_base64 = get_image_base64("", b_logo)
-            bowl_logo_base64 = get_image_base64("", bowl_logo)
             
             if innings_complete:
                 status_badge = '<span class="finished-indicator">FINISHED</span>'
@@ -816,10 +828,11 @@ with tab_live:
                             inn["extras"] += extra
                             inn["bowler"]["runs"] += runs
                             
-                            # Update batsman stats
+                            # Update batsman stats (with match_id for proper match counting)
                             if runs > 0 and not wicket and striker["name"]:
                                 update_player_stats(striker["name"], runs=runs, balls=1, 
-                                                  fours=1 if runs==4 else 0, sixes=1 if runs==6 else 0)
+                                                  fours=1 if runs==4 else 0, sixes=1 if runs==6 else 0,
+                                                  match_id=current_match_id)
                             
                             # Update bowler stats on wicket
                             if wicket:
@@ -827,11 +840,12 @@ with tab_live:
                                 inn["bowler"]["wickets"] += 1
                                 if inn["bowler"]["name"]:
                                     update_player_stats(inn["bowler"]["name"], wicket=True, 
-                                                      overs=0.166 if legal else 0, runs_conceded=runs)
+                                                      overs=0.166 if legal else 0, runs_conceded=runs,
+                                                      match_id=current_match_id)
                             
                             # Update batsman stats on ball faced (even if dot ball)
                             if legal and not wicket and striker["name"]:
-                                update_player_stats(striker["name"], balls=1)
+                                update_player_stats(striker["name"], balls=1, match_id=current_match_id)
                             
                             if legal:
                                 inn["balls"] += 1
