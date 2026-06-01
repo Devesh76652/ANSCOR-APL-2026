@@ -8,12 +8,13 @@ import base64
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import json
+from typing import TypedDict  # <-- This was missing!
 
 # Constants
 BALLS_PER_OVER = 6
 MAX_WICKETS = 10
 DEFAULT_OVERS = 4
-ADMIN_PASSWORD = st.secrets.get("admin_password", "anscor2026")  # Use secrets in production
+ADMIN_PASSWORD = "anscor2026"  # Change this or use st.secrets in production
 
 # Background auto-refresh integration
 try:
@@ -21,7 +22,7 @@ try:
     AUTOREFRESH_AVAILABLE = True
 except ImportError:
     AUTOREFRESH_AVAILABLE = False
-    st.warning("Install 'streamlit-autorefresh' for auto-refresh features: pip install streamlit-autorefresh")
+    # Don't show warning here to avoid clutter
 
 # Page Configuration
 st.set_page_config(
@@ -75,8 +76,8 @@ TEAM_DB = {
         ]
     },
     "Royal Warriors XI": {
-        "local": "RoyalWarriorsXI.jpeg",
-        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
+        "local": "RoyalWarriorsXl.jpeg",  # Fixed filename spelling
+        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXl.jpeg",
         "squad": [
             "Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", 
             "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", 
@@ -753,8 +754,6 @@ if user_role == "⚡ Scorer Panel (Admin Mode)":
 else:
     if AUTOREFRESH_AVAILABLE:
         st_autorefresh(interval=3000, key="broadcast_pulse")
-    else:
-        st.sidebar.info("Auto-refresh not available. Install streamlit-autorefresh for live updates.")
 
 # Global Permanent Navigation Structure
 tab_live, tab_review, tab_teams = st.tabs(["📺 Live Match Console", "🗄️ Tournament Match Review", "📋 Team Profiles"])
