@@ -26,31 +26,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Background auto-refresh
-try:
-    from streamlit_autorefresh import st_autorefresh
-    AUTOREFRESH_AVAILABLE = True
-except ImportError:
-    AUTOREFRESH_AVAILABLE = False
+# Team Database with logo URLs
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Team Database
 TEAM_DB = {
     "Capital Chellengers": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/CapitalChellengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"]
     },
     "Black panther": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/Blackpanther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"]
     },
     "Super Kings": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/SuperKings.jpeg",
         "squad": ["Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", "Sudhir pal"]
     },
     "Power Hitter": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/PowerHitter.jpeg",
         "squad": ["Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"]
     },
     "Royal Warriors XI": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/RoyalWarriorsXl.jpeg",
         "squad": ["Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"]
     },
     "UnStoppable": {
+        "logo": "https://raw.githubusercontent.com/Anscortournament/APL/main/UnStoppable.jpeg",
         "squad": ["Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"]
     }
 }
@@ -74,7 +75,7 @@ st.markdown("""
     }
     
     .score-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
         padding: 20px;
         border-radius: 15px;
@@ -103,7 +104,7 @@ st.markdown("""
     }
     
     .mobile-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 20px;
@@ -117,31 +118,37 @@ st.markdown("""
     }
     
     .team-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         border-radius: 12px;
         padding: 15px;
         text-align: center;
         margin-bottom: 15px;
         cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .team-card:hover {
+        transform: translateY(-3px);
     }
     
     .team-card h3 {
         color: white;
-        margin: 0;
+        margin: 10px 0 0 0;
     }
     
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
         border: none;
         border-radius: 8px;
         padding: 8px 16px;
         font-weight: 600;
+        transition: all 0.2s;
     }
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        box-shadow: 0 4px 12px rgba(30,60,114,0.4);
     }
     
     div[data-testid="stMetric"] {
@@ -152,7 +159,7 @@ st.markdown("""
     }
     
     div[data-testid="stMetric"] div {
-        color: #667eea !important;
+        color: #1e3c72 !important;
         font-weight: bold !important;
     }
     
@@ -171,7 +178,7 @@ st.markdown("""
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
         color: white !important;
     }
     
@@ -186,11 +193,32 @@ st.markdown("""
         font-weight: bold;
     }
     
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .team-logo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ffd700;
+    }
+    
     @media (max-width: 768px) {
         .ball-bubble {
             width: 32px;
             height: 32px;
             font-size: 0.75rem;
+        }
+        
+        .team-logo {
+            width: 40px;
+            height: 40px;
         }
     }
     </style>
@@ -286,7 +314,7 @@ def is_innings_complete(inn: InningsData, total_overs: int) -> bool:
 def get_match_result(m: MatchData) -> str:
     m = ensure_match_keys(m)
     if m.get("winner"):
-        return f"🏆 {m['winner']} ({m.get('win_margin', '')})"
+        return f"🏆 WINNER: {m['winner']} ({m.get('win_margin', '')})"
     d1, d2 = m["innings_1"], m["innings_2"]
     if d1["b1"]["name"] == "":
         return "⚙️ Setup Required"
@@ -308,6 +336,7 @@ def get_match_result(m: MatchData) -> str:
     return f"🎯 {m['team_2']} needs {runs_needed} runs from {balls_rem} balls"
 
 def generate_pdf_bytes(m: MatchData) -> bytes:
+    """Generate PDF scorecard"""
     try:
         m = ensure_match_keys(m)
         pdf = FPDF()
@@ -319,13 +348,13 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
         pdf.set_font("Arial", "B", 14)
         pdf.cell(0, 10, f"{m['team_1']} vs {m['team_2']}", ln=True, align="C")
         pdf.set_font("Arial", "", 10)
-        pdf.cell(0, 8, f"Match: {m['id']} | Overs: {m['total_overs']}", ln=True, align="C")
+        pdf.cell(0, 8, f"Match ID: {m['id']} | Overs: {m['total_overs']}", ln=True, align="C")
         pdf.ln(5)
         
         # Result
         result = get_match_result(m)
         pdf.set_font("Arial", "B", 11)
-        pdf.set_text_color(0, 128, 0)
+        pdf.set_text_color(0, 100, 0)
         pdf.cell(0, 8, result, ln=True, align="C")
         pdf.set_text_color(0, 0, 0)
         pdf.ln(5)
@@ -345,8 +374,8 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
             pdf.cell(70, 6, "Batsman", 1)
             pdf.cell(25, 6, "Runs", 1, 0, "C")
             pdf.cell(25, 6, "Balls", 1, 0, "C")
-            pdf.cell(25, 6, "4s", 1, 0, "C")
-            pdf.cell(25, 6, "6s", 1, 0, "C")
+            pdf.cell(20, 6, "4s", 1, 0, "C")
+            pdf.cell(20, 6, "6s", 1, 0, "C")
             pdf.cell(30, 6, "Status", 1, 1, "C")
             
             pdf.set_font("Arial", "", 8)
@@ -355,8 +384,8 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
                     pdf.cell(70, 5, b["name"][:30], 1)
                     pdf.cell(25, 5, str(b["runs"]), 1, 0, "C")
                     pdf.cell(25, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(25, 5, str(b.get("fours", 0)), 1, 0, "C")
-                    pdf.cell(25, 5, str(b.get("sixes", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
                     pdf.cell(30, 5, b.get("status", "Out")[:20], 1, 1, "C")
             pdf.ln(4)
         
@@ -375,8 +404,8 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
             pdf.cell(70, 6, "Batsman", 1)
             pdf.cell(25, 6, "Runs", 1, 0, "C")
             pdf.cell(25, 6, "Balls", 1, 0, "C")
-            pdf.cell(25, 6, "4s", 1, 0, "C")
-            pdf.cell(25, 6, "6s", 1, 0, "C")
+            pdf.cell(20, 6, "4s", 1, 0, "C")
+            pdf.cell(20, 6, "6s", 1, 0, "C")
             pdf.cell(30, 6, "Status", 1, 1, "C")
             
             pdf.set_font("Arial", "", 8)
@@ -385,12 +414,12 @@ def generate_pdf_bytes(m: MatchData) -> bytes:
                     pdf.cell(70, 5, b["name"][:30], 1)
                     pdf.cell(25, 5, str(b["runs"]), 1, 0, "C")
                     pdf.cell(25, 5, str(b["balls"]), 1, 0, "C")
-                    pdf.cell(25, 5, str(b.get("fours", 0)), 1, 0, "C")
-                    pdf.cell(25, 5, str(b.get("sixes", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("fours", 0)), 1, 0, "C")
+                    pdf.cell(20, 5, str(b.get("sixes", 0)), 1, 0, "C")
                     pdf.cell(30, 5, b.get("status", "Out")[:20], 1, 1, "C")
         
         return pdf.output(dest='S').encode('latin-1', errors='replace')
-    except:
+    except Exception as e:
         return b""
 
 def add_commentary(inn_data: InningsData, message: str):
@@ -451,7 +480,8 @@ lock = db_global["lock"]
 
 @st.dialog("Team Squad", width="large")
 def show_squad_popup(team_name: str):
-    st.markdown(f"### {team_name}")
+    st.markdown(f"### {team_name} Squad")
+    st.markdown("---")
     squad = TEAM_DB[team_name]["squad"]
     cols = st.columns(4)
     for idx, player in enumerate(squad):
@@ -489,22 +519,27 @@ with st.sidebar:
         password = st.text_input("Password:", type="password")
         if password == ADMIN_PASSWORD:
             is_admin = True
-            st.success("✅ Admin")
+            st.success("✅ Admin Access")
         elif password:
             st.error("❌ Invalid")
     st.markdown("---")
-    st.caption("© 2026 APL")
+    st.caption("© 2026 APL Tournament")
 
-# Tabs
-tab_live, tab_review, tab_teams = st.tabs(["🎮 LIVE", "📊 ARCHIVES", "🏆 TEAMS"])
+# Main Tabs
+tab_live, tab_review, tab_teams = st.tabs(["🎮 LIVE MATCH", "📊 ARCHIVES", "🏆 TEAMS"])
 
 # Teams Tab
 with tab_teams:
-    st.markdown("### Tournament Teams")
+    st.markdown("### 🏆 Tournament Teams")
     cols = st.columns(3)
-    for idx, (team_name, _) in enumerate(TEAM_DB.items()):
+    for idx, (team_name, team_data) in enumerate(TEAM_DB.items()):
         with cols[idx % 3]:
-            st.markdown(f'<div class="team-card"><h3>{team_name}</h3></div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="team-card">
+                    <img src="{team_data['logo']}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                    <h3>{team_name}</h3>
+                </div>
+            """, unsafe_allow_html=True)
             if st.button(f"View Squad", key=f"team_{idx}", use_container_width=True):
                 show_squad_popup(team_name)
 
@@ -512,15 +547,15 @@ with tab_teams:
 with tab_live:
     # Admin controls
     if is_admin:
-        with st.expander("⚙️ ADMIN", expanded=not bool(db_global["active_match_id"])):
+        with st.expander("⚙️ ADMIN CONTROLS", expanded=not bool(db_global["active_match_id"])):
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("**CREATE MATCH**")
-                match_id = st.text_input("Match ID:", placeholder="Match_01")
-                team1 = st.selectbox("Team 1:", list(TEAM_DB.keys()), key="t1")
-                team2 = st.selectbox("Team 2:", list(TEAM_DB.keys()), key="t2")
-                overs = st.number_input("Overs:", 1, 10, DEFAULT_OVERS)
-                if st.button("Create Match", use_container_width=True):
+                st.markdown("**CREATE NEW MATCH**")
+                match_id = st.text_input("Match ID:", placeholder="Match_01", key="new_match_id")
+                team1 = st.selectbox("Team 1 (Batting First):", list(TEAM_DB.keys()), key="team1")
+                team2 = st.selectbox("Team 2 (Bowling First):", list(TEAM_DB.keys()), key="team2")
+                overs = st.number_input("Overs:", 1, 10, DEFAULT_OVERS, key="overs")
+                if st.button("🚀 Create Match", use_container_width=True):
                     if match_id and team1 != team2:
                         with lock:
                             db_global["matches"][match_id] = {
@@ -530,15 +565,15 @@ with tab_live:
                                 "created_at": datetime.now().isoformat(), "winner": None, "win_margin": None
                             }
                             db_global["active_match_id"] = match_id
-                        st.success(f"✅ Match created")
+                        st.success(f"✅ Match '{match_id}' created!")
                         st.rerun()
                     else:
-                        st.error("Invalid")
+                        st.error("Please enter unique ID and different teams")
             with col2:
                 if db_global["matches"]:
-                    st.markdown("**MANAGE**")
+                    st.markdown("**MANAGE MATCHES**")
                     matches = list(db_global["matches"].keys())
-                    sel = st.selectbox("Match:", matches)
+                    sel = st.selectbox("Select Match:", matches, key="select_match")
                     col_a, col_b, col_c = st.columns(3)
                     with col_a:
                         if st.button("Set Active", use_container_width=True):
@@ -555,11 +590,11 @@ with tab_live:
     
     # Live Match Display
     if not db_global["active_match_id"] or db_global["active_match_id"] not in db_global["matches"]:
-        st.info("No active match. Create one in Admin section.")
+        st.info("🏏 No active match. Create one in Admin section above.")
     else:
         m = ensure_match_keys(db_global["matches"][db_global["active_match_id"]])
         
-        # Check if innings 1 is complete and auto-switch to innings 2
+        # Auto-switch to innings 2 when innings 1 is complete
         inn1_complete = is_innings_complete(m["innings_1"], m["total_overs"])
         if m["current_innings"] == 1 and inn1_complete and m["innings_1"]["b1"]["name"]:
             with lock:
@@ -567,36 +602,35 @@ with tab_live:
                 add_commentary(m["innings_2"], f"🏏 INNINGS 2 STARTED! {m['team_2']} needs {m['innings_1']['runs'] + 1} runs")
             st.rerun()
         
-        # Check if match is complete
-        if m["current_innings"] == 2 and is_innings_complete(m["innings_2"], m["total_overs"]):
-            runs_i1, runs_i2 = m["innings_1"]["runs"], m["innings_2"]["runs"]
-            if runs_i2 >= runs_i1 + 1:
-                m["winner"] = m["team_2"]
-                m["win_margin"] = f"by {10 - m['innings_2']['wickets']} wickets"
-            elif runs_i2 < runs_i1:
-                m["winner"] = m["team_1"]
-                m["win_margin"] = f"by {runs_i1 - runs_i2} runs"
-            elif runs_i2 == runs_i1:
-                m["winner"] = "Tied"
-        
         inn_key = "innings_1" if m["current_innings"] == 1 else "innings_2"
         inn = m[inn_key]
         bat_team = m["team_1"] if m["current_innings"] == 1 else m["team_2"]
         bowl_team = m["team_2"] if m["current_innings"] == 1 else m["team_1"]
         target = m["innings_1"]["runs"] + 1 if m["current_innings"] == 2 else None
         
+        # Team logos display
+        col_logo1, col_vs, col_logo2 = st.columns([1, 1, 1])
+        with col_logo1:
+            st.image(TEAM_DB[bat_team]["logo"], width=80)
+            st.caption(bat_team)
+        with col_vs:
+            st.markdown("<h2 style='text-align: center;'>VS</h2>", unsafe_allow_html=True)
+        with col_logo2:
+            st.image(TEAM_DB[bowl_team]["logo"], width=80)
+            st.caption(bowl_team)
+        
         # Lineup Setup
         if inn["b1"]["name"] == "":
             if is_admin:
-                st.warning(f"Setup: {bat_team} batting")
-                with st.form("lineup"):
+                st.warning(f"### ⚙️ Configure {bat_team} Batting Lineup")
+                with st.form("lineup_form"):
                     bat_squad = TEAM_DB[bat_team]["squad"]
                     bowl_squad = TEAM_DB[bowl_team]["squad"]
                     col1, col2, col3 = st.columns(3)
                     with col1: striker = st.selectbox("Striker:", bat_squad)
                     with col2: non_striker = st.selectbox("Non-Striker:", bat_squad)
-                    with col3: bowler = st.selectbox("Bowler:", bowl_squad)
-                    if st.form_submit_button("Start Match"):
+                    with col3: bowler = st.selectbox("Opening Bowler:", bowl_squad)
+                    if st.form_submit_button("🏏 Start Match", use_container_width=True):
                         with lock:
                             inn["b1"]["name"] = striker
                             inn["b2"]["name"] = non_striker
@@ -606,7 +640,7 @@ with tab_live:
                                 add_commentary(inn, f"Target: {target} runs")
                         st.rerun()
             else:
-                st.info("Waiting for scorer...")
+                st.info("⏳ Waiting for scorer to start the match")
         else:
             # Calculate stats
             comp_ov = inn["balls"] // BALLS_PER_OVER
@@ -616,9 +650,15 @@ with tab_live:
             innings_end = is_innings_complete(inn, m["total_overs"]) or (target and inn["runs"] >= target)
             status = "FINISHED" if innings_end else ("INNINGS 2" if m["current_innings"] == 2 else "INNINGS 1")
             
-            # Display Innings Transition Info
-            if m["current_innings"] == 2:
-                st.info(f"🏆 **INNINGS 2 - {bat_team} needs {target - inn['runs']} runs to win**" if not innings_end else "")
+            # Target info
+            if m["current_innings"] == 2 and not innings_end:
+                need = target - inn['runs']
+                balls_left = (m["total_overs"] * BALLS_PER_OVER) - inn['balls']
+                st.warning(f"🎯 **Target: {target}** | {bat_team} needs {need} runs from {balls_left} balls")
+            elif m["current_innings"] == 2 and inn['runs'] >= target:
+                st.success(f"🏆 **{bat_team} WINS!**")
+            elif m["current_innings"] == 1 and is_innings_complete(inn, m["total_overs"]):
+                st.success(f"📊 **Innings 1 Complete!** {bat_team} scored {inn['runs']}/{inn['wickets']}")
             
             # Main Layout
             col_left, col_right = st.columns([2, 1])
@@ -627,27 +667,17 @@ with tab_live:
                 st.markdown(f"""
                     <div class="score-box">
                         <span class="status-badge">{status}</span>
-                        <h2>{bat_team} vs {bowl_team}</h2>
                         <h1>{inn['runs']} - {inn['wickets']}</h1>
-                        <h3>Overs: {comp_ov}.{rem_ball} / {m['total_overs']} | RR: {crr:.2f}</h3>
+                        <h3>Overs: {comp_ov}.{rem_ball} / {m['total_overs']} | Run Rate: {crr:.2f}</h3>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                if target and not innings_end:
-                    need = target - inn['runs']
-                    balls_left = (m['total_overs'] * BALLS_PER_OVER) - inn['balls']
-                    st.warning(f"🎯 Target: {target} | Need {need} runs from {balls_left} balls")
-                elif m["current_innings"] == 2 and inn['runs'] >= target:
-                    st.success(f"🏆 {bat_team} WINS!")
-                elif m["current_innings"] == 1 and is_innings_complete(inn, m["total_overs"]):
-                    st.success(f"📊 Innings 1 Complete! {bat_team} scored {inn['runs']}/{inn['wickets']}")
-                
                 # Stats
                 a, b, c, d = st.columns(4)
-                a.metric("Runs", inn['runs'])
-                b.metric("Wkts", inn['wickets'])
+                a.metric("Total Runs", inn['runs'])
+                b.metric("Wickets", inn['wickets'])
                 c.metric("Extras", inn['extras'] + inn.get('penalty', 0))
-                d.metric("RR", f"{crr:.2f}")
+                d.metric("Run Rate", f"{crr:.2f}")
                 
                 # Current Over
                 st.markdown("**📦 Current Over**")
@@ -655,11 +685,11 @@ with tab_live:
                     balls_html = '<div style="display: flex; flex-wrap: wrap; gap: 5px;">'
                     for ball in inn["this_over"][-6:]:
                         color = "#10B981" if ball in ["4", "6"] else "#EF4444" if "W" in str(ball) else "#F59E0B" if any(x in str(ball) for x in ["WD", "NB"]) else "#6B7280"
-                        balls_html += f'<span class="ball-bubble" style="background:{color};color:white">{ball}</span>'
+                        balls_html += f'<span class="ball-bubble" style="background:{color};color:white; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; margin:3px; font-weight:bold;">{ball}</span>'
                     balls_html += '</div>'
                     st.markdown(balls_html, unsafe_allow_html=True)
                 else:
-                    st.caption("No deliveries yet")
+                    st.info("No deliveries yet this over")
                 
                 # Over History
                 st.markdown("**📊 Over History**")
@@ -667,27 +697,40 @@ with tab_live:
                     df = pd.DataFrame(inn["over_history"])
                     st.dataframe(df[["Over", "Bowler", "Score", "Timeline"]], use_container_width=True, hide_index=True)
                 else:
-                    st.caption("No overs recorded")
+                    st.caption("No overs recorded yet")
             
             with col_right:
                 st.markdown(f"""
                     <div class="mobile-card">
                         <h3>🏏 BATTING</h3>
-                        <div><b>{'👉 ' if inn['b1']['strike'] else ''}{inn['b1']['name']}</b> - {inn['b1']['runs']} ({inn['b1']['balls']})</div>
-                        <div><b>{'👉 ' if inn['b2']['strike'] else ''}{inn['b2']['name']}</b> - {inn['b2']['runs']} ({inn['b2']['balls']})</div>
+                        <div style="margin: 10px 0;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><b>{'👉 ' if inn['b1']['strike'] else ''}{inn['b1']['name']}</b></span>
+                                <span><b>{inn['b1']['runs']}</b> ({inn['b1']['balls']}b)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                                <span><b>{'👉 ' if inn['b2']['strike'] else ''}{inn['b2']['name']}</b></span>
+                                <span><b>{inn['b2']['runs']}</b> ({inn['b2']['balls']}b)</span>
+                            </div>
+                        </div>
                         <h3>🥎 BOWLING</h3>
-                        <div><b>{inn['bowler']['name']}</b> - {inn['bowler']['wickets']}/{inn['bowler']['runs']}</div>
+                        <div style="margin: 10px 0;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><b>{inn['bowler']['name']}</b></span>
+                                <span>Wickets: {inn['bowler']['wickets']} | Runs: {inn['bowler']['runs']}</span>
+                            </div>
+                        </div>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Scoring Controls
+                # Scoring Controls (Admin only)
                 if is_admin and not innings_end:
                     if inn["awaiting_batsman"]:
-                        st.error("Select new batsman:")
+                        st.error("☝️ Wicket! Select new batsman:")
                         used = [inn["b1"]["name"], inn["b2"]["name"]] + [b["name"] for b in inn["all_batsmen_history"]]
                         available = [p for p in TEAM_DB[bat_team]["squad"] if p not in used] or ["New Player"]
-                        new_bat = st.selectbox("Batsman:", available)
-                        if st.button("Confirm"):
+                        new_bat = st.selectbox("Incoming Batsman:", available, key="new_bat")
+                        if st.button("✅ Confirm Batsman", use_container_width=True):
                             with lock:
                                 if inn["b1"]["strike"]:
                                     inn["all_batsmen_history"].append(copy.deepcopy(inn["b1"]))
@@ -696,23 +739,30 @@ with tab_live:
                                     inn["all_batsmen_history"].append(copy.deepcopy(inn["b2"]))
                                     inn["b2"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False, "status": "Not Out", "dismissal_type": None}
                                 inn["awaiting_batsman"] = False
+                                add_commentary(inn, f"New batsman: {new_bat} comes to the crease")
                             st.rerun()
                     elif inn["awaiting_bowler"]:
-                        st.success("Select next bowler:")
-                        next_bowler = st.selectbox("Bowler:", TEAM_DB[bowl_team]["squad"])
-                        if st.button("Confirm"):
+                        st.success("🔄 Over complete! Select next bowler:")
+                        next_bowler = st.selectbox("Next Bowler:", TEAM_DB[bowl_team]["squad"], key="new_bowler")
+                        if st.button("✅ Confirm Bowler", use_container_width=True):
                             with lock:
                                 if inn["bowler"]["name"]:
                                     inn["all_bowlers_history"].append(copy.deepcopy(inn["bowler"]))
-                                inn["over_history"].append({"Over": len(inn["over_history"])+1, "Bowler": inn["bowler"]["name"], "Score": f"{inn['runs']}/{inn['wickets']}", "Timeline": ", ".join(map(str, inn["this_over"]))})
+                                inn["over_history"].append({
+                                    "Over": len(inn["over_history"]) + 1,
+                                    "Bowler": inn["bowler"]["name"],
+                                    "Score": f"{inn['runs']}/{inn['wickets']}",
+                                    "Timeline": ", ".join(map(str, inn["this_over"]))
+                                })
                                 inn["this_over"] = []
                                 inn["bowler"] = {"name": next_bowler, "runs": 0, "wickets": 0, "balls": 0, "maidens": 0}
                                 inn["awaiting_bowler"] = False
+                                add_commentary(inn, f"New bowler: {next_bowler}")
                             st.rerun()
                     else:
                         # Run buttons
                         cols = st.columns(5)
-                        for idx, val in enumerate([0,1,2,3,4]):
+                        for idx, val in enumerate([0, 1, 2, 3, 4]):
                             with cols[idx]:
                                 if st.button(str(val), use_container_width=True):
                                     with lock: process_ball_input(inn, val, 0, True); st.rerun()
@@ -729,31 +779,52 @@ with tab_live:
                                 with lock: process_ball_input(inn, 1, 1, False, symbol="NB"); st.rerun()
                         with cols2[3]:
                             with st.popover("WICKET"):
-                                dismissal = st.selectbox("Type:", DISMISSAL_TYPES)
-                                if st.button("Confirm"):
+                                st.markdown("### Dismissal Type")
+                                dismissal = st.selectbox("Select:", DISMISSAL_TYPES, key="wicket_dismissal")
+                                if st.button("Confirm Wicket", use_container_width=True):
                                     with lock: process_ball_input(inn, 0, 0, True, True, symbol="W", dismissal_type=dismissal); st.rerun()
                         with cols2[4]:
                             if st.button("SWAP", use_container_width=True):
-                                with lock: inn["b1"]["strike"], inn["b2"]["strike"] = inn["b2"]["strike"], inn["b1"]["strike"]; st.rerun()
+                                with lock: inn["b1"]["strike"], inn["b2"]["strike"] = inn["b2"]["strike"], inn["b1"]["strike"]; add_commentary(inn, "Strike rotated"); st.rerun()
                         
-                        # Undo
-                        if inn.get("undo_stack"):
-                            if st.button("↩️ Undo", use_container_width=True):
+                        # Undo button
+                        if inn.get("undo_stack") and len(inn["undo_stack"]) > 0:
+                            if st.button("↩️ Undo Last Ball", use_container_width=True):
                                 with lock:
                                     prev = inn["undo_stack"].pop()
                                     for k in prev:
                                         inn[k] = prev[k]
                                 st.rerun()
+                        
+                        # Extras
+                        with st.expander("➕ Add Extras"):
+                            extra_type = st.radio("Type:", ["Extra Run", "Penalty Run"], horizontal=True)
+                            extra_runs = st.number_input("Runs:", 1, 10, 1)
+                            if st.button("Add Runs", use_container_width=True):
+                                with lock:
+                                    if "undo_stack" not in inn:
+                                        inn["undo_stack"] = []
+                                    inn["undo_stack"].append({"runs": inn["runs"], "extras": inn["extras"], "penalty": inn.get("penalty", 0), "this_over": list(inn["this_over"])})
+                                    inn["runs"] += extra_runs
+                                    if extra_type == "Extra Run":
+                                        inn["extras"] += extra_runs
+                                        inn["this_over"].append(f"+{extra_runs}")
+                                        add_commentary(inn, f"{extra_runs} extra runs added")
+                                    else:
+                                        inn["penalty"] = inn.get("penalty", 0) + extra_runs
+                                        inn["this_over"].append(f"Pen+{extra_runs}")
+                                        add_commentary(inn, f"{extra_runs} penalty runs awarded")
+                                st.rerun()
                 
                 # Commentary
-                with st.expander("📝 Commentary", expanded=True):
+                with st.expander("📝 Ball-by-Ball Commentary", expanded=False):
                     if inn.get("commentary"):
-                        for c in inn["commentary"][-12:]:
-                            st.caption(c)
+                        for comment in inn["commentary"][-15:]:
+                            st.caption(comment)
                     else:
-                        st.caption("No commentary")
+                        st.caption("No commentary yet")
             
-            # PDF Export Button - Always visible
+            # PDF Export Button
             st.markdown("---")
             pdf_data = generate_pdf_bytes(m)
             if pdf_data and len(pdf_data) > 500:
@@ -766,21 +837,22 @@ with tab_live:
                     type="primary"
                 )
             else:
-                # Show button that becomes enabled when data exists
-                st.info("📄 PDF will be available after match has data")
+                st.info("📄 PDF will be available once match data is entered. Please add some overs first.")
 
 # Archives Tab
 with tab_review:
-    st.markdown("### Match Archives")
+    st.markdown("### 📊 Match Archives")
     if not db_global["matches"]:
-        st.info("No matches yet")
+        st.info("No matches played yet. Create a match in Live Match tab!")
     else:
-        sel = st.selectbox("Select Match:", list(db_global["matches"].keys()))
+        sel = st.selectbox("Select Match to Review:", list(db_global["matches"].keys()))
         m = ensure_match_keys(db_global["matches"][sel])
         
         result = get_match_result(m)
-        if "🏆" in result:
+        if "WINNER" in result or "VICTORY" in result:
             st.success(result)
+        elif "Tied" in result:
+            st.warning(result)
         else:
             st.info(result)
         
@@ -789,18 +861,29 @@ with tab_review:
             st.subheader(f"Innings 1: {m['team_1']}")
             d1 = m["innings_1"]
             if d1["b1"]["name"]:
-                st.metric("Score", f"{d1['runs']}/{d1['wickets']}", f"{d1['balls']//6}.{d1['balls']%6}")
+                st.metric("Score", f"{d1['runs']}/{d1['wickets']}", f"{d1['balls']//6}.{d1['balls']%6} overs")
                 if d1["over_history"]:
                     st.dataframe(pd.DataFrame(d1["over_history"]), use_container_width=True, hide_index=True)
+            else:
+                st.caption("Innings not played")
         with col2:
             st.subheader(f"Innings 2: {m['team_2']}")
             d2 = m["innings_2"]
             if d2["b1"]["name"]:
-                st.metric("Score", f"{d2['runs']}/{d2['wickets']}", f"{d2['balls']//6}.{d2['balls']%6}")
+                st.metric("Score", f"{d2['runs']}/{d2['wickets']}", f"{d2['balls']//6}.{d2['balls']%6} overs")
                 if d2["over_history"]:
                     st.dataframe(pd.DataFrame(d2["over_history"]), use_container_width=True, hide_index=True)
+            else:
+                st.caption("Innings not played")
         
         # PDF for archived match
         pdf_data = generate_pdf_bytes(m)
         if pdf_data and len(pdf_data) > 500:
-            st.download_button("📥 Download Scorecard PDF", pdf_data, f"APL_{m['id']}_Full.pdf", "application/pdf", use_container_width=True)
+            st.download_button(
+                label="📥 Download Full Scorecard PDF",
+                data=pdf_data,
+                file_name=f"APL_{m['id']}_FullScorecard.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                type="primary"
+            )
