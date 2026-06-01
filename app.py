@@ -18,7 +18,7 @@ TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
 # Team Database
 TEAM_DB = {
-    "Capital Challengers": {
+    "CapitalChallengers": {
         "local": "CapitalChallengers.jpeg",
         "remote": GITHUB_RAW_BASE + "CapitalChallengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
