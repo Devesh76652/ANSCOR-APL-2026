@@ -18,15 +18,15 @@ TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
 # Team Database
 TEAM_DB = {
-    "Capital Challengers": {
-        "local": "Capital Challengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "Capital Challengers.jpeg",
+    "Capital Chellengers": {
+        "local": "CapitalChellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black Panther": {
-        "local": "Black Panther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Black Panther.jpeg",
+    "Black panther": {
+        "local": "Blackpanther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
     },
@@ -208,6 +208,33 @@ st.markdown("""
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 1px;
+    }
+    
+    /* Score Container with Logos Close to Score */
+    .score-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin: 10px 0;
+    }
+    .team-logo-small {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 2px solid #3B82F6;
+        object-fit: cover;
+        background: white;
+        padding: 3px;
+    }
+    .team-name-small {
+        font-size: 11px;
+        font-weight: bold;
+        margin-top: 5px;
+        color: #93C5FD;
+    }
+    .score-center {
+        text-align: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -818,21 +845,22 @@ with tab_live:
             else:
                 status_badge = '<span class="live-indicator">🔴 LIVE</span>'
             
+            # Improved Score Display with Logos Closer to Score
             st.markdown(f"""
                 <div class="compact-score">
                     {status_badge}
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="text-align: center; min-width: 100px;">
-                            <img src="data:image/jpeg;base64,{b_logo}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3B82F6;">
-                            <div style="font-size: 11px; font-weight: bold;">{batting[:12]}</div>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                        <div style="text-align: center;">
+                            <img src="data:image/jpeg;base64,{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{batting[:10]}</div>
                         </div>
-                        <div>
+                        <div style="text-align: center;">
                             <div class="score-big">{inn['runs']}-{inn['wickets']}</div>
-                            <div style="font-size: 13px;">{overs_done}.{balls_in_over}/{match['total_overs']} | CRR: {crr:.2f}</div>
+                            <div style="font-size: 12px; color: #93C5FD;">{overs_done}.{balls_in_over}/{match['total_overs']} | CRR: {crr:.2f}</div>
                         </div>
-                        <div style="text-align: center; min-width: 100px;">
-                            <img src="data:image/jpeg;base64,{bowl_logo}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3B82F6;">
-                            <div style="font-size: 11px; font-weight: bold;">{bowling[:12]}</div>
+                        <div style="text-align: center;">
+                            <img src="data:image/jpeg;base64,{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{bowling[:10]}</div>
                         </div>
                     </div>
                 </div>
