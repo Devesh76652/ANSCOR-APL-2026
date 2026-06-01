@@ -19,15 +19,15 @@ TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
 # Team Database
 TEAM_DB = {
-    "Capital Chellengers": {
-        "local": "CapitalChellengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
+    "Capital Challengers": {
+        "local": "Capital Caellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black panther": {
-        "local": "Blackpanther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
+    "Black Panther": {
+        "local": "Black Panther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
     },
