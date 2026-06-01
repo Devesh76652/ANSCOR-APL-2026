@@ -9,11 +9,7 @@ from datetime import datetime
 import io
 import re
 import json
-import hashlib
 from typing import Dict, List, Optional
-import plotly.graph_objects as go
-import plotly.express as px
-from dataclasses import dataclass, asdict
 from collections import defaultdict
 
 # Page Configuration
@@ -426,41 +422,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Data Classes
-@dataclass
-class Commentary:
-    ball_number: int
-    runs: int
-    is_wicket: bool
-    is_four: bool
-    is_six: bool
-    bowler: str
-    batsman: str
-    timestamp: datetime
-    description: str
-
-@dataclass
-class ScheduledMatch:
-    match_id: str
-    team1: str
-    team2: str
-    scheduled_date: datetime
-    venue: str
-    status: str  # "upcoming", "live", "completed"
-
 def add_commentary(description, runs, is_wicket=False, is_four=False, is_six=False, bowler="", batsman=""):
     """Add ball-by-ball commentary"""
-    commentary = Commentary(
-        ball_number=len(commentary_store) + 1,
-        runs=runs,
-        is_wicket=is_wicket,
-        is_four=is_four,
-        is_six=is_six,
-        bowler=bowler,
-        batsman=batsman,
-        timestamp=datetime.now(),
-        description=description
-    )
+    commentary = {
+        "ball_number": len(commentary_store) + 1,
+        "runs": runs,
+        "is_wicket": is_wicket,
+        "is_four": is_four,
+        "is_six": is_six,
+        "bowler": bowler,
+        "batsman": batsman,
+        "timestamp": datetime.now(),
+        "description": description
+    }
     commentary_store.insert(0, commentary)
     
     # Keep only last 50 comments
@@ -469,22 +443,11 @@ def add_commentary(description, runs, is_wicket=False, is_four=False, is_six=Fal
     
     # Send notification for key events
     if is_wicket:
-        show_notification(f"🎉 WICKET! {batsman} is out!", "warning")
+        st.toast(f"🎉 WICKET! {batsman} is out!", icon="⚡")
     elif is_six:
-        show_notification(f"💥 SIX! {batsman} hits a maximum!", "success")
+        st.toast(f"💥 SIX! {batsman} hits a maximum!", icon="🏏")
     elif is_four:
-        show_notification(f"🎯 FOUR! {batsman} finds the boundary!", "info")
-
-def show_notification(message, type="info"):
-    """Show browser notification"""
-    if type == "success":
-        st.toast(f"✅ {message}", icon="🏏")
-    elif type == "warning":
-        st.toast(f"⚠️ {message}", icon="⚡")
-    elif type == "error":
-        st.toast(f"🔴 {message}", icon="❌")
-    else:
-        st.toast(f"ℹ️ {message}", icon="📢")
+        st.toast(f"🎯 FOUR! {batsman} finds the boundary!", icon="🎯")
 
 def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=False, overs=0, runs_conceded=0):
     """Update player statistics"""
@@ -502,8 +465,6 @@ def update_player_stats(player_name, runs=0, balls=0, fours=0, sixes=0, wicket=F
     
     if wicket:
         stats["wickets"] += 1
-        if wickets == 5:
-            stats["five_wickets"] += 1
     
     stats["overs"] += overs
     stats["runs_conceded"] += runs_conceded
@@ -542,46 +503,9 @@ def get_top_bowlers(limit=10):
                 "economy": econ,
                 "average": avg,
                 "runs": stats["runs_conceded"],
-                "overs": stats["overs"],
-                "five_wickets": stats["five_wickets"]
+                "overs": stats["overs"]
             })
     return sorted(bowlers, key=lambda x: x["wickets"], reverse=True)[:limit]
-
-def create_run_rate_chart(innings_data):
-    """Create run rate progression chart"""
-    overs = []
-    runs_at_over = []
-    rr_at_over = []
-    
-    cumulative_runs = 0
-    for i, over in enumerate(innings_data.get("over_history", []), 1):
-        score = over.get("Score", "0/0")
-        runs = int(score.split('/')[0])
-        cumulative_runs = runs
-        overs.append(i)
-        runs_at_over.append(cumulative_runs)
-        rr_at_over.append(cumulative_runs / i)
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=overs, y=runs_at_over, mode='lines+markers',
-        name='Runs', line=dict(color='#3B82F6', width=3),
-        marker=dict(size=8, color='#10B981')
-    ))
-    fig.add_trace(go.Scatter(
-        x=overs, y=rr_at_over, mode='lines',
-        name='Run Rate', line=dict(color='#F59E0B', width=2, dash='dash')
-    ))
-    fig.update_layout(
-        title="Run Rate Progression",
-        xaxis_title="Over Number",
-        yaxis_title="Runs / Run Rate",
-        plot_bgcolor='#1E293B',
-        paper_bgcolor='#0F172A',
-        font=dict(color='white'),
-        hovermode='x unified'
-    )
-    return fig
 
 def init_innings():
     return {
@@ -796,14 +720,14 @@ with tab_schedule:
                 time_sch = st.time_input("Match Time:", datetime.now().time())
             
             if st.button("Schedule Match", use_container_width=True):
-                scheduled_matches.append(ScheduledMatch(
-                    match_id=new_match_id,
-                    team1=team1_sch,
-                    team2=team2_sch,
-                    scheduled_date=datetime.combine(date_sch, time_sch),
-                    venue=venue_sch,
-                    status="upcoming"
-                ))
+                scheduled_matches.append({
+                    "match_id": new_match_id,
+                    "team1": team1_sch,
+                    "team2": team2_sch,
+                    "scheduled_date": datetime.combine(date_sch, time_sch),
+                    "venue": venue_sch,
+                    "status": "upcoming"
+                })
                 st.success(f"Match scheduled for {date_sch} at {venue_sch}")
                 st.rerun()
     
@@ -813,13 +737,13 @@ with tab_schedule:
             <div class="schedule-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong>{match.match_id}</strong><br>
-                        {match.team1} vs {match.team2}<br>
-                        📍 {match.venue}
+                        <strong>{match['match_id']}</strong><br>
+                        {match['team1']} vs {match['team2']}<br>
+                        📍 {match['venue']}
                     </div>
                     <div style="text-align: right;">
-                        🕐 {match.scheduled_date.strftime('%Y-%m-%d %H:%M')}<br>
-                        <span style="background: #3B82F6; padding: 2px 10px; border-radius: 20px; font-size: 11px;">{match.status.upper()}</span>
+                        🕐 {match['scheduled_date'].strftime('%Y-%m-%d %H:%M')}<br>
+                        <span style="background: #3B82F6; padding: 2px 10px; border-radius: 20px; font-size: 11px;">{match['status'].upper()}</span>
                     </div>
                 </div>
             </div>
@@ -957,18 +881,23 @@ with tab_history:
                           sum(b.get("sixes", 0) for b in m["innings_1"].get("all_batsmen", [])))
             st.metric("Total Sixes", total_sixes)
         
-        # Run Rate Chart
-        if m["innings_1"]["over_history"]:
-            st.plotly_chart(create_run_rate_chart(m["innings_1"]), use_container_width=True)
-        
         # Innings Comparison
         col1, col2 = st.columns(2)
         with col1:
             st.subheader(f"Innings 1: {m['team_1']}")
             st.metric("Score", f"{m['innings_1']['runs']}/{m['innings_1']['wickets']}")
+            
+            # Display batting table for innings 1
+            if m["innings_1"]["over_history"]:
+                st.dataframe(pd.DataFrame(m["innings_1"]["over_history"]), use_container_width=True)
+        
         with col2:
             st.subheader(f"Innings 2: {m['team_2']}")
             st.metric("Score", f"{m['innings_2']['runs']}/{m['innings_2']['wickets']}")
+            
+            # Display batting table for innings 2
+            if m["innings_2"]["over_history"]:
+                st.dataframe(pd.DataFrame(m["innings_2"]["over_history"]), use_container_width=True)
         
         # Match Result
         st.success(get_match_status(m))
@@ -1428,52 +1357,16 @@ with tab_live:
                 st.markdown('<div class="commentary-box">', unsafe_allow_html=True)
                 for comment in commentary_store[:10]:
                     css_class = "commentary-item"
-                    if comment.is_six or comment.is_four:
+                    if comment.get("is_six") or comment.get("is_four"):
                         css_class += " commentary-four"
-                    elif comment.is_wicket:
+                    elif comment.get("is_wicket"):
                         css_class += " commentary-wicket"
                     
                     st.markdown(f"""
                         <div class="{css_class}">
-                            <small style="color:#94A3B8;">Ball {comment.ball_number}</small><br>
-                            {comment.description}
-                            <small style="color:#6B7280; float:right;">{comment.timestamp.strftime('%H:%M:%S')}</small>
+                            <small style="color:#94A3B8;">Ball {comment.get('ball_number', 0)}</small><br>
+                            {comment.get('description', '')}
+                            <small style="color:#6B7280; float:right;">{comment.get('timestamp', datetime.now()).strftime('%H:%M:%S')}</small>
                         </div>
                     """, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-
-# Review Tab
-with tab_history:
-    if db["matches"]:
-        match_id = st.selectbox("Select Match:", list(db["matches"].keys()))
-        m = ensure_match(db["matches"][match_id])
-        
-        st.markdown(f"## {m['team_1']} vs {m['team_2']}")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            d1 = m["innings_1"]
-            st.metric(f"Innings 1: {m['team_1']}", f"{d1['runs']}/{d1['wickets']}")
-            if d1["over_history"]:
-                st.dataframe(pd.DataFrame(d1["over_history"]), use_container_width=True)
-        with col2:
-            d2 = m["innings_2"]
-            st.metric(f"Innings 2: {m['team_2']}", f"{d2['runs']}/{d2['wickets']}")
-            if d2["over_history"]:
-                st.dataframe(pd.DataFrame(d2["over_history"]), use_container_width=True)
-        
-        st.success(get_match_status(m))
-        
-        if m["innings_1"]["balls"] > 0 or m["innings_2"]["balls"] > 0:
-            pdf_data = generate_complete_pdf(m)
-            if pdf_data and len(pdf_data) > 500:
-                st.markdown("---")
-                st.download_button(
-                    label="📥 DOWNLOAD FULL SCORECARD (PDF)",
-                    data=pdf_data,
-                    file_name=f"APL_{m['id']}_Complete.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-    else:
-        st.info("No matches played yet")
