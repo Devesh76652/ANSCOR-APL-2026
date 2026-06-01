@@ -1088,20 +1088,50 @@ with tab_live:
                             st.rerun()
 
                     elif not innings_ended:
-                        # Enhanced button layout
+                        # Fixed button layout without syntax errors
                         col1, col2, col3, col4 = st.columns(4)
+                        
                         with col1:
-                            st.button("0️⃣ 0", use_container_width=True, on_click=lambda: process_ball_input(0, 0, True) or st.rerun())
-                            st.button("1️⃣ 1", use_container_width=True, on_click=lambda: process_ball_input(1, 0, True) or st.rerun())
+                            if st.button("0️⃣ 0", use_container_width=True):
+                                process_ball_input(0, 0, True)
+                                st.rerun()
+                            if st.button("1️⃣ 1", use_container_width=True):
+                                process_ball_input(1, 0, True)
+                                st.rerun()
+                        
                         with col2:
-                            st.button("2️⃣ 2", use_container_width=True, on_click=lambda: process_ball_input(2, 0, True) or st.rerun())
-                            st.button("3️⃣ 3", use_container_width=True, on_click=lambda: process_ball_input(3, 0, True) or st.rerun())
+                            if st.button("2️⃣ 2", use_container_width=True):
+                                process_ball_input(2, 0, True)
+                                st.rerun()
+                            if st.button("3️⃣ 3", use_container_width=True):
+                                process_ball_input(3, 0, True)
+                                st.rerun()
+                        
                         with col3:
-                            st.button("4️⃣ 4", use_container_width=True, on_click=lambda: (process_ball_input(4, 0, True), (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["fours"] += 1) or st.rerun())
-                            st.button("6️⃣ 6", use_container_width=True, on_click=lambda: (process_ball_input(6, 0, True), (inn_data["b1" if inn_data["b1"]["strike"] else "b2"])["sixes"] += 1) or st.rerun())
+                            if st.button("4️⃣ 4", use_container_width=True):
+                                process_ball_input(4, 0, True)
+                                # Update fours count
+                                if inn_data["b1"]["strike"]:
+                                    inn_data["b1"]["fours"] += 1
+                                else:
+                                    inn_data["b2"]["fours"] += 1
+                                st.rerun()
+                            if st.button("6️⃣ 6", use_container_width=True):
+                                process_ball_input(6, 0, True)
+                                # Update sixes count
+                                if inn_data["b1"]["strike"]:
+                                    inn_data["b1"]["sixes"] += 1
+                                else:
+                                    inn_data["b2"]["sixes"] += 1
+                                st.rerun()
+                        
                         with col4:
-                            st.button("🟡 WD", use_container_width=True, on_click=lambda: process_ball_input(1, 1, False, symbol="WD") or st.rerun())
-                            st.button("🟠 NB", use_container_width=True, on_click=lambda: process_ball_input(1, 1, False, symbol="NB") or st.rerun())
+                            if st.button("🟡 WD", use_container_width=True):
+                                process_ball_input(1, 1, False, symbol="WD")
+                                st.rerun()
+                            if st.button("🟠 NB", use_container_width=True):
+                                process_ball_input(1, 1, False, symbol="NB")
+                                st.rerun()
                         
                         st.markdown("---")
                         if st.button("☝️ OUT / FALL OF WICKET", type="primary", use_container_width=True):
