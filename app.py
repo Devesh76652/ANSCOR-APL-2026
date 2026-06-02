@@ -16,15 +16,15 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# Team Database with CORRECTED names matching GitHub files
+# Team Database - Using exact names as they appear in the selectbox
 TEAM_DB = {
-    "Capital Challengers": {  # Fixed from "Capital Chellengers"
+    "Capital Chellengers": {
         "local": "Capital Challengers.jpeg",
         "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black Panther": {  # Fixed from "Black panther" to "Black Panther"
+    "Black panther": {
         "local": "Black Panther.jpeg",
         "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
@@ -771,9 +771,9 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get logos
-            b_logo = get_image_base64(TEAM_DB.get(batting, {}).get("local", ""), TEAM_DB.get(batting, {}).get("remote", ""))
-            bowl_logo = get_image_base64(TEAM_DB.get(bowling, {}).get("local", ""), TEAM_DB.get(bowling, {}).get("remote", ""))
+            # Get logos - USE THE SAME TEAM NAMES FROM MATCH
+            b_logo = get_team_logo_base64(batting)
+            bowl_logo = get_team_logo_base64(bowling)
             
             # Create logo HTML with fallback
             if b_logo:
