@@ -11,276 +11,328 @@ import re
 import requests
 from collections import defaultdict
 
-# Page Configuration
+# Page Configuration - MUST be first Streamlit command
 st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initial_sidebar_state="collapsed")
 
-# GitHub repo path
+# ============= OPTIMIZATION: Session State Management =============
+def init_session_state():
+    """Initialize session state variables"""
+    if 'last_update' not in st.session_state:
+        st.session_state.last_update = datetime.now()
+    if 'refresh_counter' not in st.session_state:
+        st.session_state.refresh_counter = 0
+
+init_session_state()
+
+# ============= OPTIMIZATION: GitHub repo path =============
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# Team Database
-TEAM_DB = {
-    "Capital Chellengers": {
-        "local": "Capital Challengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
-        "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
-        "short_name": "CAP"
-    },
-    "Black panther": {
-        "local": "Black Panther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
-        "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
-        "short_name": "BLK"
-    },
-    "Super Kings": {
-        "local": "SuperKings.jpeg",
-        "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
-        "squad": ["Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", "Sudhir pal"],
-        "short_name": "SK"
-    },
-    "Power Hitter": {
-        "local": "PowerHitter.jpeg",
-        "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
-        "squad": ["Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"],
-        "short_name": "PH"
-    },
-    "Royal Warriors XI": {
-        "local": "RoyalWarriorsXI.jpeg",
-        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
-        "squad": ["Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"],
-        "short_name": "RW"
-    },
-    "UnStoppable": {
-        "local": "UnStoppable.jpeg",
-        "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
-        "squad": ["Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"],
-        "short_name": "US"
-    }
-}
-
-# Cache for logo images
+# ============= OPTIMIZATION: Team Database with caching =============
 @st.cache_data(ttl=3600)
+def get_team_db():
+    """Cached team database"""
+    return {
+        "Capital Chellengers": {
+            "local": "Capital Challengers.jpeg",
+            "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
+            "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
+            "short_name": "CAP"
+        },
+        "Black panther": {
+            "local": "Black Panther.jpeg",
+            "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
+            "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
+            "short_name": "BLK"
+        },
+        "Super Kings": {
+            "local": "SuperKings.jpeg",
+            "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
+            "squad": ["Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", "Sudhir pal"],
+            "short_name": "SK"
+        },
+        "Power Hitter": {
+            "local": "PowerHitter.jpeg",
+            "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
+            "squad": ["Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"],
+            "short_name": "PH"
+        },
+        "Royal Warriors XI": {
+            "local": "RoyalWarriorsXI.jpeg",
+            "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
+            "squad": ["Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"],
+            "short_name": "RW"
+        },
+        "UnStoppable": {
+            "local": "UnStoppable.jpeg",
+            "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
+            "squad": ["Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"],
+            "short_name": "US"
+        }
+    }
+
+TEAM_DB = get_team_db()
+
+# ============= OPTIMIZATION: Logo fetching with better caching =============
+@st.cache_data(ttl=86400)  # Cache for 24 hours
 def fetch_logo_from_url(url):
+    """Fetch logo from URL with caching"""
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return base64.b64encode(response.content).decode()
     except:
         pass
     return None
 
-def get_image_base64(local_path, remote_url=""):
-    if local_path:
+@st.cache_data(ttl=86400)
+def get_local_logo(local_path):
+    """Get local logo with caching"""
+    if local_path and os.path.exists(local_path):
         try:
-            if os.path.exists(local_path):
-                with open(local_path, "rb") as img_file:
-                    img_data = img_file.read()
-                    if img_data:
-                        return base64.b64encode(img_data).decode()
+            with open(local_path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode()
         except:
             pass
+    return None
+
+def get_image_base64(local_path, remote_url=""):
+    """Get image base64 with caching"""
+    # Try local first
+    if local_path:
+        cached_logo = get_local_logo(local_path)
+        if cached_logo:
+            return cached_logo
+    
+    # Try remote
     if remote_url:
         cached_logo = fetch_logo_from_url(remote_url)
         if cached_logo:
             return cached_logo
+    
     return None
 
 def get_team_logo_base64(team_name):
+    """Get logo for a team with caching"""
     team_data = TEAM_DB.get(team_name)
     if not team_data:
         return None
     return get_image_base64(team_data.get("local", ""), team_data.get("remote", ""))
 
-# CSS styles
-st.markdown("""
-    <style>
-    .stButton > button {
-        background: linear-gradient(135deg, #3B82F6, #2563EB);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 20px;
-        font-weight: 700;
-        font-size: 16px;
-        transition: all 0.3s;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(59,130,246,0.5);
-    }
-    div[data-testid="column"] button {
-        padding: 10px 0;
-        font-size: 18px;
-        font-weight: 700;
-    }
-    .compact-score {
-        background: linear-gradient(135deg, #1E3A8A, #0F172A);
-        padding: 20px;
-        border-radius: 20px;
-        text-align: center;
-        margin-bottom: 20px;
-        border: 2px solid rgba(59,130,246,0.5);
-        position: relative;
-    }
-    .score-big {
-        font-size: 3.5rem;
-        font-weight: 800;
-        color: white;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-    .info-row {
-        background: #1E293B;
-        padding: 15px;
-        border-radius: 12px;
-        margin: 10px 0;
-        font-size: 15px;
-        border: 1px solid #334155;
-    }
-    .stat-card {
-        background: linear-gradient(135deg, #1E293B, #0F172A);
-        padding: 15px;
-        border-radius: 12px;
-        text-align: center;
-        border: 1px solid #3B82F6;
-        transition: all 0.3s ease;
-    }
-    .stat-card:hover {
-        transform: translateY(-3px);
-        border-color: #10B981;
-    }
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #3B82F6;
-    }
-    .stat-label {
-        font-size: 0.8rem;
-        color: #93C5FD;
-        margin-top: 5px;
-    }
-    .player-card {
-        background: #1E293B;
-        padding: 10px 15px;
-        border-radius: 10px;
-        margin: 5px 0;
-        border-left: 4px solid #3B82F6;
-    }
-    .ball {
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-        line-height: 40px;
-        text-align: center;
-        border-radius: 50%;
-        margin: 4px;
-        font-weight: bold;
-        font-size: 14px;
-    }
-    .run-ball { background: #475569; color: white; }
-    .four-ball { background: #10B981; color: white; }
-    .six-ball { background: #10B981; color: white; }
-    .wicket-ball { background: #EF4444; color: white; }
-    .extra-ball { background: #F59E0B; color: white; }
-    .stDownloadButton > button {
-        background: linear-gradient(135deg, #10B981, #059669) !important;
-        font-size: 18px !important;
-        padding: 12px 24px !important;
-    }
-    .team-card {
-        background: linear-gradient(135deg, #1E293B, #0F172A);
-        border-radius: 16px;
-        padding: 20px;
-        text-align: center;
-        margin: 10px;
-        border: 1px solid rgba(59,130,246,0.3);
-        transition: all 0.3s ease;
-    }
-    .team-card:hover {
-        transform: translateY(-5px);
-        border-color: #3B82F6;
-    }
-    .team-logo-large {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        border: 3px solid #3B82F6;
-        object-fit: cover;
-        margin-bottom: 15px;
-        background: white;
-    }
-    .team-name-large {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #F1F5F9;
-    }
-    .squad-player {
-        padding: 5px 10px;
-        margin: 3px;
-        background: #0F172A;
-        border-radius: 8px;
-        display: inline-block;
-        font-size: 0.85rem;
-    }
-    .live-indicator {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        background: linear-gradient(135deg, #EF4444, #DC2626);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        animation: pulse 1.5s infinite;
-        box-shadow: 0 2px 10px rgba(239,68,68,0.3);
-        z-index: 1;
-    }
-    @keyframes pulse {
-        0% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.7; transform: scale(1.05); }
-        100% { opacity: 1; transform: scale(1); }
-    }
-    .finished-indicator {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        background: linear-gradient(135deg, #6B7280, #4B5563);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        z-index: 1;
-    }
-    .team-logo-display {
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        border: 2px solid #3B82F6;
-        object-fit: cover;
-        background: white;
-        padding: 2px;
-    }
-    .team-logo-placeholder {
-        width: 55px;
-        height: 55px;
-        background: linear-gradient(135deg, #3B82F6, #2563EB);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #3B82F6;
-    }
-    .team-name-display {
-        font-size: 10px;
-        font-weight: bold;
-        margin-top: 3px;
-        color: #93C5FD;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ============= OPTIMIZATION: CSS as constant =============
+CSS_STYLES = """
+<style>
+.stButton > button {
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 700;
+    font-size: 16px;
+    transition: all 0.3s;
+    width: 100%;
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(59,130,246,0.5);
+}
+div[data-testid="column"] button {
+    padding: 10px 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+.compact-score {
+    background: linear-gradient(135deg, #1E3A8A, #0F172A);
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 2px solid rgba(59,130,246,0.5);
+    position: relative;
+}
+.score-big {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+.info-row {
+    background: #1E293B;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 10px 0;
+    font-size: 15px;
+    border: 1px solid #334155;
+}
+.stat-card {
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #3B82F6;
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    border-color: #10B981;
+}
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #3B82F6;
+}
+.stat-label {
+    font-size: 0.8rem;
+    color: #93C5FD;
+    margin-top: 5px;
+}
+.player-card {
+    background: #1E293B;
+    padding: 10px 15px;
+    border-radius: 10px;
+    margin: 5px 0;
+    border-left: 4px solid #3B82F6;
+}
+.ball {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    border-radius: 50%;
+    margin: 4px;
+    font-weight: bold;
+    font-size: 14px;
+}
+.run-ball { background: #475569; color: white; }
+.four-ball { background: #10B981; color: white; }
+.six-ball { background: #10B981; color: white; }
+.wicket-ball { background: #EF4444; color: white; }
+.extra-ball { background: #F59E0B; color: white; }
+.stDownloadButton > button {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    font-size: 18px !important;
+    padding: 12px 24px !important;
+}
+.team-card {
+    background: linear-gradient(135deg, #1E293B, #0F172A);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    margin: 10px;
+    border: 1px solid rgba(59,130,246,0.3);
+    transition: all 0.3s ease;
+}
+.team-card:hover {
+    transform: translateY(-5px);
+    border-color: #3B82F6;
+}
+.team-logo-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid #3B82F6;
+    object-fit: cover;
+    margin-bottom: 15px;
+    background: white;
+}
+.team-name-large {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #F1F5F9;
+}
+.squad-player {
+    padding: 5px 10px;
+    margin: 3px;
+    background: #0F172A;
+    border-radius: 8px;
+    display: inline-block;
+    font-size: 0.85rem;
+}
+.live-indicator {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 2px 10px rgba(239,68,68,0.3);
+    z-index: 1;
+}
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+}
+.finished-indicator {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: linear-gradient(135deg, #6B7280, #4B5563);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    z-index: 1;
+}
+.team-logo-display {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 2px solid #3B82F6;
+    object-fit: cover;
+    background: white;
+    padding: 2px;
+}
+.team-logo-placeholder {
+    width: 55px;
+    height: 55px;
+    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #3B82F6;
+}
+.team-name-display {
+    font-size: 10px;
+    font-weight: bold;
+    margin-top: 3px;
+    color: #93C5FD;
+}
+</style>
+"""
+
+st.markdown(CSS_STYLES, unsafe_allow_html=True)
+
+# ============= OPTIMIZATION: Helper functions with caching =============
+@st.cache_data(ttl=300)
+def get_cached_match_status(match_json):
+    """Cache match status to avoid recalculation"""
+    d1, d2 = match_json["innings_1"], match_json["innings_2"]
+    if d1["b1"]["name"] == "":
+        return "Awaiting lineup"
+    total_balls = match_json["total_overs"] * 6
+    if match_json["current_innings"] == 1:
+        if d1["balls"] >= total_balls or d1["wickets"] >= 10:
+            return f"Innings 1: {d1['runs']}/{d1['wickets']}"
+        return f"{match_json['team_1']} batting"
+    target = d1["runs"] + 1
+    if d2["runs"] >= target:
+        return f"{match_json['team_2']} wins by {10 - d2['wickets']} wickets"
+    if d2["balls"] >= total_balls or d2["wickets"] >= 10:
+        if d2["runs"] < d1["runs"]:
+            return f"{match_json['team_1']} wins by {d1['runs'] - d2['runs']} runs"
+        elif d2["runs"] == d1["runs"]:
+            return "MATCH TIED"
+    return f"Need {target - d2['runs']} runs from {total_balls - d2['balls']} balls"
 
 def init_innings():
     return {
@@ -304,23 +356,10 @@ def ensure_match(m):
     return m
 
 def get_match_status(m):
-    d1, d2 = m["innings_1"], m["innings_2"]
-    if d1["b1"]["name"] == "":
-        return "Awaiting lineup"
-    total_balls = m["total_overs"] * 6
-    if m["current_innings"] == 1:
-        if d1["balls"] >= total_balls or d1["wickets"] >= 10:
-            return f"Innings 1: {d1['runs']}/{d1['wickets']}"
-        return f"{m['team_1']} batting"
-    target = d1["runs"] + 1
-    if d2["runs"] >= target:
-        return f"{m['team_2']} wins by {10 - d2['wickets']} wickets"
-    if d2["balls"] >= total_balls or d2["wickets"] >= 10:
-        if d2["runs"] < d1["runs"]:
-            return f"{m['team_1']} wins by {d1['runs'] - d2['runs']} runs"
-        elif d2["runs"] == d1["runs"]:
-            return "MATCH TIED"
-    return f"Need {target - d2['runs']} runs from {total_balls - d2['balls']} balls"
+    """Wrapper for cached status"""
+    import json
+    match_json = json.dumps(m, default=str)
+    return get_cached_match_status(json.loads(match_json))
 
 def clean_text(text):
     emoji_pattern = re.compile("["
@@ -335,9 +374,12 @@ def clean_text(text):
     text = ''.join(char if ord(char) < 128 else ' ' for char in text)
     return text.strip()
 
-def generate_complete_pdf(m):
+# ============= OPTIMIZATION: PDF generation with caching =============
+@st.cache_data(ttl=60)
+def generate_complete_pdf(match_json):
+    """Generate PDF with caching"""
     try:
-        m = ensure_match(m)
+        m = ensure_match(match_json)
         pdf = FPDF()
         
         pdf.add_page()
@@ -636,17 +678,18 @@ def generate_complete_pdf(m):
         except:
             return b""
 
-def get_tournament_stats(db):
-    """Calculate tournament statistics from all matches"""
+# ============= OPTIMIZATION: Tournament stats with caching =============
+@st.cache_data(ttl=30)
+def get_tournament_stats(matches_json):
+    """Calculate tournament statistics with caching"""
     batsmen_stats = defaultdict(lambda: {"runs": 0, "balls": 0, "fours": 0, "sixes": 0, "matches": 0, "not_out": 0, "highest": 0})
-    bowlers_stats = defaultdict(lambda: {"wickets": 0, "runs": 0, "balls": 0, "matches": 0, "best": {"wickets": 0, "runs": 0}})
+    bowlers_stats = defaultdict(lambda: {"wickets": 0, "runs": 0, "balls": 0, "matches": 0})
     team_stats = defaultdict(lambda: {"played": 0, "won": 0, "lost": 0, "tied": 0})
     
-    for match_id, match in db["matches"].items():
+    for match_id, match in matches_json.items():
         if match["innings_1"]["b1"]["name"] == "":
             continue
         
-        # Team stats
         team1 = match["team_1"]
         team2 = match["team_2"]
         team_stats[team1]["played"] += 1
@@ -663,9 +706,7 @@ def get_tournament_stats(db):
             team_stats[team1]["tied"] += 1
             team_stats[team2]["tied"] += 1
         
-        # Process both innings
         for innings in [match["innings_1"], match["innings_2"]]:
-            # Batsmen stats
             all_bats = []
             if innings["b1"]["name"]:
                 all_bats.append(innings["b1"])
@@ -686,7 +727,6 @@ def get_tournament_stats(db):
                     if bat.get("runs", 0) > batsmen_stats[name]["highest"]:
                         batsmen_stats[name]["highest"] = bat.get("runs", 0)
             
-            # Bowlers stats
             all_bowlers = []
             if innings["bowler"]["name"]:
                 all_bowlers.append(innings["bowler"])
@@ -711,11 +751,11 @@ db = get_db()
 # Sidebar
 with st.sidebar:
     st.markdown("### Portal")
-    role = st.radio("Access:", ["Player View", "Scorer Panel"])
+    role = st.radio("Access:", ["Player View", "Scorer Panel"], key="role_select")
     
     is_admin = False
     if role == "Scorer Panel":
-        pwd = st.text_input("Password:", type="password")
+        pwd = st.text_input("Password:", type="password", key="admin_pwd")
         if pwd == "anscor2026":
             is_admin = True
             st.success("Admin Access")
@@ -737,7 +777,9 @@ with tab_stats:
     st.markdown("## 🏆 Tournament Statistics")
     st.markdown("---")
     
-    batsmen_stats, bowlers_stats, team_stats = get_tournament_stats(db)
+    import json
+    matches_json = json.dumps(db["matches"], default=str)
+    batsmen_stats, bowlers_stats, team_stats = get_tournament_stats(json.loads(matches_json))
     
     if not batsmen_stats and not bowlers_stats and not team_stats:
         st.info("No matches played yet. Statistics will appear after matches are completed.")
@@ -933,17 +975,17 @@ with tab_live:
         with st.expander("New Match", expanded=not db["active_match_id"]):
             col1, col2, col3 = st.columns(3)
             with col1:
-                match_id = st.text_input("Match ID:", "Match_01")
+                match_id = st.text_input("Match ID:", "Match_01", key="new_match_id")
             with col2:
-                team1 = st.selectbox("Team 1:", list(TEAM_DB.keys()), key="t1")
+                team1 = st.selectbox("Team 1:", list(TEAM_DB.keys()), key="team1_select")
             with col3:
-                team2 = st.selectbox("Team 2:", list(TEAM_DB.keys()), key="t2")
+                team2 = st.selectbox("Team 2:", list(TEAM_DB.keys()), key="team2_select")
             
             col4, col5 = st.columns(2)
             with col4:
-                overs = st.number_input("Overs:", 1, 20, 4)
+                overs = st.number_input("Overs:", 1, 20, 4, key="overs_input")
             with col5:
-                if st.button("Create Match", use_container_width=True):
+                if st.button("Create Match", use_container_width=True, key="create_match_btn"):
                     if match_id and team1 != team2:
                         with db["lock"]:
                             db["matches"][match_id] = {
@@ -956,17 +998,18 @@ with tab_live:
         
         if db["matches"]:
             current = db["active_match_id"] if db["active_match_id"] else list(db["matches"].keys())[0]
-            selected = st.selectbox("Active:", list(db["matches"].keys()), index=list(db["matches"].keys()).index(current))
+            selected = st.selectbox("Active:", list(db["matches"].keys()), 
+                                    index=list(db["matches"].keys()).index(current), key="active_match_select")
             col_a, col_b = st.columns(2)
             with col_a:
-                if st.button("Set Active", use_container_width=True):
+                if st.button("Set Active", use_container_width=True, key="set_active_btn"):
                     db["active_match_id"] = selected
                     st.rerun()
             with col_b:
                 if db["active_match_id"] and db["active_match_id"] in db["matches"]:
                     m = ensure_match(db["matches"][db["active_match_id"]])
                     if m["current_innings"] == 1 and m["innings_1"]["b1"]["name"]:
-                        if st.button("Innings 2", use_container_width=True):
+                        if st.button("Innings 2", use_container_width=True, key="start_innings2_btn"):
                             with db["lock"]:
                                 m["current_innings"] = 2
                             st.rerun()
@@ -987,15 +1030,15 @@ with tab_live:
             innings_complete = (inn["balls"] >= total_balls_allowed or inn["wickets"] >= 10 or (target and inn["runs"] >= target))
         
         if inn["b1"]["name"] == "" and is_admin:
-            with st.form("setup"):
+            with st.form("setup_form"):
                 st.warning(f"Setup {batting} Batting")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    striker = st.selectbox("Striker:", TEAM_DB[batting]["squad"])
+                    striker = st.selectbox("Striker:", TEAM_DB[batting]["squad"], key="striker_select")
                 with col2:
-                    non_striker = st.selectbox("Non-Striker:", TEAM_DB[batting]["squad"])
+                    non_striker = st.selectbox("Non-Striker:", TEAM_DB[batting]["squad"], key="non_striker_select")
                 with col3:
-                    bowler = st.selectbox("Bowler:", TEAM_DB[bowling]["squad"])
+                    bowler = st.selectbox("Bowler:", TEAM_DB[bowling]["squad"], key="bowler_select")
                 if st.form_submit_button("Start Match", use_container_width=True):
                     with db["lock"]:
                         inn["b1"]["name"] = striker
@@ -1008,6 +1051,7 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
+            # Get logos
             b_logo = get_team_logo_base64(batting)
             bowl_logo = get_team_logo_base64(bowling)
             
@@ -1108,11 +1152,9 @@ with tab_live:
                     
                     def add_ball(runs, extra=0, legal=True, wicket=False, symbol=None):
                         with db["lock"]:
-                            # Save current state to undo stack
                             if "undo_stack" not in inn:
                                 inn["undo_stack"] = []
                             
-                            # Store current state before making changes
                             state_snapshot = {
                                 "runs": inn["runs"],
                                 "wickets": inn["wickets"],
@@ -1177,8 +1219,8 @@ with tab_live:
                         available = [p for p in TEAM_DB[batting]["squad"] if p not in used]
                         if not available:
                             available = TEAM_DB[batting]["squad"]
-                        new_bat = st.selectbox("Select Batsman:", available)
-                        if st.button("✅ Confirm", use_container_width=True):
+                        new_bat = st.selectbox("Select Batsman:", available, key="new_batsman_select")
+                        if st.button("✅ Confirm", use_container_width=True, key="confirm_batsman_btn"):
                             with db["lock"]:
                                 if inn["b1"]["strike"]:
                                     if inn["b1"]["name"]:
@@ -1195,8 +1237,8 @@ with tab_live:
                     
                     elif inn["awaiting_bowler"]:
                         st.success("🔄 Over Complete! New Bowler Needed")
-                        new_bowl = st.selectbox("Select Bowler:", TEAM_DB[bowling]["squad"])
-                        if st.button("✅ Start Next Over", use_container_width=True):
+                        new_bowl = st.selectbox("Select Bowler:", TEAM_DB[bowling]["squad"], key="new_bowler_select")
+                        if st.button("✅ Start Next Over", use_container_width=True, key="confirm_bowler_btn"):
                             with db["lock"]:
                                 if inn["bowler"]["name"]:
                                     inn["all_bowlers"].append(copy.deepcopy(inn["bowler"]))
@@ -1215,23 +1257,29 @@ with tab_live:
                         if target and inn["runs"] >= target:
                             st.success("🏆 Target Achieved! Match Complete")
                         else:
+                            # Optimized scoring buttons layout
                             st.markdown("**RUNS**")
-                            r1, r2, r3, r4 = st.columns(4)
-                            with r1:
+                            
+                            # Create scoring buttons in 4 columns
+                            col_0, col_1, col_2, col_3 = st.columns(4)
+                            
+                            with col_0:
                                 if st.button("0", use_container_width=True, key="btn_0"):
                                     add_ball(0)
                                     st.rerun()
                                 if st.button("1", use_container_width=True, key="btn_1"):
                                     add_ball(1)
                                     st.rerun()
-                            with r2:
+                            
+                            with col_1:
                                 if st.button("2", use_container_width=True, key="btn_2"):
                                     add_ball(2)
                                     st.rerun()
                                 if st.button("3", use_container_width=True, key="btn_3"):
                                     add_ball(3)
                                     st.rerun()
-                            with r3:
+                            
+                            with col_2:
                                 if st.button("4", use_container_width=True, key="btn_4"):
                                     add_ball(4)
                                     if inn["b1"]["strike"]:
@@ -1246,7 +1294,8 @@ with tab_live:
                                     else:
                                         inn["b2"]["sixes"] += 1
                                     st.rerun()
-                            with r4:
+                            
+                            with col_3:
                                 if st.button("WD", use_container_width=True, key="btn_wd"):
                                     add_ball(1, 1, False, symbol="WD")
                                     st.rerun()
@@ -1255,17 +1304,22 @@ with tab_live:
                                     st.rerun()
                             
                             st.markdown("---")
-                            a1, a2, a3 = st.columns(3)
-                            with a1:
+                            
+                            # Control buttons in 3 columns
+                            col_out, col_undo, col_swap = st.columns(3)
+                            
+                            with col_out:
                                 if st.button("☝️ OUT", type="primary", use_container_width=True, key="btn_out"):
                                     add_ball(0, 0, True, True, "W")
                                     st.rerun()
-                            with a2:
+                            
+                            with col_undo:
                                 if len(inn.get("undo_stack", [])) > 0:
                                     if st.button("↩️ UNDO", use_container_width=True, key="btn_undo"):
                                         if undo_last_ball():
                                             st.rerun()
-                            with a3:
+                            
+                            with col_swap:
                                 if st.button("🔄 SWAP", use_container_width=True, key="btn_swap"):
                                     with db["lock"]:
                                         inn["b1"]["strike"] = not inn["b1"]["strike"]
@@ -1274,7 +1328,7 @@ with tab_live:
                     else:
                         st.success("🏁 Innings Complete!")
                         if match["current_innings"] == 1:
-                            if st.button("➡️ Start Innings 2", use_container_width=True, type="primary"):
+                            if st.button("➡️ Start Innings 2", use_container_width=True, type="primary", key="start_innings2"):
                                 with db["lock"]:
                                     match["current_innings"] = 2
                                 st.rerun()
@@ -1282,10 +1336,10 @@ with tab_live:
                     with st.expander("⚙️ Admin Tools"):
                         col1, col2 = st.columns(2)
                         with col1:
-                            extra_type = st.selectbox("Type", ["Extras", "Penalty"])
+                            extra_type = st.selectbox("Type", ["Extras", "Penalty"], key="extra_type")
                         with col2:
-                            extra_runs = st.number_input("Runs", 1, 20, 1)
-                        if st.button("➕ Add Runs", use_container_width=True):
+                            extra_runs = st.number_input("Runs", 1, 20, 1, key="extra_runs")
+                        if st.button("➕ Add Runs", use_container_width=True, key="add_extra_runs"):
                             with db["lock"]:
                                 inn["runs"] += extra_runs
                                 if extra_type == "Extras":
@@ -1299,20 +1353,23 @@ with tab_live:
                     st.markdown("---")
                     st.markdown("### 📄 EXPORT REPORT")
                     if match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0:
-                        pdf_data = generate_complete_pdf(match)
+                        import json
+                        match_json = json.dumps(match, default=str)
+                        pdf_data = generate_complete_pdf(json.loads(match_json))
                         if pdf_data and len(pdf_data) > 500:
                             st.download_button(
                                 label="📥 DOWNLOAD COMPLETE SCORECARD (PDF)",
                                 data=pdf_data,
                                 file_name=f"APL_{match['id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                                 mime="application/pdf",
-                                use_container_width=True
+                                use_container_width=True,
+                                key="download_pdf"
                             )
                         else:
                             st.info("⏳ Preparing PDF...")
             
             else:
-                # Player View
+                # Player View - Simplified for better performance
                 st.markdown(f"""
                     <div class="info-row">
                         <b>🏏 BATTING PARTNERSHIP</b><br>
@@ -1364,20 +1421,23 @@ with tab_live:
                 
                 st.markdown("---")
                 if match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0:
-                    pdf_data = generate_complete_pdf(match)
+                    import json
+                    match_json = json.dumps(match, default=str)
+                    pdf_data = generate_complete_pdf(json.loads(match_json))
                     if pdf_data and len(pdf_data) > 500:
                         st.download_button(
                             label="📥 DOWNLOAD SCORECARD (PDF)",
                             data=pdf_data,
                             file_name=f"APL_{match['id']}.pdf",
                             mime="application/pdf",
-                            use_container_width=True
+                            use_container_width=True,
+                            key="download_pdf_player"
                         )
 
 # Review Tab
 with tab_review:
     if db["matches"]:
-        match_id = st.selectbox("Select Match:", list(db["matches"].keys()))
+        match_id = st.selectbox("Select Match:", list(db["matches"].keys()), key="review_match_select")
         m = ensure_match(db["matches"][match_id])
         
         st.markdown(f"## {m['team_1']} vs {m['team_2']}")
@@ -1397,7 +1457,9 @@ with tab_review:
         st.success(get_match_status(m))
         
         if m["innings_1"]["balls"] > 0 or m["innings_2"]["balls"] > 0:
-            pdf_data = generate_complete_pdf(m)
+            import json
+            match_json = json.dumps(m, default=str)
+            pdf_data = generate_complete_pdf(json.loads(match_json))
             if pdf_data and len(pdf_data) > 500:
                 st.markdown("---")
                 st.download_button(
@@ -1405,7 +1467,8 @@ with tab_review:
                     data=pdf_data,
                     file_name=f"APL_{m['id']}_Complete.pdf",
                     mime="application/pdf",
-                    use_container_width=True
+                    use_container_width=True,
+                    key="download_pdf_review"
                 )
     else:
         st.info("No matches played yet")
