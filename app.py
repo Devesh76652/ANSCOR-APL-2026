@@ -18,7 +18,7 @@ GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL
 
 # Team Database - Using exact names as they appear in the selectbox
 TEAM_DB = {
-    "Capital Chellengers": {
+    "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
         "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
