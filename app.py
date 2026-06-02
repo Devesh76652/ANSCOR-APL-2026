@@ -16,7 +16,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Team Database - Using exact names as they appear in the selectbox
+# Team Database
 TEAM_DB = {
     "Capital Chellengers": {
         "local": "CapitalChellengers.jpeg",
@@ -56,37 +56,37 @@ TEAM_DB = {
     }
 }
 
-# Cache for logo images
-@st.cache_data(ttl=3600)
-def fetch_logo_from_url(url):
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            return base64.b64encode(response.content).decode()
-    except:
-        pass
-    return None
-
 def get_image_base64(local_path, remote_url=""):
-    if local_path and os.path.exists(local_path):
+    """Get image base64 from local or remote with better error handling"""
+    # Try local file first
+    if local_path:
         try:
-            with open(local_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode()
-        except:
-            pass
+            if os.path.exists(local_path):
+                with open(local_path, "rb") as img_file:
+                    img_data = img_file.read()
+                    if img_data:
+                        return base64.b64encode(img_data).decode()
+        except Exception as e:
+            st.warning(f"Could not load local logo: {e}")
+    
+    # Try remote URL if local fails
     if remote_url:
-        cached_logo = fetch_logo_from_url(remote_url)
-        if cached_logo:
-            return cached_logo
+        try:
+            response = requests.get(remote_url, timeout=10)
+            if response.status_code == 200:
+                return base64.b64encode(response.content).decode()
+        except Exception as e:
+            pass
+    
+    # Return None if both fail
     return None
 
 def get_team_logo_base64(team_name):
-    team_data = TEAM_DB.get(team_name, {})
+    """Get logo for a team"""
+    team_data = TEAM_DB.get(team_name)
     if not team_data:
         return None
-    local_path = team_data.get("local", "")
-    remote_url = team_data.get("remote", "")
-    return get_image_base64(local_path, remote_url)
+    return get_image_base64(team_data.get("local", ""), team_data.get("remote", ""))
 
 # CSS styles
 st.markdown("""
@@ -124,6 +124,7 @@ st.markdown("""
         font-size: 3.5rem;
         font-weight: 800;
         color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     .info-row {
         background: #1E293B;
@@ -174,6 +175,7 @@ st.markdown("""
         border: 3px solid #3B82F6;
         object-fit: cover;
         margin-bottom: 15px;
+        background: white;
     }
     .team-name-large {
         font-size: 1.1rem;
@@ -226,6 +228,7 @@ st.markdown("""
         border: 2px solid #3B82F6;
         object-fit: cover;
         background: white;
+        padding: 2px;
     }
     .team-logo-placeholder {
         width: 55px;
@@ -759,29 +762,34 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Safe logo retrieval
-            b_logo = None
-            bowl_logo = None
-            if batting in TEAM_DB:
-                b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
-            if bowling in TEAM_DB:
-                bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
+            # Get logos with better error handling
+            b_logo = get_image_base64(TEAM_DB.get(batting, {}).get("local", ""), TEAM_DB.get(batting, {}).get("remote", ""))
+            bowl_logo = get_image_base64(TEAM_DB.get(bowling, {}).get("local", ""), TEAM_DB.get(bowling, {}).get("remote", ""))
             
-            batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">' if b_logo else '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
-            bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display">' if bowl_logo else '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
+            # Create logo HTML with fallback
+            if b_logo:
+                batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display" onerror="this.style.display=\'none\'">'
+            else:
+                batting_logo_html = '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
+            
+            if bowl_logo:
+                bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display" onerror="this.style.display=\'none\'">'
+            else:
+                bowling_logo_html = '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
             
             if innings_complete:
                 status_badge = '<span class="finished-indicator">FINISHED</span>'
             else:
                 status_badge = '<span class="live-indicator">🔴 LIVE</span>'
             
+            # Display Score with Logos
             st.markdown(f"""
                 <div class="compact-score">
                     {status_badge}
                     <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                         <div style="text-align: center;">
                             {batting_logo_html}
-                            <div class="team-name-display">{batting[:10]}</div>
+                            <div class="team-name-display">{batting[:12]}</div>
                         </div>
                         <div style="text-align: center;">
                             <div class="score-big">{inn['runs']}-{inn['wickets']}</div>
@@ -789,7 +797,7 @@ with tab_live:
                         </div>
                         <div style="text-align: center;">
                             {bowling_logo_html}
-                            <div class="team-name-display">{bowling[:10]}</div>
+                            <div class="team-name-display">{bowling[:12]}</div>
                         </div>
                     </div>
                 </div>
@@ -897,7 +905,6 @@ with tab_live:
                             if wicket and inn["wickets"] < 10:
                                 inn["awaiting_batsman"] = True
                     
-                    # Handle awaiting states
                     if inn["awaiting_batsman"]:
                         st.warning("⚠️ New Batsman Required")
                         used = [inn["b1"]["name"], inn["b2"]["name"]] + [b["name"] for b in inn["all_batsmen"]]
@@ -908,15 +915,12 @@ with tab_live:
                         if st.button("✅ Confirm", use_container_width=True):
                             with db["lock"]:
                                 if inn["b1"]["strike"]:
-                                    inn["b1"]["status"] = f"Out - {inn.get('last_out_reason', 'Bowled')}"
                                     inn["all_batsmen"].append(copy.deepcopy(inn["b1"]))
                                     inn["b1"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True}
                                 else:
-                                    inn["b2"]["status"] = f"Out - {inn.get('last_out_reason', 'Bowled')}"
                                     inn["all_batsmen"].append(copy.deepcopy(inn["b2"]))
                                     inn["b2"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False}
                                 inn["awaiting_batsman"] = False
-                                inn["last_out_reason"] = ""
                             st.rerun()
                     
                     elif inn["awaiting_bowler"]:
@@ -984,8 +988,6 @@ with tab_live:
                             a1, a2, a3 = st.columns(3)
                             with a1:
                                 if st.button("☝️ OUT", type="primary", use_container_width=True):
-                                    with db["lock"]:
-                                        inn["last_out_reason"] = "Bowled"
                                     add_ball(0, 0, True, True, "W")
                                     st.rerun()
                             with a2:
