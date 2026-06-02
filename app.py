@@ -1108,14 +1108,28 @@ with tab_live:
                     
                     def add_ball(runs, extra=0, legal=True, wicket=False, symbol=None):
                         with db["lock"]:
+                            # Save current state to undo stack
                             if "undo_stack" not in inn:
                                 inn["undo_stack"] = []
-                            inn["undo_stack"].append(copy.deepcopy({
-                                "runs": inn["runs"], "wickets": inn["wickets"], "balls": inn["balls"],
-                                "extras": inn["extras"], "this_over": list(inn["this_over"]),
-                                "b1": copy.deepcopy(inn["b1"]), "b2": copy.deepcopy(inn["b2"]),
-                                "bowler": copy.deepcopy(inn["bowler"])
-                            }))
+                            
+                            # Store current state before making changes
+                            state_snapshot = {
+                                "runs": inn["runs"],
+                                "wickets": inn["wickets"],
+                                "balls": inn["balls"],
+                                "extras": inn["extras"],
+                                "penalty": inn.get("penalty", 0),
+                                "this_over": list(inn["this_over"]),
+                                "over_history": copy.deepcopy(inn["over_history"]),
+                                "b1": copy.deepcopy(inn["b1"]),
+                                "b2": copy.deepcopy(inn["b2"]),
+                                "bowler": copy.deepcopy(inn["bowler"]),
+                                "all_batsmen": copy.deepcopy(inn["all_batsmen"]),
+                                "all_bowlers": copy.deepcopy(inn["all_bowlers"]),
+                                "awaiting_batsman": inn["awaiting_batsman"],
+                                "awaiting_bowler": inn["awaiting_bowler"]
+                            }
+                            inn["undo_stack"].append(state_snapshot)
                             
                             striker = inn["b1"] if inn["b1"]["strike"] else inn["b2"]
                             inn["runs"] += runs
@@ -1148,6 +1162,15 @@ with tab_live:
                             if wicket and inn["wickets"] < 10:
                                 inn["awaiting_batsman"] = True
                     
+                    def undo_last_ball():
+                        with db["lock"]:
+                            if "undo_stack" in inn and inn["undo_stack"]:
+                                prev = inn["undo_stack"].pop()
+                                for k in ["runs", "wickets", "balls", "extras", "penalty", "this_over", "over_history", "b1", "b2", "bowler", "all_batsmen", "all_bowlers", "awaiting_batsman", "awaiting_bowler"]:
+                                    inn[k] = prev[k]
+                                return True
+                            return False
+                    
                     if inn["awaiting_batsman"]:
                         st.warning("⚠️ New Batsman Required")
                         used = [inn["b1"]["name"], inn["b2"]["name"]] + [b["name"] for b in inn["all_batsmen"]]
@@ -1158,10 +1181,14 @@ with tab_live:
                         if st.button("✅ Confirm", use_container_width=True):
                             with db["lock"]:
                                 if inn["b1"]["strike"]:
-                                    inn["all_batsmen"].append(copy.deepcopy(inn["b1"]))
+                                    if inn["b1"]["name"]:
+                                        inn["b1"]["status"] = "Out"
+                                        inn["all_batsmen"].append(copy.deepcopy(inn["b1"]))
                                     inn["b1"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True}
                                 else:
-                                    inn["all_batsmen"].append(copy.deepcopy(inn["b2"]))
+                                    if inn["b2"]["name"]:
+                                        inn["b2"]["status"] = "Out"
+                                        inn["all_batsmen"].append(copy.deepcopy(inn["b2"]))
                                     inn["b2"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False}
                                 inn["awaiting_batsman"] = False
                             st.rerun()
@@ -1191,28 +1218,28 @@ with tab_live:
                             st.markdown("**RUNS**")
                             r1, r2, r3, r4 = st.columns(4)
                             with r1:
-                                if st.button("0", use_container_width=True):
+                                if st.button("0", use_container_width=True, key="btn_0"):
                                     add_ball(0)
                                     st.rerun()
-                                if st.button("1", use_container_width=True):
+                                if st.button("1", use_container_width=True, key="btn_1"):
                                     add_ball(1)
                                     st.rerun()
                             with r2:
-                                if st.button("2", use_container_width=True):
+                                if st.button("2", use_container_width=True, key="btn_2"):
                                     add_ball(2)
                                     st.rerun()
-                                if st.button("3", use_container_width=True):
+                                if st.button("3", use_container_width=True, key="btn_3"):
                                     add_ball(3)
                                     st.rerun()
                             with r3:
-                                if st.button("4", use_container_width=True):
+                                if st.button("4", use_container_width=True, key="btn_4"):
                                     add_ball(4)
                                     if inn["b1"]["strike"]:
                                         inn["b1"]["fours"] += 1
                                     else:
                                         inn["b2"]["fours"] += 1
                                     st.rerun()
-                                if st.button("6", use_container_width=True):
+                                if st.button("6", use_container_width=True, key="btn_6"):
                                     add_ball(6)
                                     if inn["b1"]["strike"]:
                                         inn["b1"]["sixes"] += 1
@@ -1220,31 +1247,26 @@ with tab_live:
                                         inn["b2"]["sixes"] += 1
                                     st.rerun()
                             with r4:
-                                if st.button("WD", use_container_width=True):
+                                if st.button("WD", use_container_width=True, key="btn_wd"):
                                     add_ball(1, 1, False, symbol="WD")
                                     st.rerun()
-                                if st.button("NB", use_container_width=True):
+                                if st.button("NB", use_container_width=True, key="btn_nb"):
                                     add_ball(1, 1, False, symbol="NB")
                                     st.rerun()
                             
                             st.markdown("---")
                             a1, a2, a3 = st.columns(3)
                             with a1:
-                                if st.button("☝️ OUT", type="primary", use_container_width=True):
+                                if st.button("☝️ OUT", type="primary", use_container_width=True, key="btn_out"):
                                     add_ball(0, 0, True, True, "W")
                                     st.rerun()
                             with a2:
-                                if inn["undo_stack"]:
-                                    if st.button("↩️ UNDO", use_container_width=True):
-                                        with db["lock"]:
-                                            prev = inn["undo_stack"].pop()
-                                            for k in ["runs", "wickets", "balls", "extras", "this_over", "b1", "b2", "bowler"]:
-                                                inn[k] = prev[k]
-                                            inn["awaiting_batsman"] = False
-                                            inn["awaiting_bowler"] = False
-                                        st.rerun()
+                                if len(inn.get("undo_stack", [])) > 0:
+                                    if st.button("↩️ UNDO", use_container_width=True, key="btn_undo"):
+                                        if undo_last_ball():
+                                            st.rerun()
                             with a3:
-                                if st.button("🔄 SWAP", use_container_width=True):
+                                if st.button("🔄 SWAP", use_container_width=True, key="btn_swap"):
                                     with db["lock"]:
                                         inn["b1"]["strike"] = not inn["b1"]["strike"]
                                         inn["b2"]["strike"] = not inn["b2"]["strike"]
