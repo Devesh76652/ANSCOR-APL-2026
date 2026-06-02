@@ -9,6 +9,7 @@ from datetime import datetime
 import io
 import re
 import requests
+from collections import defaultdict
 
 # Page Configuration
 st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initial_sidebar_state="collapsed")
@@ -16,15 +17,15 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# Team Database - Using exact names as they appear in the selectbox
+# Team Database
 TEAM_DB = {
-    "Capital Challengers": {
+    "Capital Chellengers": {
         "local": "Capital Challengers.jpeg",
         "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black Panther": {
+    "Black panther": {
         "local": "Black Panther.jpeg",
         "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
@@ -68,8 +69,6 @@ def fetch_logo_from_url(url):
     return None
 
 def get_image_base64(local_path, remote_url=""):
-    """Get image base64 from local or remote"""
-    # Try local file first
     if local_path:
         try:
             if os.path.exists(local_path):
@@ -79,17 +78,13 @@ def get_image_base64(local_path, remote_url=""):
                         return base64.b64encode(img_data).decode()
         except:
             pass
-    
-    # Try remote URL
     if remote_url:
         cached_logo = fetch_logo_from_url(remote_url)
         if cached_logo:
             return cached_logo
-    
     return None
 
 def get_team_logo_base64(team_name):
-    """Get logo for a team"""
     team_data = TEAM_DB.get(team_name)
     if not team_data:
         return None
@@ -140,6 +135,35 @@ st.markdown("""
         margin: 10px 0;
         font-size: 15px;
         border: 1px solid #334155;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #1E293B, #0F172A);
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid #3B82F6;
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        border-color: #10B981;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #3B82F6;
+    }
+    .stat-label {
+        font-size: 0.8rem;
+        color: #93C5FD;
+        margin-top: 5px;
+    }
+    .player-card {
+        background: #1E293B;
+        padding: 10px 15px;
+        border-radius: 10px;
+        margin: 5px 0;
+        border-left: 4px solid #3B82F6;
     }
     .ball {
         display: inline-block;
@@ -612,6 +636,72 @@ def generate_complete_pdf(m):
         except:
             return b""
 
+def get_tournament_stats(db):
+    """Calculate tournament statistics from all matches"""
+    batsmen_stats = defaultdict(lambda: {"runs": 0, "balls": 0, "fours": 0, "sixes": 0, "matches": 0, "not_out": 0, "highest": 0})
+    bowlers_stats = defaultdict(lambda: {"wickets": 0, "runs": 0, "balls": 0, "matches": 0, "best": {"wickets": 0, "runs": 0}})
+    team_stats = defaultdict(lambda: {"played": 0, "won": 0, "lost": 0, "tied": 0})
+    
+    for match_id, match in db["matches"].items():
+        if match["innings_1"]["b1"]["name"] == "":
+            continue
+        
+        # Team stats
+        team1 = match["team_1"]
+        team2 = match["team_2"]
+        team_stats[team1]["played"] += 1
+        team_stats[team2]["played"] += 1
+        
+        result = get_match_status(match)
+        if f"{team1} wins" in result:
+            team_stats[team1]["won"] += 1
+            team_stats[team2]["lost"] += 1
+        elif f"{team2} wins" in result:
+            team_stats[team2]["won"] += 1
+            team_stats[team1]["lost"] += 1
+        elif "MATCH TIED" in result:
+            team_stats[team1]["tied"] += 1
+            team_stats[team2]["tied"] += 1
+        
+        # Process both innings
+        for innings in [match["innings_1"], match["innings_2"]]:
+            # Batsmen stats
+            all_bats = []
+            if innings["b1"]["name"]:
+                all_bats.append(innings["b1"])
+            if innings["b2"]["name"]:
+                all_bats.append(innings["b2"])
+            all_bats.extend(innings.get("all_batsmen", []))
+            
+            for bat in all_bats:
+                if bat.get("name"):
+                    name = bat["name"]
+                    batsmen_stats[name]["runs"] += bat.get("runs", 0)
+                    batsmen_stats[name]["balls"] += bat.get("balls", 0)
+                    batsmen_stats[name]["fours"] += bat.get("fours", 0)
+                    batsmen_stats[name]["sixes"] += bat.get("sixes", 0)
+                    batsmen_stats[name]["matches"] += 1
+                    if bat.get("status") == "Not Out":
+                        batsmen_stats[name]["not_out"] += 1
+                    if bat.get("runs", 0) > batsmen_stats[name]["highest"]:
+                        batsmen_stats[name]["highest"] = bat.get("runs", 0)
+            
+            # Bowlers stats
+            all_bowlers = []
+            if innings["bowler"]["name"]:
+                all_bowlers.append(innings["bowler"])
+            all_bowlers.extend(innings.get("all_bowlers", []))
+            
+            for bowl in all_bowlers:
+                if bowl.get("name"):
+                    name = bowl["name"]
+                    bowlers_stats[name]["wickets"] += bowl.get("wickets", 0)
+                    bowlers_stats[name]["runs"] += bowl.get("runs", 0)
+                    bowlers_stats[name]["balls"] += bowl.get("balls", 0)
+                    bowlers_stats[name]["matches"] += 1
+    
+    return batsmen_stats, bowlers_stats, team_stats
+
 @st.cache_resource
 def get_db():
     return {"lock": threading.Lock(), "active_match_id": None, "matches": {}}
@@ -640,7 +730,154 @@ with st.sidebar:
             pass
 
 # Tabs
-tab_live, tab_review, tab_teams = st.tabs(["Live", "Review", "Teams"])
+tab_live, tab_stats, tab_review, tab_teams = st.tabs(["Live", "Statistics", "Review", "Teams"])
+
+# Statistics Tab
+with tab_stats:
+    st.markdown("## 🏆 Tournament Statistics")
+    st.markdown("---")
+    
+    batsmen_stats, bowlers_stats, team_stats = get_tournament_stats(db)
+    
+    if not batsmen_stats and not bowlers_stats and not team_stats:
+        st.info("No matches played yet. Statistics will appear after matches are completed.")
+    else:
+        # Team Standings
+        st.markdown("### 📊 Team Standings")
+        standings_data = []
+        for team, stats in team_stats.items():
+            standings_data.append({
+                "Team": team,
+                "Played": stats["played"],
+                "Won": stats["won"],
+                "Lost": stats["lost"],
+                "Tied": stats["tied"],
+                "Points": stats["won"] * 2 + stats["tied"],
+                "Win %": f"{(stats['won']/stats['played']*100):.1f}%" if stats["played"] > 0 else "0%"
+            })
+        
+        standings_df = pd.DataFrame(standings_data)
+        standings_df = standings_df.sort_values("Points", ascending=False).reset_index(drop=True)
+        st.dataframe(standings_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        # Top Batsmen
+        st.markdown("### 🏏 Top Batsmen")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Most Runs")
+            batsmen_list = []
+            for name, stats in batsmen_stats.items():
+                if stats["runs"] > 0:
+                    sr = (stats["runs"] * 100 / stats["balls"]) if stats["balls"] > 0 else 0
+                    avg = stats["runs"] / (stats["matches"] - stats["not_out"]) if (stats["matches"] - stats["not_out"]) > 0 else stats["runs"]
+                    batsmen_list.append({
+                        "name": name,
+                        "runs": stats["runs"],
+                        "balls": stats["balls"],
+                        "avg": avg,
+                        "sr": sr,
+                        "fours": stats["fours"],
+                        "sixes": stats["sixes"],
+                        "highest": stats["highest"]
+                    })
+            
+            batsmen_list.sort(key=lambda x: x["runs"], reverse=True)
+            for i, bat in enumerate(batsmen_list[:10]):
+                st.markdown(f"""
+                    <div class="player-card">
+                        <b>{i+1}. {bat['name']}</b><br>
+                        <span style="color: #FBBF24;">⭐ {bat['runs']} runs</span> | 
+                        <span style="color: #60A5FA;">📊 Avg: {bat['avg']:.1f}</span> | 
+                        <span style="color: #34D399;">⚡ SR: {bat['sr']:.1f}</span><br>
+                        <span style="font-size: 12px;">🎯 {bat['fours']}x4 | 🚀 {bat['sixes']}x6 | 🏆 HS: {bat['highest']}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("#### Best Strike Rate (Min 20 balls)")
+            batsmen_sr = [b for b in batsmen_list if b["balls"] >= 15]
+            batsmen_sr.sort(key=lambda x: x["sr"], reverse=True)
+            for i, bat in enumerate(batsmen_sr[:10]):
+                st.markdown(f"""
+                    <div class="player-card">
+                        <b>{i+1}. {bat['name']}</b><br>
+                        <span style="color: #34D399;">⚡ SR: {bat['sr']:.1f}</span> | 
+                        <span style="color: #FBBF24;">🏏 {bat['runs']} runs</span> | 
+                        <span style="color: #60A5FA;">📊 {bat['balls']} balls</span><br>
+                        <span style="font-size: 12px;">🎯 {bat['fours']}x4 | 🚀 {bat['sixes']}x6</span>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # Top Bowlers
+        st.markdown("### 🎯 Top Bowlers")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### Most Wickets")
+            bowlers_list = []
+            for name, stats in bowlers_stats.items():
+                if stats["wickets"] > 0:
+                    overs = stats["balls"] / 6
+                    economy = stats["runs"] / overs if overs > 0 else 0
+                    avg = stats["runs"] / stats["wickets"] if stats["wickets"] > 0 else 0
+                    bowlers_list.append({
+                        "name": name,
+                        "wickets": stats["wickets"],
+                        "runs": stats["runs"],
+                        "overs": overs,
+                        "economy": economy,
+                        "avg": avg,
+                        "matches": stats["matches"]
+                    })
+            
+            bowlers_list.sort(key=lambda x: x["wickets"], reverse=True)
+            for i, bowl in enumerate(bowlers_list[:10]):
+                st.markdown(f"""
+                    <div class="player-card">
+                        <b>{i+1}. {bowl['name']}</b><br>
+                        <span style="color: #EF4444;">🎯 {bowl['wickets']} wickets</span> | 
+                        <span style="color: #FBBF24;">💰 {bowl['runs']} runs</span> | 
+                        <span style="color: #60A5FA;">📊 {bowl['overs']:.1f} overs</span><br>
+                        <span style="font-size: 12px;">⚡ Econ: {bowl['economy']:.2f} | 📈 Avg: {bowl['avg']:.1f}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("#### Best Economy Rate (Min 10 overs)")
+            bowlers_econ = [b for b in bowlers_list if b["overs"] >= 4]
+            bowlers_econ.sort(key=lambda x: x["economy"])
+            for i, bowl in enumerate(bowlers_econ[:10]):
+                st.markdown(f"""
+                    <div class="player-card">
+                        <b>{i+1}. {bowl['name']}</b><br>
+                        <span style="color: #34D399;">⚡ Econ: {bowl['economy']:.2f}</span> | 
+                        <span style="color: #EF4444;">🎯 {bowl['wickets']} wkts</span> | 
+                        <span style="color: #FBBF24;">💰 {bowl['runs']} runs</span><br>
+                        <span style="font-size: 12px;">📊 {bowl['overs']:.1f} overs | 📈 Avg: {bowl['avg']:.1f}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+        
+        # Tournament Summary
+        st.markdown("---")
+        st.markdown("### 📈 Tournament Summary")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            total_matches = len([m for m in db["matches"].values() if m["innings_1"]["b1"]["name"]])
+            st.metric("Total Matches", total_matches)
+        with col2:
+            total_runs = sum(stats["runs"] for stats in batsmen_stats.values())
+            st.metric("Total Runs", total_runs)
+        with col3:
+            total_wickets = sum(stats["wickets"] for stats in bowlers_stats.values())
+            st.metric("Total Wickets", total_wickets)
+        with col4:
+            total_sixes = sum(stats["sixes"] for stats in batsmen_stats.values())
+            st.metric("Total Sixes", total_sixes)
 
 # Teams Tab
 with tab_teams:
@@ -771,11 +1008,9 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get logos - USE THE SAME TEAM NAMES FROM MATCH
             b_logo = get_team_logo_base64(batting)
             bowl_logo = get_team_logo_base64(bowling)
             
-            # Create logo HTML with fallback
             if b_logo:
                 batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">'
             else:
@@ -791,7 +1026,6 @@ with tab_live:
             else:
                 status_badge = '<span class="live-indicator">🔴 LIVE</span>'
             
-            # Display Score with Logos
             st.markdown(f"""
                 <div class="compact-score">
                     {status_badge}
