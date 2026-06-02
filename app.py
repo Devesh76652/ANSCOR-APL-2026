@@ -14,19 +14,19 @@ import requests
 st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initial_sidebar_state="collapsed")
 
 # GitHub repo path
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# Team Database
+# Team Database with CORRECTED names matching GitHub files
 TEAM_DB = {
-    "Capital Chellengers": {
-        "local": "CapitalChellengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
+    "Capital Challengers": {  # Fixed from "Capital Chellengers"
+        "local": "Capital Challengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black panther": {
-        "local": "Blackpanther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
+    "Black Panther": {  # Fixed from "Black panther" to "Black Panther"
+        "local": "Black Panther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
     },
@@ -56,8 +56,19 @@ TEAM_DB = {
     }
 }
 
+# Cache for logo images
+@st.cache_data(ttl=3600)
+def fetch_logo_from_url(url):
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return base64.b64encode(response.content).decode()
+    except:
+        pass
+    return None
+
 def get_image_base64(local_path, remote_url=""):
-    """Get image base64 from local or remote with better error handling"""
+    """Get image base64 from local or remote"""
     # Try local file first
     if local_path:
         try:
@@ -66,19 +77,15 @@ def get_image_base64(local_path, remote_url=""):
                     img_data = img_file.read()
                     if img_data:
                         return base64.b64encode(img_data).decode()
-        except Exception as e:
-            st.warning(f"Could not load local logo: {e}")
-    
-    # Try remote URL if local fails
-    if remote_url:
-        try:
-            response = requests.get(remote_url, timeout=10)
-            if response.status_code == 200:
-                return base64.b64encode(response.content).decode()
-        except Exception as e:
+        except:
             pass
     
-    # Return None if both fail
+    # Try remote URL
+    if remote_url:
+        cached_logo = fetch_logo_from_url(remote_url)
+        if cached_logo:
+            return cached_logo
+    
     return None
 
 def get_team_logo_base64(team_name):
@@ -203,6 +210,7 @@ st.markdown("""
         letter-spacing: 1px;
         animation: pulse 1.5s infinite;
         box-shadow: 0 2px 10px rgba(239,68,68,0.3);
+        z-index: 1;
     }
     @keyframes pulse {
         0% { opacity: 1; transform: scale(1); }
@@ -220,6 +228,7 @@ st.markdown("""
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 1px;
+        z-index: 1;
     }
     .team-logo-display {
         width: 55px;
@@ -762,18 +771,18 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get logos with better error handling
+            # Get logos
             b_logo = get_image_base64(TEAM_DB.get(batting, {}).get("local", ""), TEAM_DB.get(batting, {}).get("remote", ""))
             bowl_logo = get_image_base64(TEAM_DB.get(bowling, {}).get("local", ""), TEAM_DB.get(bowling, {}).get("remote", ""))
             
             # Create logo HTML with fallback
             if b_logo:
-                batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display" onerror="this.style.display=\'none\'">'
+                batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">'
             else:
                 batting_logo_html = '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
             
             if bowl_logo:
-                bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display" onerror="this.style.display=\'none\'">'
+                bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display">'
             else:
                 bowling_logo_html = '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
             
