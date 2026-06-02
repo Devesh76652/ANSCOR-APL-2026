@@ -14,18 +14,17 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
-TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
-# Team Database with corrected names to match image filenames
+# Team Database with correct names matching your files
 TEAM_DB = {
-    "Capital Challengers": {  # Fixed spelling from "Chellengers" to "Challengers"
-        "local": "Capital Challengers.jpeg",  # Fixed filename to match repo
-        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",  # URL encoded space
+    "Capital Challengers": {
+        "local": "Capital Challengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black Panther": {  # Fixed spacing from "Black panther" to "Black Panther"
-        "local": "Black Panther.jpeg",  # Fixed filename to match repo
+    "Black Panther": {
+        "local": "Black Panther.jpeg",
         "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
@@ -846,8 +845,14 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
-            bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
+            # Add safety check for team logos
+            b_logo = ""
+            bowl_logo = ""
+            
+            if batting in TEAM_DB:
+                b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
+            if bowling in TEAM_DB:
+                bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
             
             # Determine LIVE or FINISHED status
             if innings_complete:
@@ -861,7 +866,7 @@ with tab_live:
                     {status_badge}
                     <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                         <div style="text-align: center;">
-                            <img src="data:image/jpeg;base64,{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            {f'<img src="data:image/jpeg;base64,{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">' if b_logo else '<div style="width: 55px; height: 55px; background: linear-gradient(135deg, #3B82F6, #2563EB); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 20px;">🏏</span></div>'}
                             <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{batting[:10]}</div>
                         </div>
                         <div style="text-align: center;">
@@ -869,7 +874,7 @@ with tab_live:
                             <div style="font-size: 12px; color: #93C5FD;">{overs_done}.{balls_in_over}/{match['total_overs']} | CRR: {crr:.2f}</div>
                         </div>
                         <div style="text-align: center;">
-                            <img src="data:image/jpeg;base64,{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">
+                            {f'<img src="data:image/jpeg;base64,{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">' if bowl_logo else '<div style="width: 55px; height: 55px; background: linear-gradient(135deg, #3B82F6, #2563EB); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 20px;">🏏</span></div>'}
                             <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{bowling[:10]}</div>
                         </div>
                     </div>
