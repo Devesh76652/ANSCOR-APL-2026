@@ -27,53 +27,48 @@ init_session_state()
 # ============= OPTIMIZATION: GitHub repo path =============
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# ============= OPTIMIZATION: Team Database with caching =============
-@st.cache_data(ttl=3600)
-def get_team_db():
-    """Cached team database"""
-    return {
-        "Capital Chellengers": {
-            "local": "Capital Challengers.jpeg",
-            "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
-            "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
-            "short_name": "CAP"
-        },
-        "Black panther": {
-            "local": "Black Panther.jpeg",
-            "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
-            "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
-            "short_name": "BLK"
-        },
-        "Super Kings": {
-            "local": "SuperKings.jpeg",
-            "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
-            "squad": ["Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", "Sudhir pal"],
-            "short_name": "SK"
-        },
-        "Power Hitter": {
-            "local": "PowerHitter.jpeg",
-            "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
-            "squad": ["Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"],
-            "short_name": "PH"
-        },
-        "Royal Warriors XI": {
-            "local": "RoyalWarriorsXI.jpeg",
-            "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
-            "squad": ["Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"],
-            "short_name": "RW"
-        },
-        "UnStoppable": {
-            "local": "UnStoppable.jpeg",
-            "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
-            "squad": ["Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"],
-            "short_name": "US"
-        }
+# ============= Team Database (No caching needed for this simple dict) =============
+TEAM_DB = {
+    "Capital Chellengers": {
+        "local": "Capital Challengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
+        "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
+        "short_name": "CAP"
+    },
+    "Black panther": {
+        "local": "Black Panther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
+        "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
+        "short_name": "BLK"
+    },
+    "Super Kings": {
+        "local": "SuperKings.jpeg",
+        "remote": GITHUB_RAW_BASE + "SuperKings.jpeg",
+        "squad": ["Bhushan Jagtap", "Lav gupta", "Shama Idrisi", "Md Munna", "Nilesh Chavhan", "Manvendra", "Pooja Jaikumar Vishwakarma", "Karan ramlakhan gupta", "Virendra mohite", "JAY", "SONALI VERMA", "Sudhir pal"],
+        "short_name": "SK"
+    },
+    "Power Hitter": {
+        "local": "PowerHitter.jpeg",
+        "remote": GITHUB_RAW_BASE + "PowerHitter.jpeg",
+        "squad": ["Surendran Shankar", "SAURABH KURHADE", "Akhilesh Yadav", "Vikas Yadav", "sumit thorat", "Nitesh Manoj Gupta", "Omkar chandrakant upalkar", "Sanvi Jadhav", "Prithviraj Singh", "Divyanshu Mishra", "Krishna", "pinki", "Snehal S", "Amit Dubey"],
+        "short_name": "PH"
+    },
+    "Royal Warriors XI": {
+        "local": "RoyalWarriorsXI.jpeg",
+        "remote": GITHUB_RAW_BASE + "RoyalWarriorsXI.jpeg",
+        "squad": ["Siddharth Yadav", "Aditi Shankar Giri", "Gulam Shaikh", "Altaf Khan", "Ranjeet Kumar", "Rakesh yadav", "Milind Devrukhkar", "Sahil yadav", "Aarti Gaud", "Sumit Kumar Yadav", "Rahul jadhav", "Priyanka Jaiswal"],
+        "short_name": "RW"
+    },
+    "UnStoppable": {
+        "local": "UnStoppable.jpeg",
+        "remote": GITHUB_RAW_BASE + "UnStoppable.jpeg",
+        "squad": ["Rajjesh", "Suvidha", "Lukman khan", "Prashun singh", "Omkar Rajesh Pandya", "Ganesh Kekan", "Abhishek Rokade", "Vipin Dilip Benvanshi", "Laxmi", "Priti Singh", "Zaid khan", "Yash patole"],
+        "short_name": "US"
     }
+}
 
-TEAM_DB = get_team_db()
-
-# ============= OPTIMIZATION: Logo fetching with better caching =============
-@st.cache_data(ttl=86400)  # Cache for 24 hours
+# ============= Logo fetching with simple caching =============
+@st.cache_data(ttl=86400)
 def fetch_logo_from_url(url):
     """Fetch logo from URL with caching"""
     try:
@@ -97,18 +92,14 @@ def get_local_logo(local_path):
 
 def get_image_base64(local_path, remote_url=""):
     """Get image base64 with caching"""
-    # Try local first
     if local_path:
         cached_logo = get_local_logo(local_path)
         if cached_logo:
             return cached_logo
-    
-    # Try remote
     if remote_url:
         cached_logo = fetch_logo_from_url(remote_url)
         if cached_logo:
             return cached_logo
-    
     return None
 
 def get_team_logo_base64(team_name):
@@ -118,7 +109,7 @@ def get_team_logo_base64(team_name):
         return None
     return get_image_base64(team_data.get("local", ""), team_data.get("remote", ""))
 
-# ============= OPTIMIZATION: CSS as constant =============
+# ============= CSS styles =============
 CSS_STYLES = """
 <style>
 .stButton > button {
@@ -312,28 +303,6 @@ div[data-testid="column"] button {
 
 st.markdown(CSS_STYLES, unsafe_allow_html=True)
 
-# ============= OPTIMIZATION: Helper functions with caching =============
-@st.cache_data(ttl=300)
-def get_cached_match_status(match_json):
-    """Cache match status to avoid recalculation"""
-    d1, d2 = match_json["innings_1"], match_json["innings_2"]
-    if d1["b1"]["name"] == "":
-        return "Awaiting lineup"
-    total_balls = match_json["total_overs"] * 6
-    if match_json["current_innings"] == 1:
-        if d1["balls"] >= total_balls or d1["wickets"] >= 10:
-            return f"Innings 1: {d1['runs']}/{d1['wickets']}"
-        return f"{match_json['team_1']} batting"
-    target = d1["runs"] + 1
-    if d2["runs"] >= target:
-        return f"{match_json['team_2']} wins by {10 - d2['wickets']} wickets"
-    if d2["balls"] >= total_balls or d2["wickets"] >= 10:
-        if d2["runs"] < d1["runs"]:
-            return f"{match_json['team_1']} wins by {d1['runs'] - d2['runs']} runs"
-        elif d2["runs"] == d1["runs"]:
-            return "MATCH TIED"
-    return f"Need {target - d2['runs']} runs from {total_balls - d2['balls']} balls"
-
 def init_innings():
     return {
         "runs": 0, "wickets": 0, "balls": 0, "extras": 0, "penalty": 0,
@@ -356,10 +325,23 @@ def ensure_match(m):
     return m
 
 def get_match_status(m):
-    """Wrapper for cached status"""
-    import json
-    match_json = json.dumps(m, default=str)
-    return get_cached_match_status(json.loads(match_json))
+    d1, d2 = m["innings_1"], m["innings_2"]
+    if d1["b1"]["name"] == "":
+        return "Awaiting lineup"
+    total_balls = m["total_overs"] * 6
+    if m["current_innings"] == 1:
+        if d1["balls"] >= total_balls or d1["wickets"] >= 10:
+            return f"Innings 1: {d1['runs']}/{d1['wickets']}"
+        return f"{m['team_1']} batting"
+    target = d1["runs"] + 1
+    if d2["runs"] >= target:
+        return f"{m['team_2']} wins by {10 - d2['wickets']} wickets"
+    if d2["balls"] >= total_balls or d2["wickets"] >= 10:
+        if d2["runs"] < d1["runs"]:
+            return f"{m['team_1']} wins by {d1['runs'] - d2['runs']} runs"
+        elif d2["runs"] == d1["runs"]:
+            return "MATCH TIED"
+    return f"Need {target - d2['runs']} runs from {total_balls - d2['balls']} balls"
 
 def clean_text(text):
     emoji_pattern = re.compile("["
@@ -374,12 +356,10 @@ def clean_text(text):
     text = ''.join(char if ord(char) < 128 else ' ' for char in text)
     return text.strip()
 
-# ============= OPTIMIZATION: PDF generation with caching =============
-@st.cache_data(ttl=60)
-def generate_complete_pdf(match_json):
-    """Generate PDF with caching"""
+def generate_complete_pdf(m):
+    """Generate PDF without caching to avoid issues"""
     try:
-        m = ensure_match(match_json)
+        m = ensure_match(m)
         pdf = FPDF()
         
         pdf.add_page()
@@ -678,15 +658,13 @@ def generate_complete_pdf(match_json):
         except:
             return b""
 
-# ============= OPTIMIZATION: Tournament stats with caching =============
-@st.cache_data(ttl=30)
-def get_tournament_stats(matches_json):
-    """Calculate tournament statistics with caching"""
+def get_tournament_stats():
+    """Calculate tournament statistics without caching to avoid issues"""
     batsmen_stats = defaultdict(lambda: {"runs": 0, "balls": 0, "fours": 0, "sixes": 0, "matches": 0, "not_out": 0, "highest": 0})
     bowlers_stats = defaultdict(lambda: {"wickets": 0, "runs": 0, "balls": 0, "matches": 0})
     team_stats = defaultdict(lambda: {"played": 0, "won": 0, "lost": 0, "tied": 0})
     
-    for match_id, match in matches_json.items():
+    for match_id, match in db["matches"].items():
         if match["innings_1"]["b1"]["name"] == "":
             continue
         
@@ -707,6 +685,7 @@ def get_tournament_stats(matches_json):
             team_stats[team2]["tied"] += 1
         
         for innings in [match["innings_1"], match["innings_2"]]:
+            # Batsmen stats
             all_bats = []
             if innings["b1"]["name"]:
                 all_bats.append(innings["b1"])
@@ -727,6 +706,7 @@ def get_tournament_stats(matches_json):
                     if bat.get("runs", 0) > batsmen_stats[name]["highest"]:
                         batsmen_stats[name]["highest"] = bat.get("runs", 0)
             
+            # Bowlers stats
             all_bowlers = []
             if innings["bowler"]["name"]:
                 all_bowlers.append(innings["bowler"])
@@ -777,9 +757,7 @@ with tab_stats:
     st.markdown("## 🏆 Tournament Statistics")
     st.markdown("---")
     
-    import json
-    matches_json = json.dumps(db["matches"], default=str)
-    batsmen_stats, bowlers_stats, team_stats = get_tournament_stats(json.loads(matches_json))
+    batsmen_stats, bowlers_stats, team_stats = get_tournament_stats()
     
     if not batsmen_stats and not bowlers_stats and not team_stats:
         st.info("No matches played yet. Statistics will appear after matches are completed.")
@@ -1051,7 +1029,6 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get logos
             b_logo = get_team_logo_base64(batting)
             bowl_logo = get_team_logo_base64(bowling)
             
@@ -1257,10 +1234,8 @@ with tab_live:
                         if target and inn["runs"] >= target:
                             st.success("🏆 Target Achieved! Match Complete")
                         else:
-                            # Optimized scoring buttons layout
                             st.markdown("**RUNS**")
                             
-                            # Create scoring buttons in 4 columns
                             col_0, col_1, col_2, col_3 = st.columns(4)
                             
                             with col_0:
@@ -1305,7 +1280,6 @@ with tab_live:
                             
                             st.markdown("---")
                             
-                            # Control buttons in 3 columns
                             col_out, col_undo, col_swap = st.columns(3)
                             
                             with col_out:
@@ -1353,9 +1327,7 @@ with tab_live:
                     st.markdown("---")
                     st.markdown("### 📄 EXPORT REPORT")
                     if match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0:
-                        import json
-                        match_json = json.dumps(match, default=str)
-                        pdf_data = generate_complete_pdf(json.loads(match_json))
+                        pdf_data = generate_complete_pdf(match)
                         if pdf_data and len(pdf_data) > 500:
                             st.download_button(
                                 label="📥 DOWNLOAD COMPLETE SCORECARD (PDF)",
@@ -1369,7 +1341,7 @@ with tab_live:
                             st.info("⏳ Preparing PDF...")
             
             else:
-                # Player View - Simplified for better performance
+                # Player View
                 st.markdown(f"""
                     <div class="info-row">
                         <b>🏏 BATTING PARTNERSHIP</b><br>
@@ -1421,9 +1393,7 @@ with tab_live:
                 
                 st.markdown("---")
                 if match["innings_1"]["balls"] > 0 or match["innings_2"]["balls"] > 0:
-                    import json
-                    match_json = json.dumps(match, default=str)
-                    pdf_data = generate_complete_pdf(json.loads(match_json))
+                    pdf_data = generate_complete_pdf(match)
                     if pdf_data and len(pdf_data) > 500:
                         st.download_button(
                             label="📥 DOWNLOAD SCORECARD (PDF)",
@@ -1457,9 +1427,7 @@ with tab_review:
         st.success(get_match_status(m))
         
         if m["innings_1"]["balls"] > 0 or m["innings_2"]["balls"] > 0:
-            import json
-            match_json = json.dumps(m, default=str)
-            pdf_data = generate_complete_pdf(json.loads(match_json))
+            pdf_data = generate_complete_pdf(m)
             if pdf_data and len(pdf_data) > 500:
                 st.markdown("---")
                 st.download_button(
