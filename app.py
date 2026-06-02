@@ -16,17 +16,17 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Team Database with corrected names
+# Team Database - Using exact names as they appear in the selectbox
 TEAM_DB = {
-    "Capital Challengers": {
-        "local": "Capital Challengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",
+    "Capital Chellengers": {
+        "local": "CapitalChellengers.jpeg",
+        "remote": GITHUB_RAW_BASE + "CapitalChellengers.jpeg",
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black Panther": {
-        "local": "Black Panther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
+    "Black panther": {
+        "local": "Blackpanther.jpeg",
+        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
     },
@@ -56,10 +56,9 @@ TEAM_DB = {
     }
 }
 
-# Cache for logo images to avoid repeated fetching
+# Cache for logo images
 @st.cache_data(ttl=3600)
 def fetch_logo_from_url(url):
-    """Fetch logo from URL and cache it"""
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
@@ -69,34 +68,27 @@ def fetch_logo_from_url(url):
     return None
 
 def get_image_base64(local_path, remote_url=""):
-    """Try local first, then fallback to remote URL"""
-    # First try local file
     if local_path and os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
                 return base64.b64encode(img_file.read()).decode()
         except:
             pass
-    
-    # If local fails and remote URL is provided, try to fetch from GitHub
     if remote_url:
         cached_logo = fetch_logo_from_url(remote_url)
         if cached_logo:
             return cached_logo
-    
     return None
 
 def get_team_logo_base64(team_name):
-    """Get logo for a team, trying local first then remote"""
     team_data = TEAM_DB.get(team_name, {})
     if not team_data:
         return None
     local_path = team_data.get("local", "")
     remote_url = team_data.get("remote", "")
-    
     return get_image_base64(local_path, remote_url)
 
-# CSS with LIVE indicator styles
+# CSS styles
 st.markdown("""
     <style>
     .stButton > button {
@@ -196,8 +188,6 @@ st.markdown("""
         display: inline-block;
         font-size: 0.85rem;
     }
-    
-    /* LIVE Indicator Styles */
     .live-indicator {
         position: absolute;
         top: 15px;
@@ -229,7 +219,6 @@ st.markdown("""
         font-weight: 700;
         letter-spacing: 1px;
     }
-    
     .team-logo-display {
         width: 55px;
         height: 55px;
@@ -311,18 +300,13 @@ def clean_text(text):
     return text.strip()
 
 def generate_complete_pdf(m):
-    """Generate complete PDF with both innings details"""
     try:
         m = ensure_match(m)
         pdf = FPDF()
         
-        # ========== PAGE 1: INNINGS 1 ==========
         pdf.add_page()
-        
-        # Header
         pdf.set_fill_color(59, 130, 246)
         pdf.rect(0, 0, 210, 10, 'F')
-        
         pdf.set_font("Arial", "B", 22)
         pdf.set_text_color(0, 0, 0)
         pdf.cell(0, 15, "APL 2026", ln=True, align="C")
@@ -330,15 +314,12 @@ def generate_complete_pdf(m):
         pdf.set_text_color(59, 130, 246)
         pdf.cell(0, 8, "OFFICIAL MATCH SCORECARD", ln=True, align="C")
         pdf.set_text_color(0, 0, 0)
-        
-        # Match Details
         pdf.set_font("Arial", "", 11)
         pdf.cell(0, 10, f"{clean_text(m['team_1'])} vs {clean_text(m['team_2'])} ({m['total_overs']} Overs)", ln=True, align="C")
         pdf.set_font("Arial", "", 9)
         pdf.cell(0, 6, f"Match ID: {clean_text(m['id'])}", ln=True, align="C")
         pdf.cell(0, 6, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
         
-        # Result
         result = get_match_status(m)
         pdf.set_font("Arial", "B", 11)
         pdf.set_fill_color(200, 230, 200)
@@ -347,8 +328,6 @@ def generate_complete_pdf(m):
         pdf.cell(0, 6, clean_text(result), ln=True)
         
         y = 95
-        
-        # INNINGS 1
         d1 = m["innings_1"]
         if d1["b1"]["name"]:
             pdf.set_font("Arial", "B", 12)
@@ -366,7 +345,6 @@ def generate_complete_pdf(m):
             pdf.cell(0, 7, f"Total: {d1['runs']}/{d1['wickets']} in {overs1} overs (Run Rate: {rr:.2f})", ln=True)
             y += 8
             
-            # Batting Table
             pdf.set_font("Arial", "B", 9)
             pdf.set_fill_color(230, 230, 230)
             pdf.cell(55, 8, "BATSMAN", 1, 0, "C", 1)
@@ -411,8 +389,6 @@ def generate_complete_pdf(m):
                     pdf.cell(50, 6, clean_text(status[:18]), 1, 1, "C")
             
             y = pdf.get_y() + 5
-            
-            # Bowling Table
             pdf.set_font("Arial", "B", 10)
             pdf.set_fill_color(59, 130, 246)
             pdf.set_text_color(255, 255, 255)
@@ -454,7 +430,6 @@ def generate_complete_pdf(m):
                     pdf.cell(30, 6, "0", 1, 1, "C")
             
             y = pdf.get_y() + 5
-            
             if d1["over_history"]:
                 pdf.set_font("Arial", "B", 10)
                 pdf.set_fill_color(59, 130, 246)
@@ -480,12 +455,10 @@ def generate_complete_pdf(m):
                     timeline = over.get("Timeline", "")[:60]
                     pdf.cell(95, 5, clean_text(timeline), 1, 1, "L")
         
-        # ========== PAGE 2: INNINGS 2 ==========
         d2 = m["innings_2"]
         if d2["b1"]["name"]:
             pdf.add_page()
             y = 20
-            
             pdf.set_font("Arial", "B", 12)
             pdf.set_fill_color(59, 130, 246)
             pdf.set_text_color(255, 255, 255)
@@ -546,7 +519,6 @@ def generate_complete_pdf(m):
                     pdf.cell(50, 6, clean_text(status[:18]), 1, 1, "C")
             
             y = pdf.get_y() + 5
-            
             pdf.set_font("Arial", "B", 10)
             pdf.set_fill_color(59, 130, 246)
             pdf.set_text_color(255, 255, 255)
@@ -588,7 +560,6 @@ def generate_complete_pdf(m):
                     pdf.cell(30, 6, "0", 1, 1, "C")
             
             y = pdf.get_y() + 5
-            
             if d2["over_history"]:
                 pdf.set_font("Arial", "B", 10)
                 pdf.set_fill_color(59, 130, 246)
@@ -614,74 +585,9 @@ def generate_complete_pdf(m):
                     timeline = over.get("Timeline", "")[:60]
                     pdf.cell(95, 5, clean_text(timeline), 1, 1, "L")
         
-        # ========== PAGE 3: MATCH SUMMARY ==========
-        if d2["b1"]["name"]:
-            pdf.add_page()
-            y = 30
-            
-            pdf.set_font("Arial", "B", 18)
-            pdf.cell(0, 10, "MATCH SUMMARY", ln=True, align="C")
-            y += 15
-            
-            pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 8, f"Result: {clean_text(result)}", ln=True, align="C")
-            y += 12
-            
-            pdf.set_font("Arial", "B", 14)
-            pdf.cell(0, 8, "Statistics", ln=True, align="C")
-            y += 10
-            
-            pdf.set_font("Arial", "", 11)
-            total_runs = d1['runs'] + d2['runs']
-            total_wickets = d1['wickets'] + d2['wickets']
-            total_balls = d1['balls'] + d2['balls']
-            total_overs = f"{total_balls // 6}.{total_balls % 6}"
-            
-            total_fours = (d1['b1']['fours'] + d1['b2']['fours'] + 
-                          sum(b.get('fours', 0) for b in d1.get('all_batsmen', [])) +
-                          d2['b1']['fours'] + d2['b2']['fours'] + 
-                          sum(b.get('fours', 0) for b in d2.get('all_batsmen', [])))
-            
-            total_sixes = (d1['b1']['sixes'] + d1['b2']['sixes'] + 
-                          sum(b.get('sixes', 0) for b in d1.get('all_batsmen', [])) +
-                          d2['b1']['sixes'] + d2['b2']['sixes'] + 
-                          sum(b.get('sixes', 0) for b in d2.get('all_batsmen', [])))
-            
-            pdf.cell(0, 7, f"Total Runs Scored: {total_runs}", ln=True)
-            pdf.cell(0, 7, f"Total Wickets Lost: {total_wickets}", ln=True)
-            pdf.cell(0, 7, f"Total Overs Bowled: {total_overs}", ln=True)
-            pdf.cell(0, 7, f"Total Fours: {total_fours}", ln=True)
-            pdf.cell(0, 7, f"Total Sixes: {total_sixes}", ln=True)
-            
-            y += 35
-            pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 8, "Innings Comparison", ln=True, align="C")
-            y += 10
-            
-            pdf.set_font("Arial", "B", 10)
-            pdf.cell(80, 7, "", 0)
-            pdf.cell(50, 7, clean_text(m['team_1']), 0, 0, "C")
-            pdf.cell(50, 7, clean_text(m['team_2']), 0, 1, "C")
-            
-            pdf.set_font("Arial", "", 10)
-            pdf.cell(80, 7, "Runs:", 0)
-            pdf.cell(50, 7, str(d1['runs']), 0, 0, "C")
-            pdf.cell(50, 7, str(d2['runs']), 0, 1, "C")
-            
-            pdf.cell(80, 7, "Wickets:", 0)
-            pdf.cell(50, 7, str(d1['wickets']), 0, 0, "C")
-            pdf.cell(50, 7, str(d2['wickets']), 0, 1, "C")
-            
-            overs1 = f"{d1['balls']//6}.{d1['balls']%6}"
-            overs2 = f"{d2['balls']//6}.{d2['balls']%6}"
-            pdf.cell(80, 7, "Overs:", 0)
-            pdf.cell(50, 7, overs1, 0, 0, "C")
-            pdf.cell(50, 7, overs2, 0, 1, "C")
-        
         output_buffer = io.BytesIO()
         pdf.output(output_buffer)
         return output_buffer.getvalue()
-            
     except Exception as e:
         try:
             pdf = FPDF()
@@ -825,7 +731,6 @@ with tab_live:
         bowling = match["team_2"] if match["current_innings"] == 1 else match["team_1"]
         target = match["innings_1"]["runs"] + 1 if match["current_innings"] == 2 else None
         
-        # Check if match is live or finished
         total_balls_allowed = match["total_overs"] * 6
         if match["current_innings"] == 1:
             innings_complete = (inn["balls"] >= total_balls_allowed or inn["wickets"] >= 10)
@@ -854,34 +759,22 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Get logos with proper error handling
+            # Safe logo retrieval
             b_logo = None
             bowl_logo = None
-            
             if batting in TEAM_DB:
                 b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
             if bowling in TEAM_DB:
                 bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
             
-            # Create HTML for batting logo
-            if b_logo:
-                batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">'
-            else:
-                batting_logo_html = f'<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
+            batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">' if b_logo else '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
+            bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display">' if bowl_logo else '<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
             
-            # Create HTML for bowling logo
-            if bowl_logo:
-                bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display">'
-            else:
-                bowling_logo_html = f'<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
-            
-            # Determine LIVE or FINISHED status
             if innings_complete:
                 status_badge = '<span class="finished-indicator">FINISHED</span>'
             else:
                 status_badge = '<span class="live-indicator">🔴 LIVE</span>'
             
-            # Display Score with Logos
             st.markdown(f"""
                 <div class="compact-score">
                     {status_badge}
@@ -987,7 +880,10 @@ with tab_live:
                                 inn["bowler"]["balls"] += 1
                                 striker["balls"] += 1
                                 striker["runs"] += (runs - extra)
-                                inn["this_over"].append(symbol if symbol else runs)
+                                if symbol:
+                                    inn["this_over"].append(symbol)
+                                else:
+                                    inn["this_over"].append(runs)
                             else:
                                 inn["this_over"].append(symbol)
                             
@@ -1001,6 +897,7 @@ with tab_live:
                             if wicket and inn["wickets"] < 10:
                                 inn["awaiting_batsman"] = True
                     
+                    # Handle awaiting states
                     if inn["awaiting_batsman"]:
                         st.warning("⚠️ New Batsman Required")
                         used = [inn["b1"]["name"], inn["b2"]["name"]] + [b["name"] for b in inn["all_batsmen"]]
@@ -1011,12 +908,15 @@ with tab_live:
                         if st.button("✅ Confirm", use_container_width=True):
                             with db["lock"]:
                                 if inn["b1"]["strike"]:
+                                    inn["b1"]["status"] = f"Out - {inn.get('last_out_reason', 'Bowled')}"
                                     inn["all_batsmen"].append(copy.deepcopy(inn["b1"]))
                                     inn["b1"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": True}
                                 else:
+                                    inn["b2"]["status"] = f"Out - {inn.get('last_out_reason', 'Bowled')}"
                                     inn["all_batsmen"].append(copy.deepcopy(inn["b2"]))
                                     inn["b2"] = {"name": new_bat, "runs": 0, "balls": 0, "fours": 0, "sixes": 0, "strike": False}
                                 inn["awaiting_batsman"] = False
+                                inn["last_out_reason"] = ""
                             st.rerun()
                     
                     elif inn["awaiting_bowler"]:
@@ -1084,6 +984,8 @@ with tab_live:
                             a1, a2, a3 = st.columns(3)
                             with a1:
                                 if st.button("☝️ OUT", type="primary", use_container_width=True):
+                                    with db["lock"]:
+                                        inn["last_out_reason"] = "Bowled"
                                     add_ball(0, 0, True, True, "W")
                                     st.rerun()
                             with a2:
@@ -1093,6 +995,8 @@ with tab_live:
                                             prev = inn["undo_stack"].pop()
                                             for k in ["runs", "wickets", "balls", "extras", "this_over", "b1", "b2", "bowler"]:
                                                 inn[k] = prev[k]
+                                            inn["awaiting_batsman"] = False
+                                            inn["awaiting_bowler"] = False
                                         st.rerun()
                             with a3:
                                 if st.button("🔄 SWAP", use_container_width=True):
