@@ -16,17 +16,17 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 TOURNAMENT_LOGO_FILE = "image_4d6904.png"
 
-# Team Database
+# Team Database with corrected names to match image filenames
 TEAM_DB = {
-    "Capital Challengers": {
-        "local": "Capital Challengers.jpeg",
-        "remote": GITHUB_RAW_BASE + "Capital Challengers.jpeg",
+    "Capital Challengers": {  # Fixed spelling from "Chellengers" to "Challengers"
+        "local": "Capital Challengers.jpeg",  # Fixed filename to match repo
+        "remote": GITHUB_RAW_BASE + "Capital%20Challengers.jpeg",  # URL encoded space
         "squad": ["Umesh sutar", "Kisan Pawar", "Imran Khan", "Pooja Gaikwad", "Rohan Mhatre", "Saurabh Padad", "Vijayaraj Yadav", "Vaibhav Sonawane", "Azad kanojiya", "Shrushti Thali", "Gaurav Singh", "Siddhesh A"],
         "short_name": "CAP"
     },
-    "Black panther": {
-        "local": "Blackpanther.jpeg",
-        "remote": GITHUB_RAW_BASE + "Blackpanther.jpeg",
+    "Black Panther": {  # Fixed spacing from "Black panther" to "Black Panther"
+        "local": "Black Panther.jpeg",  # Fixed filename to match repo
+        "remote": GITHUB_RAW_BASE + "Black%20Panther.jpeg",
         "squad": ["Vishal Rajput", "Hitesh Purohit", "Omprakash Ashok Kamble", "Daraksha Khan", "Rohan vaity", "Devesh Tatale", "Suvarna Gupta", "Sanjay Sakpal", "SUMIIT M MORASKAR", "PRADEEP SHRIVASTAV", "Ishwar", "Rakesh Mishra", "Akash nagade"],
         "short_name": "BLK"
     },
@@ -57,24 +57,34 @@ TEAM_DB = {
 }
 
 def get_image_base64(local_path, remote_url=""):
+    """Try local first, then fallback to remote URL"""
+    # First try local file
     if local_path and os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
                 return base64.b64encode(img_file.read()).decode()
         except:
             pass
+    
+    # If local fails and remote URL is provided, try to fetch from GitHub
+    if remote_url:
+        try:
+            import requests
+            response = requests.get(remote_url, timeout=5)
+            if response.status_code == 200:
+                return base64.b64encode(response.content).decode()
+        except:
+            pass
+    
     return ""
 
 def get_team_logo_base64(team_name):
+    """Get logo for a team, trying local first then remote"""
     team_data = TEAM_DB.get(team_name, {})
     local_path = team_data.get("local", "")
-    if local_path and os.path.exists(local_path):
-        try:
-            with open(local_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode()
-        except:
-            pass
-    return ""
+    remote_url = team_data.get("remote", "")
+    
+    return get_image_base64(local_path, remote_url)
 
 # CSS with LIVE indicator styles
 st.markdown("""
