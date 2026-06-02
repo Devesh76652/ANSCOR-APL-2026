@@ -8,6 +8,7 @@ import base64
 from datetime import datetime
 import io
 import re
+import requests
 
 # Page Configuration
 st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initial_sidebar_state="collapsed")
@@ -15,7 +16,7 @@ st.set_page_config(page_title="APL 2026", page_icon="🏏", layout="wide", initi
 # GitHub repo path
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/APL/main/"
 
-# Team Database with correct names matching your files
+# Team Database with corrected names
 TEAM_DB = {
     "Capital Challengers": {
         "local": "Capital Challengers.jpeg",
@@ -55,6 +56,18 @@ TEAM_DB = {
     }
 }
 
+# Cache for logo images to avoid repeated fetching
+@st.cache_data(ttl=3600)
+def fetch_logo_from_url(url):
+    """Fetch logo from URL and cache it"""
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return base64.b64encode(response.content).decode()
+    except:
+        pass
+    return None
+
 def get_image_base64(local_path, remote_url=""):
     """Try local first, then fallback to remote URL"""
     # First try local file
@@ -67,19 +80,17 @@ def get_image_base64(local_path, remote_url=""):
     
     # If local fails and remote URL is provided, try to fetch from GitHub
     if remote_url:
-        try:
-            import requests
-            response = requests.get(remote_url, timeout=5)
-            if response.status_code == 200:
-                return base64.b64encode(response.content).decode()
-        except:
-            pass
+        cached_logo = fetch_logo_from_url(remote_url)
+        if cached_logo:
+            return cached_logo
     
-    return ""
+    return None
 
 def get_team_logo_base64(team_name):
     """Get logo for a team, trying local first then remote"""
     team_data = TEAM_DB.get(team_name, {})
+    if not team_data:
+        return None
     local_path = team_data.get("local", "")
     remote_url = team_data.get("remote", "")
     
@@ -219,31 +230,29 @@ st.markdown("""
         letter-spacing: 1px;
     }
     
-    /* Score Container with Logos Close to Score */
-    .score-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        margin: 10px 0;
-    }
-    .team-logo-small {
-        width: 60px;
-        height: 60px;
+    .team-logo-display {
+        width: 55px;
+        height: 55px;
         border-radius: 50%;
         border: 2px solid #3B82F6;
         object-fit: cover;
         background: white;
-        padding: 3px;
     }
-    .team-name-small {
-        font-size: 11px;
+    .team-logo-placeholder {
+        width: 55px;
+        height: 55px;
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #3B82F6;
+    }
+    .team-name-display {
+        font-size: 10px;
         font-weight: bold;
-        margin-top: 5px;
+        margin-top: 3px;
         color: #93C5FD;
-    }
-    .score-center {
-        text-align: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -845,14 +854,26 @@ with tab_live:
             balls_in_over = inn["balls"] % 6
             crr = inn["runs"] / (inn["balls"]/6) if inn["balls"] > 0 else 0
             
-            # Add safety check for team logos
-            b_logo = ""
-            bowl_logo = ""
+            # Get logos with proper error handling
+            b_logo = None
+            bowl_logo = None
             
             if batting in TEAM_DB:
                 b_logo = get_image_base64(TEAM_DB[batting]["local"], TEAM_DB[batting]["remote"])
             if bowling in TEAM_DB:
                 bowl_logo = get_image_base64(TEAM_DB[bowling]["local"], TEAM_DB[bowling]["remote"])
+            
+            # Create HTML for batting logo
+            if b_logo:
+                batting_logo_html = f'<img src="data:image/jpeg;base64,{b_logo}" class="team-logo-display">'
+            else:
+                batting_logo_html = f'<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
+            
+            # Create HTML for bowling logo
+            if bowl_logo:
+                bowling_logo_html = f'<img src="data:image/jpeg;base64,{bowl_logo}" class="team-logo-display">'
+            else:
+                bowling_logo_html = f'<div class="team-logo-placeholder"><span style="color: white; font-size: 20px;">🏏</span></div>'
             
             # Determine LIVE or FINISHED status
             if innings_complete:
@@ -860,22 +881,22 @@ with tab_live:
             else:
                 status_badge = '<span class="live-indicator">🔴 LIVE</span>'
             
-            # Improved Score Display with Logos Closer to Score
+            # Display Score with Logos
             st.markdown(f"""
                 <div class="compact-score">
                     {status_badge}
                     <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                         <div style="text-align: center;">
-                            {f'<img src="data:image/jpeg;base64,{b_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">' if b_logo else '<div style="width: 55px; height: 55px; background: linear-gradient(135deg, #3B82F6, #2563EB); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 20px;">🏏</span></div>'}
-                            <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{batting[:10]}</div>
+                            {batting_logo_html}
+                            <div class="team-name-display">{batting[:10]}</div>
                         </div>
                         <div style="text-align: center;">
                             <div class="score-big">{inn['runs']}-{inn['wickets']}</div>
                             <div style="font-size: 12px; color: #93C5FD;">{overs_done}.{balls_in_over}/{match['total_overs']} | CRR: {crr:.2f}</div>
                         </div>
                         <div style="text-align: center;">
-                            {f'<img src="data:image/jpeg;base64,{bowl_logo}" style="width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3B82F6;">' if bowl_logo else '<div style="width: 55px; height: 55px; background: linear-gradient(135deg, #3B82F6, #2563EB); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 20px;">🏏</span></div>'}
-                            <div style="font-size: 10px; font-weight: bold; margin-top: 3px; color: #93C5FD;">{bowling[:10]}</div>
+                            {bowling_logo_html}
+                            <div class="team-name-display">{bowling[:10]}</div>
                         </div>
                     </div>
                 </div>
@@ -1120,7 +1141,7 @@ with tab_live:
                             st.info("⏳ Preparing PDF...")
             
             else:
-                # Player View - with LIVE indicator
+                # Player View
                 st.markdown(f"""
                     <div class="info-row">
                         <b>🏏 BATTING PARTNERSHIP</b><br>
