@@ -24,10 +24,10 @@ def init_session_state():
 
 init_session_state()
 
-# ============= OPTIMIZATION: GitHub repo path =============
+# ============= GitHub repo path =============
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Anscortournament/ANSCOR-APL-2026/main/"
 
-# ============= Team Database (No caching needed for this simple dict) =============
+# ============= Team Database =============
 TEAM_DB = {
     "Capital Chellengers": {
         "local": "Capital Challengers.jpeg",
@@ -67,10 +67,9 @@ TEAM_DB = {
     }
 }
 
-# ============= Logo fetching with simple caching =============
+# ============= Logo fetching with caching =============
 @st.cache_data(ttl=86400)
 def fetch_logo_from_url(url):
-    """Fetch logo from URL with caching"""
     try:
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
@@ -81,7 +80,6 @@ def fetch_logo_from_url(url):
 
 @st.cache_data(ttl=86400)
 def get_local_logo(local_path):
-    """Get local logo with caching"""
     if local_path and os.path.exists(local_path):
         try:
             with open(local_path, "rb") as img_file:
@@ -91,7 +89,6 @@ def get_local_logo(local_path):
     return None
 
 def get_image_base64(local_path, remote_url=""):
-    """Get image base64 with caching"""
     if local_path:
         cached_logo = get_local_logo(local_path)
         if cached_logo:
@@ -103,7 +100,6 @@ def get_image_base64(local_path, remote_url=""):
     return None
 
 def get_team_logo_base64(team_name):
-    """Get logo for a team with caching"""
     team_data = TEAM_DB.get(team_name)
     if not team_data:
         return None
@@ -120,11 +116,11 @@ CSS_STYLES = """
     padding: 10px 20px;
     font-weight: 700;
     font-size: 16px;
-    transition: all 0.3s;
+    transition: all 0.2s;
     width: 100%;
 }
 .stButton > button:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: 0 5px 20px rgba(59,130,246,0.5);
 }
 div[data-testid="column"] button {
@@ -154,35 +150,6 @@ div[data-testid="column"] button {
     margin: 10px 0;
     font-size: 15px;
     border: 1px solid #334155;
-}
-.stat-card {
-    background: linear-gradient(135deg, #1E293B, #0F172A);
-    padding: 15px;
-    border-radius: 12px;
-    text-align: center;
-    border: 1px solid #3B82F6;
-    transition: all 0.3s ease;
-}
-.stat-card:hover {
-    transform: translateY(-3px);
-    border-color: #10B981;
-}
-.stat-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #3B82F6;
-}
-.stat-label {
-    font-size: 0.8rem;
-    color: #93C5FD;
-    margin-top: 5px;
-}
-.player-card {
-    background: #1E293B;
-    padding: 10px 15px;
-    border-radius: 10px;
-    margin: 5px 0;
-    border-left: 4px solid #3B82F6;
 }
 .ball {
     display: inline-block;
@@ -357,7 +324,6 @@ def clean_text(text):
     return text.strip()
 
 def generate_complete_pdf(m):
-    """Generate PDF without caching to avoid issues"""
     try:
         m = ensure_match(m)
         pdf = FPDF()
@@ -659,7 +625,6 @@ def generate_complete_pdf(m):
             return b""
 
 def get_tournament_stats():
-    """Calculate tournament statistics without caching to avoid issues"""
     batsmen_stats = defaultdict(lambda: {"runs": 0, "balls": 0, "fours": 0, "sixes": 0, "matches": 0, "not_out": 0, "highest": 0})
     bowlers_stats = defaultdict(lambda: {"wickets": 0, "runs": 0, "balls": 0, "matches": 0})
     team_stats = defaultdict(lambda: {"played": 0, "won": 0, "lost": 0, "tied": 0})
@@ -685,7 +650,6 @@ def get_tournament_stats():
             team_stats[team2]["tied"] += 1
         
         for innings in [match["innings_1"], match["innings_2"]]:
-            # Batsmen stats
             all_bats = []
             if innings["b1"]["name"]:
                 all_bats.append(innings["b1"])
@@ -706,7 +670,6 @@ def get_tournament_stats():
                     if bat.get("runs", 0) > batsmen_stats[name]["highest"]:
                         batsmen_stats[name]["highest"] = bat.get("runs", 0)
             
-            # Bowlers stats
             all_bowlers = []
             if innings["bowler"]["name"]:
                 all_bowlers.append(innings["bowler"])
@@ -762,7 +725,6 @@ with tab_stats:
     if not batsmen_stats and not bowlers_stats and not team_stats:
         st.info("No matches played yet. Statistics will appear after matches are completed.")
     else:
-        # Team Standings
         st.markdown("### 📊 Team Standings")
         standings_data = []
         for team, stats in team_stats.items():
@@ -782,7 +744,6 @@ with tab_stats:
         
         st.markdown("---")
         
-        # Top Batsmen
         st.markdown("### 🏏 Top Batsmen")
         col1, col2 = st.columns(2)
         
@@ -833,7 +794,6 @@ with tab_stats:
         
         st.markdown("---")
         
-        # Top Bowlers
         st.markdown("### 🎯 Top Bowlers")
         col1, col2 = st.columns(2)
         
@@ -882,7 +842,6 @@ with tab_stats:
                     </div>
                 """, unsafe_allow_html=True)
         
-        # Tournament Summary
         st.markdown("---")
         st.markdown("### 📈 Tournament Summary")
         col1, col2, col3, col4 = st.columns(4)
@@ -1127,6 +1086,10 @@ with tab_live:
                 with col_right:
                     st.markdown("### 🎛️ SCORING CONTROLS")
                     
+                    # Use session state to track pending updates
+                    if 'pending_update' not in st.session_state:
+                        st.session_state.pending_update = False
+                    
                     def add_ball(runs, extra=0, legal=True, wicket=False, symbol=None):
                         with db["lock"]:
                             if "undo_stack" not in inn:
@@ -1236,6 +1199,7 @@ with tab_live:
                         else:
                             st.markdown("**RUNS**")
                             
+                            # Use columns for buttons
                             col_0, col_1, col_2, col_3 = st.columns(4)
                             
                             with col_0:
