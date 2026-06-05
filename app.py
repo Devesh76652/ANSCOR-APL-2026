@@ -384,7 +384,7 @@ def generate_complete_pdf(m):
                 sr = (d1["b1"]["runs"] * 100 / d1["b1"]["balls"]) if d1["b1"]["balls"] > 0 else 0
                 pdf.cell(55, 6, clean_text(d1["b1"]["name"][:22]), 1)
                 pdf.cell(20, 6, str(d1["b1"]["runs"]), 1, 0, "C")
-                pdf.cell(20, 6, str(d1["b1"]["balls"]), 1, 0, "C")
+                pdf.cell(06, 6, str(d1["b1"]["balls"]), 1, 0, "C")
                 pdf.cell(15, 6, str(d1["b1"]["fours"]), 1, 0, "C")
                 pdf.cell(15, 6, str(d1["b1"]["sixes"]), 1, 0, "C")
                 pdf.cell(25, 6, f"{sr:.1f}", 1, 0, "C")
@@ -394,7 +394,7 @@ def generate_complete_pdf(m):
                 sr = (d1["b2"]["runs"] * 100 / d1["b2"]["balls"]) if d1["b2"]["balls"] > 0 else 0
                 pdf.cell(55, 6, clean_text(d1["b2"]["name"][:22]), 1)
                 pdf.cell(20, 6, str(d1["b2"]["runs"]), 1, 0, "C")
-                pdf.cell(20, 6, str(d1["b2"]["balls"]), 1, 0, "C")
+                pdf.cell(06, 6, str(d1["b2"]["balls"]), 1, 0, "C")
                 pdf.cell(15, 6, str(d1["b2"]["fours"]), 1, 0, "C")
                 pdf.cell(15, 6, str(d1["b2"]["sixes"]), 1, 0, "C")
                 pdf.cell(25, 6, f"{sr:.1f}", 1, 0, "C")
